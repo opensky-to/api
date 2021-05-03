@@ -6,6 +6,8 @@
 
 namespace OpenSky.API.Model
 {
+    using System.ComponentModel.DataAnnotations;
+
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
     /// Airport model.
@@ -16,6 +18,9 @@ namespace OpenSky.API.Model
     /// -------------------------------------------------------------------------------------------------
     public class Airport
     {
+        [Key]
+        [StringLength(5, MinimumLength = 4)]
+        [Required]
         public string ICAO { get; set; }
     }
 }

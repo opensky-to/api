@@ -1,56 +1,46 @@
-// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Program.cs" company="OpenSky">
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="OpenSkyDbContext.cs" company="OpenSky">
 // sushi.at for OpenSky 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
 namespace OpenSky.API
 {
-    using Microsoft.AspNetCore.Hosting;
-    using Microsoft.Extensions.Hosting;
+    using Microsoft.EntityFrameworkCore;
+
+    using OpenSky.API.Model;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Main entry point.
+    /// OpenSky database context.
     /// </summary>
     /// <remarks>
     /// sushi.at, 03/05/2021.
     /// </remarks>
+    /// <seealso cref="T:Microsoft.EntityFrameworkCore.DbContext"/>
     /// -------------------------------------------------------------------------------------------------
-    public static class Program
+    public partial class OpenSkyDbContext : DbContext
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Creates the host builder.
+        /// Initializes a new instance of the <see cref="OpenSkyDbContext"/> class.
         /// </summary>
         /// <remarks>
         /// sushi.at, 03/05/2021.
         /// </remarks>
-        /// <param name="args">
-        /// The command line arguments arguments.
+        /// <param name="options">
+        /// Database context options.
         /// </param>
-        /// <returns>
-        /// The new host builder.
-        /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); });
+        public OpenSkyDbContext(DbContextOptions<OpenSkyDbContext> options) : base(options)
+        {
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Main entry-point for this application.
+        /// Gets or sets the airports.
         /// </summary>
-        /// <remarks>
-        /// sushi.at, 03/05/2021.
-        /// </remarks>
-        /// <param name="args">
-        /// The command line arguments arguments.
-        /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public static void Main(string[] args)
-        {
-            CreateHostBuilder(args).Build().Run();
-        }
+        public virtual DbSet<Airport> Airports { get; set; }
     }
 }
