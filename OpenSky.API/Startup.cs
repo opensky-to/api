@@ -71,6 +71,7 @@ namespace OpenSky.API
             }
 
             app.UseRouting();
+            app.UseCors("OpenSkyAllowSpecificOrigins");
             app.UseAuthorization();
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
         }
@@ -88,6 +89,15 @@ namespace OpenSky.API
         /// -------------------------------------------------------------------------------------------------
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCors(
+                options => options.AddPolicy(
+                    "OpenSkyAllowSpecificOrigins",
+                    builder =>
+                    {
+                        //builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+                        builder.WithOrigins("https://*.opensky.to", "http://localhost:5000").AllowAnyHeader().AllowAnyMethod();
+                    }));
+
             services.AddControllers();
             services.AddSwaggerGen(c => { c.SwaggerDoc("v1", new OpenApiInfo { Title = "OpenSky.API", Version = "v1" }); });
         }
