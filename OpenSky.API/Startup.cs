@@ -6,12 +6,17 @@
 
 namespace OpenSky.API
 {
+    using System;
+
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.OpenApi.Models;
+
+    using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -89,15 +94,16 @@ namespace OpenSky.API
         /// -------------------------------------------------------------------------------------------------
         public void ConfigureServices(IServiceCollection services)
         {
+            // Set up cross-origin resource sharing policy for our website and local development
             services.AddCors(
                 options => options.AddPolicy(
                     "OpenSkyAllowSpecificOrigins",
                     builder =>
                     {
-                        //builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
                         builder.WithOrigins("https://www.opensky.to", "http://localhost:5000").AllowAnyHeader().AllowAnyMethod();
                     }));
 
+            services.AddDbContextPool<OpenSkyDbContext>(options => options.UseMySql(this.Configuration.GetConnectionString("OpenSkyConnectionString"), ServerVersion.Parse("10.4.18", ServerType.MariaDb)));
             services.AddControllers();
             services.AddSwaggerGen(c => { c.SwaggerDoc("v1", new OpenApiInfo { Title = "OpenSky.API", Version = "v1" }); });
         }
