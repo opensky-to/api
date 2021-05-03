@@ -95,7 +95,7 @@ namespace OpenSky.API
                     builder =>
                     {
                         //builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
-                        builder.WithOrigins("https://*.opensky.to", "http://localhost:5000").AllowAnyHeader().AllowAnyMethod();
+                        builder.WithOrigins("https://www.opensky.to", "http://localhost:5000").AllowAnyHeader().AllowAnyMethod();
                     }));
 
             services.AddControllers();
