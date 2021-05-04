@@ -52,6 +52,9 @@ namespace OpenSky.API.Controllers
         /// <param name="logger">
         /// The logger.
         /// </param>
+        /// <param name="db">
+        /// The OpenSky database context.
+        /// </param>
         /// -------------------------------------------------------------------------------------------------
         public AirportController(ILogger<AirportController> logger, OpenSkyDbContext db)
         {
