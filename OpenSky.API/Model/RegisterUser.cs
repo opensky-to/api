@@ -1,47 +1,47 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="OpenSkyDbContext.cs" company="OpenSky">
+// <copyright file="RegisterUser.cs" company="OpenSky">
 // sushi.at for OpenSky 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace OpenSky.API
+namespace OpenSky.API.Model
 {
-    using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-    using Microsoft.EntityFrameworkCore;
-
-    using OpenSky.API.DbModel;
+    using System.ComponentModel.DataAnnotations;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// OpenSky database context.
+    /// Register user model.
     /// </summary>
     /// <remarks>
-    /// sushi.at, 03/05/2021.
+    /// sushi.at, 05/05/2021.
     /// </remarks>
-    /// <seealso cref="T:Microsoft.EntityFrameworkCore.DbContext"/>
     /// -------------------------------------------------------------------------------------------------
-    public partial class OpenSkyDbContext : IdentityDbContext<OpenSkyUser>
+    public class RegisterUser
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="OpenSkyDbContext"/> class.
+        /// Gets or sets the email.
         /// </summary>
-        /// <remarks>
-        /// sushi.at, 03/05/2021.
-        /// </remarks>
-        /// <param name="options">
-        /// Database context options.
-        /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public OpenSkyDbContext(DbContextOptions<OpenSkyDbContext> options) : base(options)
-        {
-        }
+        [EmailAddress]
+        [Required(ErrorMessage = "Email is required")]
+        public string Email { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the airports.
+        /// Gets or sets the password.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public virtual DbSet<Airport> Airports { get; set; }
+        [Required(ErrorMessage = "Password is required")]
+        public string Password { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the username.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [Required(ErrorMessage = "Username is required")]
+        [StringLength(15, MinimumLength = 3)]
+        public string Username { get; set; }
     }
 }

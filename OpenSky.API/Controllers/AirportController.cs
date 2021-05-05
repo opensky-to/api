@@ -13,7 +13,7 @@ namespace OpenSky.API.Controllers
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
 
-    using OpenSky.API.Model;
+    using OpenSky.API.DbModel;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>

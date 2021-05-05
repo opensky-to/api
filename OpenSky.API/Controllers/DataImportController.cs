@@ -16,6 +16,7 @@ namespace OpenSky.API.Controllers
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Extensions.Logging;
 
+    using OpenSky.API.DbModel;
     using OpenSky.API.Model;
 
     /// -------------------------------------------------------------------------------------------------
@@ -80,6 +81,7 @@ namespace OpenSky.API.Controllers
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
         [HttpPost]
+        [Route("littleNavmapMSFS")]
         [DisableRequestSizeLimit]
         public IActionResult PostLittleNavmapMSFS(IFormFile fileUpload)
         {
@@ -177,12 +179,12 @@ namespace OpenSky.API.Controllers
                     connection.Close();
                 }
 
-                return this.Ok(new { message = "All done.", airportsProcessed });
+                return this.Ok(new ApiResponse($"Successfully processed {airportsProcessed} airports."));
             }
             catch (Exception ex)
             {
                 this.logger.LogError(ex, $"Unhandled exception processing LittleNavmapMSFS sqlite database. Last ident was {lastIdent}");
-                return this.StatusCode(400, new { message = $"ERROR: {ex.Message}", exception = ex.ToString() });
+                return this.StatusCode(StatusCodes.Status500InternalServerError,new ApiResponse(ex));
             }
             finally
             {
