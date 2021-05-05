@@ -7,14 +7,20 @@
 namespace OpenSky.API
 {
     using System;
+    using System.Text;
 
+    using Microsoft.AspNetCore.Authentication.JwtBearer;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
+    using Microsoft.AspNetCore.Identity;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
+    using Microsoft.IdentityModel.Tokens;
     using Microsoft.OpenApi.Models;
+
+    using OpenSky.API.DbModel;
 
     using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 
@@ -77,6 +83,7 @@ namespace OpenSky.API
 
             app.UseRouting();
             app.UseCors("OpenSkyAllowSpecificOrigins");
+            app.UseAuthentication();
             app.UseAuthorization();
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
         }
@@ -106,6 +113,37 @@ namespace OpenSky.API
             services.AddDbContextPool<OpenSkyDbContext>(options => options.UseMySql(this.Configuration.GetConnectionString("OpenSkyConnectionString"), ServerVersion.Parse("10.4.18", ServerType.MariaDb)));
             services.AddControllers();
             services.AddSwaggerGen(c => { c.SwaggerDoc("v1", new OpenApiInfo { Title = "OpenSky.API", Version = "v1" }); });
+
+            // Set identity with rules inspired by reading https://blog.codinghorror.com/password-rules-are-bullshit/
+            services.AddIdentity<OpenSkyUser, IdentityRole>(
+                        options =>
+                        {
+                            options.Password.RequiredLength = 10;
+                            options.Password.RequiredUniqueChars = 6;
+                        })
+                    .AddEntityFrameworkStores<OpenSkyDbContext>()
+                    .AddDefaultTokenProviders()
+                    .AddTop1000PasswordValidator<OpenSkyUser>();
+            services.AddAuthentication(
+                options =>
+                {
+                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+                })
+                    .AddJwtBearer(options =>
+                    {
+                        options.SaveToken = true;
+                        options.RequireHttpsMetadata = false;
+                        options.TokenValidationParameters = new TokenValidationParameters
+                        {
+                            ValidateIssuer = true,
+                            ValidateAudience = true,
+                            ValidAudience = this.Configuration["JWT:ValidAudience"],
+                            ValidIssuer = this.Configuration["JWT:ValidIssuer"],
+                            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.Configuration["JWT:Secret"]))
+                        };
+                    });
         }
     }
 }

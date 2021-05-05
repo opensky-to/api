@@ -4,7 +4,7 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace OpenSky.API.Model
+namespace OpenSky.API.DbModel
 {
     using System.ComponentModel.DataAnnotations;
 

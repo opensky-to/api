@@ -1,47 +1,40 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="OpenSkyDbContext.cs" company="OpenSky">
+// <copyright file="UserRoles.cs" company="OpenSky">
 // sushi.at for OpenSky 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace OpenSky.API
+namespace OpenSky.API.Model
 {
-    using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-    using Microsoft.EntityFrameworkCore;
-
-    using OpenSky.API.DbModel;
-
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// OpenSky database context.
+    /// OpenSky user roles.
     /// </summary>
     /// <remarks>
-    /// sushi.at, 03/05/2021.
+    /// sushi.at, 05/05/2021.
     /// </remarks>
-    /// <seealso cref="T:Microsoft.EntityFrameworkCore.DbContext"/>
     /// -------------------------------------------------------------------------------------------------
-    public partial class OpenSkyDbContext : IdentityDbContext<OpenSkyUser>
+    public static class UserRoles
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="OpenSkyDbContext"/> class.
+        /// The admin user role (used for server management).
         /// </summary>
-        /// <remarks>
-        /// sushi.at, 03/05/2021.
-        /// </remarks>
-        /// <param name="options">
-        /// Database context options.
-        /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public OpenSkyDbContext(DbContextOptions<OpenSkyDbContext> options) : base(options)
-        {
-        }
+        public const string Admin = "Admin";
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the airports.
+        /// The moderator user role (extra permissions to deal with the everyday operations of OpenSky).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public virtual DbSet<Airport> Airports { get; set; }
+        public const string Moderator = "Moderator";
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The user role - for players.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public const string User = "User";
     }
 }
