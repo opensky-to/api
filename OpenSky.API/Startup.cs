@@ -120,7 +120,7 @@ namespace OpenSky.API
                     "OpenSkyAllowSpecificOrigins",
                     builder =>
                     {
-                        builder.WithOrigins("https://www.opensky.to", "http://localhost:5000").AllowAnyHeader().AllowAnyMethod();
+                        builder.WithOrigins("https://www.opensky.to", "http://localhost:5001").AllowAnyHeader().AllowAnyMethod();
                     }));
 
             // Primary database connection pool
