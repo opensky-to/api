@@ -1,52 +1,55 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="OpenSkyUser.cs" company="OpenSky">
+// <copyright file="RegisterUser.cs" company="OpenSky">
 // sushi.at for OpenSky 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace OpenSky.API.DbModel
+namespace OpenSky.API.Model.Authentication
 {
-    using System;
-
-    using Microsoft.AspNetCore.Identity;
+    using System.ComponentModel.DataAnnotations;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// OpenSky user model.
+    /// Register user model.
     /// </summary>
     /// <remarks>
     /// sushi.at, 05/05/2021.
     /// </remarks>
-    /// <seealso cref="T:Microsoft.AspNetCore.Identity.IdentityUser"/>
     /// -------------------------------------------------------------------------------------------------
-    public class OpenSkyUser : IdentityUser
+    public class RegisterUser
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the Date/Time of the last login.
+        /// Gets or sets the email.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public DateTime? LastLogin { get; set; }
+        [EmailAddress]
+        [Required(ErrorMessage = "Email is required")]
+        public string Email { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the last login geo location (country).
+        /// Gets or sets the password.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public string LastLoginGeo { get; set; }
+        [Required(ErrorMessage = "Password is required")]
+        public string Password { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the last login IP.
+        /// Gets or sets the recaptcha token.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public string LastLoginIP { get; set; }
+        [Required]
+        public string RecaptchaToken { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the Date/Time when the user registered.
+        /// Gets or sets the username.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public DateTime RegisteredOn { get; set; }
+        [Required(ErrorMessage = "Username is required")]
+        [StringLength(15, MinimumLength = 3)]
+        public string Username { get; set; }
     }
 }

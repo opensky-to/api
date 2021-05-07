@@ -11,6 +11,7 @@ namespace OpenSky.API.Controllers
     using System.Data.SQLite;
     using System.IO;
     using System.Linq;
+    using System.Threading.Tasks;
 
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
@@ -83,7 +84,7 @@ namespace OpenSky.API.Controllers
         [HttpPost]
         [Route("littleNavmapMSFS")]
         [DisableRequestSizeLimit]
-        public IActionResult PostLittleNavmapMSFS(IFormFile fileUpload)
+        public async Task<ActionResult<ApiResponse<string>>> PostLittleNavmapMSFS(IFormFile fileUpload)
         {
             var filePath = Path.GetTempFileName();
             var airportsProcessed = 0;
@@ -91,9 +92,9 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"PostLittleNavmapMSFS received file with length {fileUpload.Length} bytes, saving to temporary file {filePath}");
-                using (var stream = System.IO.File.Create(filePath))
+                await using (var stream = System.IO.File.Create(filePath))
                 {
-                    fileUpload.CopyTo(stream);
+                    await fileUpload.CopyToAsync(stream);
                 }
 
                 var connection = new SQLiteConnection($"URI=file:{filePath}");
@@ -108,7 +109,7 @@ namespace OpenSky.API.Controllers
                                                            "ident,name,city,has_avgas,has_jetfuel,tower_frequency,atis_frequency,unicom_frequency,is_closed,is_military," +
                                                            "num_parking_gate,num_parking_ga_ramp,num_runways,longest_runway_length,longest_runway_surface,laty,lonx " +
                                                            "FROM airport", connection);
-                    using var reader = airportCommand.ExecuteReader();
+                    await using var reader = airportCommand.ExecuteReader();
                     while (reader.Read())
                     {
                         airportsProcessed++;
@@ -116,7 +117,7 @@ namespace OpenSky.API.Controllers
                         {
                             try
                             {
-                                this.db.SaveChanges();
+                                await this.db.SaveChangesAsync();
                             }
                             catch (Exception ex)
                             {
@@ -134,13 +135,13 @@ namespace OpenSky.API.Controllers
                             var newAirport = new Airport
                             {
                                 ICAO = ident,
-                                Name = !reader.IsDBNull("name") ? new string(reader.GetString("name").Take(50).ToArray()) : "???",
-                                City = !reader.IsDBNull("city") ? new string(reader.GetString("city").Take(50).ToArray()) : null,
+                                Name = !await reader.IsDBNullAsync("name") ? new string(reader.GetString("name").Take(50).ToArray()) : "???",
+                                City = !await reader.IsDBNullAsync("city") ? new string(reader.GetString("city").Take(50).ToArray()) : null,
                                 HasAvGas = reader.GetBoolean("has_avgas"),
                                 HasJetFuel = reader.GetBoolean("has_jetfuel"),
-                                TowerFrequency = !reader.IsDBNull("tower_frequency") ? (reader.GetInt32("tower_frequency") != 0 ? reader.GetInt32("tower_frequency") : null) : null,
-                                AtisFrequency = !reader.IsDBNull("atis_frequency") ? (reader.GetInt32("atis_frequency") != 0 ? reader.GetInt32("atis_frequency") : null) : null,
-                                UnicomFrequency = !reader.IsDBNull("unicom_frequency") ? (reader.GetInt32("unicom_frequency") != 0 ? reader.GetInt32("unicom_frequency") : null) : null,
+                                TowerFrequency = !await reader.IsDBNullAsync("tower_frequency") ? (reader.GetInt32("tower_frequency") != 0 ? reader.GetInt32("tower_frequency") : null) : null,
+                                AtisFrequency = !await reader.IsDBNullAsync("atis_frequency") ? (reader.GetInt32("atis_frequency") != 0 ? reader.GetInt32("atis_frequency") : null) : null,
+                                UnicomFrequency = !await reader.IsDBNullAsync("unicom_frequency") ? (reader.GetInt32("unicom_frequency") != 0 ? reader.GetInt32("unicom_frequency") : null) : null,
                                 IsClosed = reader.GetBoolean("is_closed"),
                                 IsMilitary = reader.GetBoolean("is_military"),
                                 Gates = reader.GetInt32("num_parking_gate"),
@@ -155,13 +156,13 @@ namespace OpenSky.API.Controllers
                         }
                         else
                         {
-                            existingAirport.Name = !reader.IsDBNull("name") ? new string(reader.GetString("name").Take(50).ToArray()) : "???";
-                            existingAirport.City = !reader.IsDBNull("city") ? new string(reader.GetString("city").Take(50).ToArray()) : null;
+                            existingAirport.Name = !await reader.IsDBNullAsync("name") ? new string(reader.GetString("name").Take(50).ToArray()) : "???";
+                            existingAirport.City = !await reader.IsDBNullAsync("city") ? new string(reader.GetString("city").Take(50).ToArray()) : null;
                             existingAirport.HasAvGas = reader.GetBoolean("has_avgas");
                             existingAirport.HasJetFuel = reader.GetBoolean("has_jetfuel");
-                            existingAirport.TowerFrequency = !reader.IsDBNull("tower_frequency") ? (reader.GetInt32("tower_frequency") != 0 ? reader.GetInt32("tower_frequency") : null) : null;
-                            existingAirport.AtisFrequency = !reader.IsDBNull("atis_frequency") ? (reader.GetInt32("atis_frequency") != 0 ? reader.GetInt32("atis_frequency") : null) : null;
-                            existingAirport.UnicomFrequency = !reader.IsDBNull("unicom_frequency") ? (reader.GetInt32("unicom_frequency") != 0 ? reader.GetInt32("unicom_frequency") : null) : null;
+                            existingAirport.TowerFrequency = !await reader.IsDBNullAsync("tower_frequency") ? (reader.GetInt32("tower_frequency") != 0 ? reader.GetInt32("tower_frequency") : null) : null;
+                            existingAirport.AtisFrequency = !await reader.IsDBNullAsync("atis_frequency") ? (reader.GetInt32("atis_frequency") != 0 ? reader.GetInt32("atis_frequency") : null) : null;
+                            existingAirport.UnicomFrequency = !await reader.IsDBNullAsync("unicom_frequency") ? (reader.GetInt32("unicom_frequency") != 0 ? reader.GetInt32("unicom_frequency") : null) : null;
                             existingAirport.IsClosed = reader.GetBoolean("is_closed");
                             existingAirport.IsMilitary = reader.GetBoolean("is_military");
                             existingAirport.Gates = reader.GetInt32("num_parking_gate");
@@ -179,12 +180,12 @@ namespace OpenSky.API.Controllers
                     connection.Close();
                 }
 
-                return this.Ok(new ApiResponse($"Successfully processed {airportsProcessed} airports."));
+                return this.Ok(new ApiResponse<string>($"Successfully processed {airportsProcessed} airports."));
             }
             catch (Exception ex)
             {
                 this.logger.LogError(ex, $"Unhandled exception processing LittleNavmapMSFS sqlite database. Last ident was {lastIdent}");
-                return this.StatusCode(StatusCodes.Status500InternalServerError,new ApiResponse(ex));
+                return this.StatusCode(StatusCodes.Status500InternalServerError,new ApiResponse<string>(ex));
             }
             finally
             {

@@ -1,40 +1,44 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="UserRoles.cs" company="OpenSky">
+// <copyright file="ReCaptchaRequestException.cs" company="OpenSky">
 // sushi.at for OpenSky 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace OpenSky.API.Model
+namespace OpenSky.API.Model.Authentication
 {
+    using System;
+
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// OpenSky user roles.
+    /// reCAPTCHA request exception.
     /// </summary>
     /// <remarks>
-    /// sushi.at, 05/05/2021.
+    /// sushi.at, 06/05/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public static class UserRoles
+    public class ReCaptchaRequestException : Exception
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The admin user role (used for server management).
+        /// Initializes a new instance of the <see cref="ReCaptchaRequestException"/> class.
         /// </summary>
+        /// <remarks>
+        /// sushi.at, 06/05/2021.
+        /// </remarks>
+        /// <param name="response">
+        /// The reCAPTCHA request response.
+        /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public const string Admin = "Admin";
+        public ReCaptchaRequestException(ReCaptchaResponse response)
+        {
+            this.Response = response;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The moderator user role (extra permissions to deal with the everyday operations of OpenSky).
+        /// Gets the reCAPTCHA request response.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public const string Moderator = "Moderator";
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// The user role - for players.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public const string User = "User";
+        public ReCaptchaResponse Response { get; }
     }
 }

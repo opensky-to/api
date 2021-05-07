@@ -1,52 +1,62 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="OpenSkyUser.cs" company="OpenSky">
+// <copyright file="ReCaptchaResponse.cs" company="OpenSky">
 // sushi.at for OpenSky 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace OpenSky.API.DbModel
+namespace OpenSky.API.Model.Authentication
 {
-    using System;
-
-    using Microsoft.AspNetCore.Identity;
+    using System.Runtime.Serialization;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// OpenSky user model.
+    /// Google reCAPTCHAv3 response model.
     /// </summary>
     /// <remarks>
-    /// sushi.at, 05/05/2021.
+    /// sushi.at, 06/05/2021.
     /// </remarks>
-    /// <seealso cref="T:Microsoft.AspNetCore.Identity.IdentityUser"/>
     /// -------------------------------------------------------------------------------------------------
-    public class OpenSkyUser : IdentityUser
+    [DataContract]
+    public class ReCaptchaResponse
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the Date/Time of the last login.
+        /// Gets or sets the challenge timestamp (ISO format yyyy-MM-dd'T'HH:mm:ssZZ).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public DateTime? LastLogin { get; set; }
+        [DataMember(Name = "challenge_ts")]
+        public string ChallengeTS { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the last login geo location (country).
+        /// Gets or sets the error codes.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public string LastLoginGeo { get; set; }
+        [DataMember(Name = "error-codes")]
+        public string[] ErrorCodes { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the last login IP.
+        /// Gets or sets the hostname.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public string LastLoginIP { get; set; }
+        [DataMember(Name = "hostname")]
+        public string Hostname { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the Date/Time when the user registered.
+        /// Gets or sets the score (1.0 good interaction, 0.0 bot).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public DateTime RegisteredOn { get; set; }
+        [DataMember(Name = "score")]
+        public double Score { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets a value indicating whether the request was successful.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [DataMember(Name = "success")]
+        public bool Success { get; set; }
     }
 }
