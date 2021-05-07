@@ -40,7 +40,6 @@ namespace OpenSky.API.Model.Authentication
         /// Gets or sets the recaptcha token.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [Required]
         public string RecaptchaToken { get; set; }
 
         /// -------------------------------------------------------------------------------------------------

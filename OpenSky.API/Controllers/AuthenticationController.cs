@@ -162,19 +162,19 @@ namespace OpenSky.API.Controllers
             // Check if values are ok
             if (!Regex.IsMatch(registerUser.Username, @"^[ A-Za-z0-9.\-_]+$"))
             {
-                return this.StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<string> { Message = "Username can only contain A-Z, 0-9 and the .-_ special characters!", IsError = true });
+                return this.Ok(new ApiResponse<string> { Message = "Username can only contain A-Z, 0-9 and the .-_ special characters!", IsError = true });
             }
 
             var userExists = await this.userManager.FindByNameAsync(registerUser.Username);
             if (userExists != null)
             {
-                return this.StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<string> { Message = "A user with this name already exists!", IsError = true });
+                return this.Ok(new ApiResponse<string> { Message = "A user with this name already exists!", IsError = true });
             }
 
             userExists = await this.userManager.FindByEmailAsync(registerUser.Email);
             if (userExists != null)
             {
-                return this.StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<string> { Message = "A user with this email address already exists!", IsError = true });
+                return this.Ok(new ApiResponse<string> { Message = "A user with this email address already exists!", IsError = true });
             }
 
             // Check Google reCAPTCHAv3
@@ -182,7 +182,12 @@ namespace OpenSky.API.Controllers
             var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
             if (!reCAPTCHAResponse.Success)
             {
-                return this.StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<string> { Message = "reCAPTCHA validation failed.", IsError = true });
+                return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA validation failed.", IsError = true });
+            }
+
+            if (reCAPTCHAResponse.Score <= 0.3)
+            {
+                return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true });
             }
 
             // Create user
@@ -198,7 +203,7 @@ namespace OpenSky.API.Controllers
             if (!createResult.Succeeded)
             {
                 var errorDetails = createResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
-                return this.StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<string> { Message = $"User creation failed!{errorDetails}", IsError = true });
+                return this.Ok(new ApiResponse<string> { Message = $"User creation failed!{errorDetails}", IsError = true });
             }
 
             // Send email validation
