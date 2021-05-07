@@ -16,11 +16,11 @@ namespace OpenSky.API.Model
     /// sushi.at, 05/05/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class ApiResponse
+    public class ApiResponse<T>
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="ApiResponse"/> class.
+        /// Initializes a new instance of the <see cref="ApiResponse&lt;T&gt;"></see> class.
         /// </summary>
         /// <remarks>
         /// sushi.at, 05/05/2021.
@@ -32,7 +32,7 @@ namespace OpenSky.API.Model
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="ApiResponse"/> class.
+        /// Initializes a new instance of the <see cref="ApiResponse&lt;T&gt;"></see> class.
         /// </summary>
         /// <remarks>
         /// sushi.at, 05/05/2021.
@@ -51,7 +51,7 @@ namespace OpenSky.API.Model
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="ApiResponse"/> class.
+        /// Initializes a new instance of the <see cref="ApiResponse&lt;T&gt;"></see> class.
         /// </summary>
         /// <remarks>
         /// sushi.at, 05/05/2021.
@@ -73,7 +73,7 @@ namespace OpenSky.API.Model
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="ApiResponse"/> class.
+        /// Initializes a new instance of the <see cref="ApiResponse&lt;T&gt;"></see> class.
         /// </summary>
         /// <remarks>
         /// sushi.at, 05/05/2021.
@@ -116,5 +116,12 @@ namespace OpenSky.API.Model
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string Status { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the embedded data of type T.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public T Data { get; set; }
     }
 }

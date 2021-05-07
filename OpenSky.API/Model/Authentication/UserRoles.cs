@@ -1,47 +1,40 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="RegisterUser.cs" company="OpenSky">
+// <copyright file="UserRoles.cs" company="OpenSky">
 // sushi.at for OpenSky 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace OpenSky.API.Model
+namespace OpenSky.API.Model.Authentication
 {
-    using System.ComponentModel.DataAnnotations;
-
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Register user model.
+    /// OpenSky user roles.
     /// </summary>
     /// <remarks>
     /// sushi.at, 05/05/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class RegisterUser
+    public static class UserRoles
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the email.
+        /// The admin user role (used for server management).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [EmailAddress]
-        [Required(ErrorMessage = "Email is required")]
-        public string Email { get; set; }
+        public const string Admin = "Admin";
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the password.
+        /// The moderator user role (extra permissions to deal with the everyday operations of OpenSky).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [Required(ErrorMessage = "Password is required")]
-        public string Password { get; set; }
+        public const string Moderator = "Moderator";
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the username.
+        /// The user role - for players.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [Required(ErrorMessage = "Username is required")]
-        [StringLength(15, MinimumLength = 3)]
-        public string Username { get; set; }
+        public const string User = "User";
     }
 }

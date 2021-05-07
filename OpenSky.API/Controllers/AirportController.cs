@@ -7,8 +7,10 @@
 namespace OpenSky.API.Controllers
 {
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
 
+    using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
@@ -24,6 +26,7 @@ namespace OpenSky.API.Controllers
     /// </remarks>
     /// <seealso cref="T:Microsoft.AspNetCore.Mvc.ControllerBase"/>
     /// -------------------------------------------------------------------------------------------------
+    [Authorize(Roles = "User")]
     [ApiController]
     [Route("[controller]")]
     public class AirportController : ControllerBase
@@ -64,7 +67,7 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets all available airports.
+        /// Gets all available airports (ICAO code only).
         /// </summary>
         /// <remarks>
         /// sushi.at, 02/05/2021.
@@ -74,10 +77,10 @@ namespace OpenSky.API.Controllers
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
         [HttpGet]
-        public async Task<IEnumerable<Airport>> Get()
+        public async Task<IEnumerable<string>> Get()
         {
-            this.logger.LogInformation("Somebody requested the list of ALL airports (test log message)");
-            return await this.db.Airports.ToListAsync();
+            this.logger.LogInformation($"{this.User.Identity?.Name} | GET Airport");
+            return await this.db.Airports.Select(a => a.ICAO).ToListAsync();
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -97,6 +100,7 @@ namespace OpenSky.API.Controllers
         [HttpGet("{icao}", Name = "FindOne")]
         public async Task<ActionResult<Airport>> Get(string icao)
         {
+            this.logger.LogInformation($"{this.User.Identity?.Name} | GET Airport/{icao}");
             return await this.db.Airports.FirstOrDefaultAsync(a => a.ICAO.Equals(icao));
         }
     }
