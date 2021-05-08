@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Login.cs" company="OpenSky">
+// <copyright file="ResetPassword.cs" company="OpenSky">
 // sushi.at for OpenSky 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
@@ -10,14 +10,23 @@ namespace OpenSky.API.Model.Authentication
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Login model.
+    /// Reset password model.
     /// </summary>
     /// <remarks>
     /// sushi.at, 06/05/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class Login
+    public class ResetPassword
     {
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the email.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [EmailAddress]
+        [Required(ErrorMessage = "Email is required")]
+        public string Email { get; set; }
+
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
         /// Gets or sets the password.
@@ -35,10 +44,10 @@ namespace OpenSky.API.Model.Authentication
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the username.
+        /// Gets or sets the token.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [Required(ErrorMessage = "Username is required")]
-        public string Username { get; set; }
+        [Required(ErrorMessage = "Token is required")]
+        public string Token { get; set; }
     }
 }

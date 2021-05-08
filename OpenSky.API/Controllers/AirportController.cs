@@ -16,6 +16,7 @@ namespace OpenSky.API.Controllers
     using Microsoft.Extensions.Logging;
 
     using OpenSky.API.DbModel;
+    using OpenSky.API.Model.Authentication;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -26,7 +27,7 @@ namespace OpenSky.API.Controllers
     /// </remarks>
     /// <seealso cref="T:Microsoft.AspNetCore.Mvc.ControllerBase"/>
     /// -------------------------------------------------------------------------------------------------
-    [Authorize(Roles = "User")]
+    [Authorize(Roles = UserRoles.User)]
     [ApiController]
     [Route("[controller]")]
     public class AirportController : ControllerBase

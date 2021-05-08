@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Login.cs" company="OpenSky">
+// <copyright file="ChangePassword.cs" company="OpenSky">
 // sushi.at for OpenSky 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
@@ -10,14 +10,22 @@ namespace OpenSky.API.Model.Authentication
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Login model.
+    /// Change password model.
     /// </summary>
     /// <remarks>
-    /// sushi.at, 06/05/2021.
+    /// sushi.at, 08/05/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class Login
+    public class ChangePassword
     {
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the password.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [Required(ErrorMessage = "New password is required")]
+        public string NewPassword { get; set; }
+
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
         /// Gets or sets the password.
@@ -25,20 +33,5 @@ namespace OpenSky.API.Model.Authentication
         /// -------------------------------------------------------------------------------------------------
         [Required(ErrorMessage = "Password is required")]
         public string Password { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the recaptcha token.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public string RecaptchaToken { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the username.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [Required(ErrorMessage = "Username is required")]
-        public string Username { get; set; }
     }
 }

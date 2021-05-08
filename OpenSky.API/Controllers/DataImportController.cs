@@ -13,12 +13,14 @@ namespace OpenSky.API.Controllers
     using System.Linq;
     using System.Threading.Tasks;
 
+    using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Extensions.Logging;
 
     using OpenSky.API.DbModel;
     using OpenSky.API.Model;
+    using OpenSky.API.Model.Authentication;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -29,6 +31,7 @@ namespace OpenSky.API.Controllers
     /// </remarks>
     /// <seealso cref="T:Microsoft.AspNetCore.Mvc.ControllerBase"/>
     /// -------------------------------------------------------------------------------------------------
+    [Authorize(Roles = UserRoles.Admin)]
     [ApiController]
     [Route("[controller]")]
     public class DataImportController : ControllerBase
