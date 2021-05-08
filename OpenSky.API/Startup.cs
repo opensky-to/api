@@ -7,14 +7,28 @@
 namespace OpenSky.API
 {
     using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Reflection;
+    using System.Text;
 
+    using MailKit.Security;
+
+    using Microsoft.AspNetCore.Authentication.JwtBearer;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
+    using Microsoft.AspNetCore.HttpOverrides;
+    using Microsoft.AspNetCore.Identity;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
+    using Microsoft.IdentityModel.Tokens;
     using Microsoft.OpenApi.Models;
+
+    using OpenSky.API.DbModel;
+    using OpenSky.API.Helpers;
+    using OpenSky.API.Services;
 
     using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 
@@ -76,7 +90,13 @@ namespace OpenSky.API
             }
 
             app.UseRouting();
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor |
+                                   ForwardedHeaders.XForwardedProto
+            });
             app.UseCors("OpenSkyAllowSpecificOrigins");
+            app.UseAuthentication();
             app.UseAuthorization();
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
         }
@@ -100,12 +120,97 @@ namespace OpenSky.API
                     "OpenSkyAllowSpecificOrigins",
                     builder =>
                     {
-                        builder.WithOrigins("https://www.opensky.to", "http://localhost:5000").AllowAnyHeader().AllowAnyMethod();
+                        builder.WithOrigins("https://www.opensky.to", "http://localhost:5001").AllowAnyHeader().AllowAnyMethod();
                     }));
 
+            // Primary database connection pool
             services.AddDbContextPool<OpenSkyDbContext>(options => options.UseMySql(this.Configuration.GetConnectionString("OpenSkyConnectionString"), ServerVersion.Parse("10.4.18", ServerType.MariaDb)));
+            
+            // Add swagger
+            services.AddSwaggerGen(
+                c =>
+                {
+                    c.SwaggerDoc("v1", new OpenApiInfo { Title = "OpenSky.API", Version = "v1" });
+                    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                    {
+                        Description = "JWT Authorization header using the Bearer scheme. \r\n\r\n" +
+                            "Enter 'Bearer' [space] and then your token in the text input below." +
+                            "\r\n\r\nExample: 'Bearer xxxxxxxxxxxxxxxxx'",
+                        Name = "Authorization",
+                        In = ParameterLocation.Header,
+                        Type = SecuritySchemeType.ApiKey,
+                        Scheme = "Bearer"
+                    });
+                    c.AddSecurityRequirement(new OpenApiSecurityRequirement()
+                    {
+                        {
+                            new OpenApiSecurityScheme
+                            {
+                                Reference = new OpenApiReference
+                                {
+                                    Type = ReferenceType.SecurityScheme,
+                                    Id = "Bearer"
+                                },
+                                Scheme = "oauth2",
+                                Name = "Bearer",
+                                In = ParameterLocation.Header,
+
+                            },
+                            new List<string>()
+                        }
+                    });
+                    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+                    c.IncludeXmlComments(xmlPath);
+                });
+
+            // Email service
+            services.AddSingleton(
+                new SendMail(
+                    this.Configuration["Email:SmtpServer"],
+                    int.Parse(this.Configuration["Email:SmtpPort"]),
+                    this.Configuration["Email:UserName"],
+                    this.Configuration["Email:Password"],
+                    Enum.Parse<SecureSocketOptions>(this.Configuration["Email:SecureSocketOptions"])));
+
+            // Set identity with rules inspired by reading https://blog.codinghorror.com/password-rules-are-bullshit/
+            services.AddIdentity<OpenSkyUser, IdentityRole>(
+                        options =>
+                        {
+                            options.Password.RequiredLength = 10;
+                            options.Password.RequiredUniqueChars = 6;
+                            options.User.RequireUniqueEmail = true;
+                        })
+                    .AddEntityFrameworkStores<OpenSkyDbContext>()
+                    .AddDefaultTokenProviders()
+                    .AddTop1000PasswordValidator<OpenSkyUser>();
+            services.AddAuthentication(
+                options =>
+                {
+                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+                })
+                    .AddJwtBearer(options =>
+                    {
+                        options.SaveToken = true;
+                        options.RequireHttpsMetadata = false;
+                        options.TokenValidationParameters = new TokenValidationParameters
+                        {
+                            ValidateIssuer = true,
+                            ValidateAudience = true,
+                            ValidAudience = this.Configuration["JWT:ValidAudience"],
+                            ValidIssuer = this.Configuration["JWT:ValidIssuer"],
+                            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.Configuration["JWT:Secret"]))
+                        };
+                    });
+
+            // Set up Google reCAPTCHAv3 service
+            services.AddHttpClient<GoogleRecaptchaV3Service>();
+            services.AddSingleton<GoogleRecaptchaV3Service>();
+
+            // API controllers
             services.AddControllers();
-            services.AddSwaggerGen(c => { c.SwaggerDoc("v1", new OpenApiInfo { Title = "OpenSky.API", Version = "v1" }); });
         }
     }
 }
