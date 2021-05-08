@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Login.cs" company="OpenSky">
+// <copyright file="ResendValidationEmail.cs" company="OpenSky">
 // sushi.at for OpenSky 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
@@ -10,21 +10,22 @@ namespace OpenSky.API.Model.Authentication
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Login model.
+    /// Resend validation email model.
     /// </summary>
     /// <remarks>
-    /// sushi.at, 06/05/2021.
+    /// sushi.at, 08/05/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class Login
+    public class ResendValidationEmail
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the password.
+        /// Gets or sets the email.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [Required(ErrorMessage = "Password is required")]
-        public string Password { get; set; }
+        [EmailAddress]
+        [Required(ErrorMessage = "Email is required")]
+        public string Email { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -32,13 +33,5 @@ namespace OpenSky.API.Model.Authentication
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string RecaptchaToken { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the username.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [Required(ErrorMessage = "Username is required")]
-        public string Username { get; set; }
     }
 }

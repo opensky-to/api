@@ -85,10 +85,17 @@
             <seealso cref="T:Microsoft.AspNetCore.Mvc.ControllerBase"/>
             -------------------------------------------------------------------------------------------------
         </member>
-        <member name="F:OpenSky.API.Controllers.AuthenticationController.db">
+        <member name="F:OpenSky.API.Controllers.AuthenticationController.configuration">
             -------------------------------------------------------------------------------------------------
             <summary>
-            The OpenSky database context.
+            The application configuration.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="F:OpenSky.API.Controllers.AuthenticationController.googleRecaptchaV3Service">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            The Google reCAPTCHAv3 service.
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>
@@ -96,13 +103,6 @@
             -------------------------------------------------------------------------------------------------
             <summary>
             The logger.
-            </summary>
-            -------------------------------------------------------------------------------------------------
-        </member>
-        <member name="F:OpenSky.API.Controllers.AuthenticationController.userManager">
-            -------------------------------------------------------------------------------------------------
-            <summary>
-            The user manager.
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>
@@ -120,21 +120,14 @@
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>
-        <member name="F:OpenSky.API.Controllers.AuthenticationController.configuration">
+        <member name="F:OpenSky.API.Controllers.AuthenticationController.userManager">
             -------------------------------------------------------------------------------------------------
             <summary>
-            The application configuration.
+            The user manager.
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>
-        <member name="F:OpenSky.API.Controllers.AuthenticationController.googleRecaptchaV3Service">
-            -------------------------------------------------------------------------------------------------
-            <summary>
-            The Google reCAPTCHAv3 service.
-            </summary>
-            -------------------------------------------------------------------------------------------------
-        </member>
-        <member name="M:OpenSky.API.Controllers.AuthenticationController.#ctor(Microsoft.Extensions.Logging.ILogger{OpenSky.API.Controllers.AuthenticationController},OpenSky.API.OpenSkyDbContext,Microsoft.AspNetCore.Identity.UserManager{OpenSky.API.DbModel.OpenSkyUser},Microsoft.AspNetCore.Identity.RoleManager{Microsoft.AspNetCore.Identity.IdentityRole},OpenSky.API.Helpers.SendMail,Microsoft.Extensions.Configuration.IConfiguration,OpenSky.API.Services.GoogleRecaptchaV3Service)">
+        <member name="M:OpenSky.API.Controllers.AuthenticationController.#ctor(Microsoft.Extensions.Logging.ILogger{OpenSky.API.Controllers.AuthenticationController},Microsoft.AspNetCore.Identity.UserManager{OpenSky.API.DbModel.OpenSkyUser},Microsoft.AspNetCore.Identity.RoleManager{Microsoft.AspNetCore.Identity.IdentityRole},OpenSky.API.Helpers.SendMail,Microsoft.Extensions.Configuration.IConfiguration,OpenSky.API.Services.GoogleRecaptchaV3Service)">
             -------------------------------------------------------------------------------------------------
             <summary>
             Initializes a new instance of the <see cref="T:OpenSky.API.Controllers.AuthenticationController"/> class.
@@ -144,9 +137,6 @@
             </remarks>
             <param name="logger">
             The logger.
-            </param>
-            <param name="db">
-            The OpenSky database context.
             </param>
             <param name="userManager">
             The user manager.
@@ -165,6 +155,54 @@
             </param>
             -------------------------------------------------------------------------------------------------
         </member>
+        <member name="M:OpenSky.API.Controllers.AuthenticationController.ChangePassword(OpenSky.API.Model.Authentication.ChangePassword)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Change OpenSky user password.
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            <param name="changePassword">
+            The change password model.
+            </param>
+            <returns>
+            An IActionResult object returning an ApiResponse object in the body.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Controllers.AuthenticationController.ForgotPassword(OpenSky.API.Model.Authentication.ForgotPassword)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Forgot password request from OpenSky user.
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            <param name="forgotPassword">
+            The forgot password model.
+            </param>
+            <returns>
+            An IActionResult object returning an ApiResponse object in the body.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Controllers.AuthenticationController.Login(OpenSky.API.Model.Authentication.Login)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Login to OpenSky API.
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            <param name="login">
+            The login model.
+            </param>
+            <returns>
+            An IActionResult object returning an ApiResponse object in the body.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
         <member name="M:OpenSky.API.Controllers.AuthenticationController.Register(OpenSky.API.Model.Authentication.RegisterUser)">
             -------------------------------------------------------------------------------------------------
             <summary>
@@ -174,7 +212,55 @@
             sushi.at, 06/05/2021.
             </remarks>
             <param name="registerUser">
-            The register user.
+            The register user model.
+            </param>
+            <returns>
+            An IActionResult object returning an ApiResponse object in the body.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Controllers.AuthenticationController.ResendValidationEmail(OpenSky.API.Model.Authentication.ResendValidationEmail)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Re-send the email validation.
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            <param name="resendValidationEmail">
+            The resend validation email model.
+            </param>
+            <returns>
+            An IActionResult object returning an ApiResponse object in the body.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Controllers.AuthenticationController.ResetPassword(OpenSky.API.Model.Authentication.ResetPassword)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Reset OpenSky user password.
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            <param name="resetPassword">
+            The reset password model.
+            </param>
+            <returns>
+            An IActionResult object returning an ApiResponse object in the body.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Controllers.AuthenticationController.ValidateEmail(OpenSky.API.Model.Authentication.ValidateEmail)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Validate email address of previously registered OpenSky user.
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            <param name="validateEmail">
+            The validate email model.
             </param>
             <returns>
             An IActionResult object returning an ApiResponse object in the body.
@@ -455,6 +541,16 @@
             </returns>
             -------------------------------------------------------------------------------------------------
         </member>
+        <member name="T:OpenSky.API.Helpers.SendMail">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Send mail helper.
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
         <member name="M:OpenSky.API.Helpers.SendMail.#ctor(System.String,System.Int32,System.String,System.String,MailKit.Security.SecureSocketOptions)">
             -------------------------------------------------------------------------------------------------
             <summary>
@@ -550,6 +646,130 @@
             <param name="attachments">
             Array of email attachments to send.
             </param>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Migrations.Airport">
+            -------------------------------------------------------------------------------------------------
+            <content>
+            Airport migration.
+            </content>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Migrations.Airport.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            <para>
+                            Builds the operations that will migrate the database 'up'.
+                        </para>
+            <para>
+                            That is, builds the operations that will take the database from the state
+                            left in by the previous migration so that it is up-to-date with regard to
+                            this migration.
+                        </para>
+            <para>
+                            This method must be overridden in each class the inherits from
+                            <see cref="T:Microsoft.EntityFrameworkCore.Migrations.Migration" />.
+                        </para>
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            <param name="migrationBuilder">
+            The <see cref="T:Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder" /> that will
+            build the operations.
+            </param>
+            <seealso cref="M:Microsoft.EntityFrameworkCore.Migrations.Migration.Up(MigrationBuilder)"/>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Migrations.Airport.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            <para>
+                            Builds the operations that will migrate the database 'down'.
+                        </para>
+            <para>
+                            That is, builds the operations that will take the database from the state
+                            left in by this migration so that it returns to the state that it was in
+                            before this migration was applied.
+                        </para>
+            <para>
+                            This method must be overridden in each class the inherits from
+                            <see cref="T:Microsoft.EntityFrameworkCore.Migrations.Migration" /> if both
+                            'up' and 'down' migrations are to be supported. If it is not overridden, then
+                            calling it will throw and it will not be possible to migrate in the 'down'
+                            direction.
+                        </para>
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            <param name="migrationBuilder">
+            The <see cref="T:Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder" /> that will
+            build the operations.
+            </param>
+            <seealso cref="M:Microsoft.EntityFrameworkCore.Migrations.Migration.Down(MigrationBuilder)"/>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Migrations.Authentication">
+            -------------------------------------------------------------------------------------------------
+            <content>
+            Authentication migration.
+            </content>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Migrations.Authentication.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            <para>
+                            Builds the operations that will migrate the database 'up'.
+                        </para>
+            <para>
+                            That is, builds the operations that will take the database from the state
+                            left in by the previous migration so that it is up-to-date with regard to
+                            this migration.
+                        </para>
+            <para>
+                            This method must be overridden in each class the inherits from
+                            <see cref="T:Microsoft.EntityFrameworkCore.Migrations.Migration" />.
+                        </para>
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            <param name="migrationBuilder">
+            The <see cref="T:Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder" /> that will
+            build the operations.
+            </param>
+            <seealso cref="M:Microsoft.EntityFrameworkCore.Migrations.Migration.Up(MigrationBuilder)"/>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Migrations.Authentication.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            <para>
+                            Builds the operations that will migrate the database 'down'.
+                        </para>
+            <para>
+                            That is, builds the operations that will take the database from the state
+                            left in by this migration so that it returns to the state that it was in
+                            before this migration was applied.
+                        </para>
+            <para>
+                            This method must be overridden in each class the inherits from
+                            <see cref="T:Microsoft.EntityFrameworkCore.Migrations.Migration" /> if both
+                            'up' and 'down' migrations are to be supported. If it is not overridden, then
+                            calling it will throw and it will not be possible to migrate in the 'down'
+                            direction.
+                        </para>
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            <param name="migrationBuilder">
+            The <see cref="T:Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder" /> that will
+            build the operations.
+            </param>
+            <seealso cref="M:Microsoft.EntityFrameworkCore.Migrations.Migration.Down(MigrationBuilder)"/>
             -------------------------------------------------------------------------------------------------
         </member>
         <member name="T:OpenSky.API.Model.ApiResponse`1">
@@ -649,6 +869,54 @@
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>
+        <member name="T:OpenSky.API.Model.Authentication.ChangePassword">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Change password model.
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ChangePassword.NewPassword">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the password.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ChangePassword.Password">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the password.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Model.Authentication.ForgotPassword">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Forgot password model.
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ForgotPassword.Email">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the email.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ForgotPassword.RecaptchaToken">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the recaptcha token.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
         <member name="T:OpenSky.API.Model.Authentication.Login">
             -------------------------------------------------------------------------------------------------
             <summary>
@@ -663,6 +931,13 @@
             -------------------------------------------------------------------------------------------------
             <summary>
             Gets or sets the password.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.Login.RecaptchaToken">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the recaptcha token.
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>
@@ -694,6 +969,13 @@
             -------------------------------------------------------------------------------------------------
             <summary>
             Gets or sets the token.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.LoginResponse.Username">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the username.
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>
@@ -873,6 +1155,68 @@
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>
+        <member name="T:OpenSky.API.Model.Authentication.ResendValidationEmail">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Resend validation email model.
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ResendValidationEmail.Email">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the email.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ResendValidationEmail.RecaptchaToken">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the recaptcha token.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Model.Authentication.ResetPassword">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Reset password model.
+            </summary>
+            <remarks>
+            sushi.at, 06/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ResetPassword.Email">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the email.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ResetPassword.Password">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the password.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ResetPassword.RecaptchaToken">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the recaptcha token.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ResetPassword.Token">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the token.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
         <member name="T:OpenSky.API.Model.Authentication.UserRoles">
             -------------------------------------------------------------------------------------------------
             <summary>
@@ -918,6 +1262,13 @@
             -------------------------------------------------------------------------------------------------
             <summary>
             Gets or sets the email.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ValidateEmail.RecaptchaToken">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the recaptcha token.
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>
