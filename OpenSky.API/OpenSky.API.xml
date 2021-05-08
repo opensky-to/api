@@ -1,0 +1,1486 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>OpenSky.API</name>
+    </assembly>
+    <members>
+        <member name="T:OpenSky.API.Controllers.AirportController">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Airport controller.
+            </summary>
+            <remarks>
+            sushi.at, 02/05/2021.
+            </remarks>
+            <seealso cref="T:Microsoft.AspNetCore.Mvc.ControllerBase"/>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="F:OpenSky.API.Controllers.AirportController.db">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            The OpenSky database context.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="F:OpenSky.API.Controllers.AirportController.logger">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            The logger.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Controllers.AirportController.#ctor(Microsoft.Extensions.Logging.ILogger{OpenSky.API.Controllers.AirportController},OpenSky.API.OpenSkyDbContext)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenSky.API.Controllers.AirportController"/> class.
+            </summary>
+            <remarks>
+            sushi.at, 02/05/2021.
+            </remarks>
+            <param name="logger">
+            The logger.
+            </param>
+            <param name="db">
+            The OpenSky database context.
+            </param>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Controllers.AirportController.Get">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets all available airports (ICAO code only).
+            </summary>
+            <remarks>
+            sushi.at, 02/05/2021.
+            </remarks>
+            <returns>
+            All available airports.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Controllers.AirportController.Get(System.String)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets one specific airport.
+            </summary>
+            <remarks>
+            sushi.at, 03/05/2021.
+            </remarks>
+            <param name="icao">
+            The ICAO identifier of the airport.
+            </param>
+            <returns>
+            The airport record if found, nothing otherwise.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Controllers.AuthenticationController">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Authentication controller.
+            </summary>
+            <remarks>
+            sushi.at, 05/05/2021.
+            </remarks>
+            <seealso cref="T:Microsoft.AspNetCore.Mvc.ControllerBase"/>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="F:OpenSky.API.Controllers.AuthenticationController.configuration">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            The application configuration.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="F:OpenSky.API.Controllers.AuthenticationController.googleRecaptchaV3Service">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            The Google reCAPTCHAv3 service.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="F:OpenSky.API.Controllers.AuthenticationController.logger">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            The logger.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="F:OpenSky.API.Controllers.AuthenticationController.roleManager">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            The role manager.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="F:OpenSky.API.Controllers.AuthenticationController.sendMail">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            The send mail.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="F:OpenSky.API.Controllers.AuthenticationController.userManager">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            The user manager.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Controllers.AuthenticationController.#ctor(Microsoft.Extensions.Logging.ILogger{OpenSky.API.Controllers.AuthenticationController},Microsoft.AspNetCore.Identity.UserManager{OpenSky.API.DbModel.OpenSkyUser},Microsoft.AspNetCore.Identity.RoleManager{Microsoft.AspNetCore.Identity.IdentityRole},OpenSky.API.Helpers.SendMail,Microsoft.Extensions.Configuration.IConfiguration,OpenSky.API.Services.GoogleRecaptchaV3Service)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenSky.API.Controllers.AuthenticationController"/> class.
+            </summary>
+            <remarks>
+            sushi.at, 05/05/2021.
+            </remarks>
+            <param name="logger">
+            The logger.
+            </param>
+            <param name="userManager">
+            The user manager.
+            </param>
+            <param name="roleManager">
+            The role manager.
+            </param>
+            <param name="sendMail">
+            The send mail.
+            </param>
+            <param name="configuration">
+            The application configuration.
+            </param>
+            <param name="googleRecaptchaV3Service">
+            The Google reCAPTCHAv3 service.
+            </param>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Controllers.AuthenticationController.ChangePassword(OpenSky.API.Model.Authentication.ChangePassword)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Change OpenSky user password.
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            <param name="changePassword">
+            The change password model.
+            </param>
+            <returns>
+            An IActionResult object returning an ApiResponse object in the body.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Controllers.AuthenticationController.ForgotPassword(OpenSky.API.Model.Authentication.ForgotPassword)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Forgot password request from OpenSky user.
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            <param name="forgotPassword">
+            The forgot password model.
+            </param>
+            <returns>
+            An IActionResult object returning an ApiResponse object in the body.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Controllers.AuthenticationController.Login(OpenSky.API.Model.Authentication.Login)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Login to OpenSky API.
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            <param name="login">
+            The login model.
+            </param>
+            <returns>
+            An IActionResult object returning an ApiResponse object in the body.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Controllers.AuthenticationController.Register(OpenSky.API.Model.Authentication.RegisterUser)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Register new OpenSky user.
+            </summary>
+            <remarks>
+            sushi.at, 06/05/2021.
+            </remarks>
+            <param name="registerUser">
+            The register user model.
+            </param>
+            <returns>
+            An IActionResult object returning an ApiResponse object in the body.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Controllers.AuthenticationController.ResendValidationEmail(OpenSky.API.Model.Authentication.ResendValidationEmail)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Re-send the email validation.
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            <param name="resendValidationEmail">
+            The resend validation email model.
+            </param>
+            <returns>
+            An IActionResult object returning an ApiResponse object in the body.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Controllers.AuthenticationController.ResetPassword(OpenSky.API.Model.Authentication.ResetPassword)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Reset OpenSky user password.
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            <param name="resetPassword">
+            The reset password model.
+            </param>
+            <returns>
+            An IActionResult object returning an ApiResponse object in the body.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Controllers.AuthenticationController.ValidateEmail(OpenSky.API.Model.Authentication.ValidateEmail)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Validate email address of previously registered OpenSky user.
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            <param name="validateEmail">
+            The validate email model.
+            </param>
+            <returns>
+            An IActionResult object returning an ApiResponse object in the body.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Controllers.DataImportController">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Data import controller.
+            </summary>
+            <remarks>
+            sushi.at, 04/05/2021.
+            </remarks>
+            <seealso cref="T:Microsoft.AspNetCore.Mvc.ControllerBase"/>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="F:OpenSky.API.Controllers.DataImportController.db">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            The OpenSky database context.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="F:OpenSky.API.Controllers.DataImportController.logger">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            The logger.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Controllers.DataImportController.#ctor(Microsoft.Extensions.Logging.ILogger{OpenSky.API.Controllers.DataImportController},OpenSky.API.OpenSkyDbContext)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenSky.API.Controllers.DataImportController"/> class.
+            </summary>
+            <remarks>
+            sushi.at, 04/05/2021.
+            </remarks>
+            <param name="logger">
+            The logger.
+            </param>
+            <param name="db">
+            The OpenSky database context.
+            </param>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Controllers.DataImportController.PostLittleNavmapMSFS(Microsoft.AspNetCore.Http.IFormFile)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Post LittleNavmap MSFS sqlite database for import.
+            </summary>
+            <remarks>
+            sushi.at, 04/05/2021.
+            </remarks>
+            <param name="fileUpload">
+            The file upload containing the sqlite database.
+            </param>
+            <returns>
+            A basic IActionResult containing status or error messages.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.DbModel.Airport">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Airport model.
+            </summary>
+            <remarks>
+            sushi.at, 02/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Airport.Altitude">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the altitude of the airport in feet.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Airport.AtisFrequency">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the ATIS frequency (if available).
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Airport.City">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the city.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Airport.GaRamps">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the number of GA ramps.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Airport.Gates">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the number of gates.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Airport.HasAvGas">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets a value indicating whether the airport has AV gas for refueling.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Airport.HasJetFuel">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets a value indicating whether the airport has jet fuel for refueling.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Airport.ICAO">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the ICAO identifier of the airport.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Airport.IsClosed">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets a value indicating whether the airport is closed.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Airport.IsMilitary">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets a value indicating whether the airport is a military one.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Airport.Latitude">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the latitude of the airport.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Airport.LongestRunwayLength">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the length of the longest runway in feet.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Airport.LongestRunwaySurface">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the surface type of the longest runway (can be "UNKNOWN" in a few cases).
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Airport.Longitude">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the longitude of the airport.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Airport.Name">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the name.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Airport.Runways">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the number of runways.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Airport.TowerFrequency">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the tower frequency (if available).
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Airport.UnicomFrequency">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the unicom frequency (if available).
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.DbModel.OpenSkyUser">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            OpenSky user model.
+            </summary>
+            <remarks>
+            sushi.at, 05/05/2021.
+            </remarks>
+            <seealso cref="T:Microsoft.AspNetCore.Identity.IdentityUser"/>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.OpenSkyUser.LastLogin">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the Date/Time of the last login.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.OpenSkyUser.LastLoginGeo">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the last login geo location (country).
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.OpenSkyUser.LastLoginIP">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the last login IP.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.OpenSkyUser.RegisteredOn">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the Date/Time when the user registered.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Helpers.Base64Extensions">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Base64 string extension methods.
+            </summary>
+            <remarks>
+            sushi.at, 06/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Helpers.Base64Extensions.Base64Decode(System.String)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            A string extension method that decodes from Base64.
+            </summary>
+            <remarks>
+            sushi.at, 06/05/2021.
+            </remarks>
+            <param name="base64EncodedString">
+            The Base64 encoded string to decode.
+            </param>
+            <returns>
+            A plain text string.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Helpers.Base64Extensions.Base64Encode(System.String)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            A string extension method that encodes in Base64.
+            </summary>
+            <remarks>
+            sushi.at, 06/05/2021.
+            </remarks>
+            <param name="plainText">
+            The plainText to encode.
+            </param>
+            <returns>
+            A Base64 string.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Helpers.SendMail">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Send mail helper.
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Helpers.SendMail.#ctor(System.String,System.Int32,System.String,System.String,MailKit.Security.SecureSocketOptions)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenSky.API.Helpers.SendMail"/> class.
+            </summary>
+            <remarks>
+            sushi.at, 06/05/2021.
+            </remarks>
+            <param name="smtpServer">
+            The SMTP server.
+            </param>
+            <param name="smtpPort">
+            The SMTP port.
+            </param>
+            <param name="userName">
+            Optional: The name of the user.
+            </param>
+            <param name="password">
+            Optional: The password.
+            </param>
+            <param name="secureSocketOptions">
+            (Optional) Gets or sets options for controlling the secure socket.
+            </param>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Helpers.SendMail.Password">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the password.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Helpers.SendMail.SecureSocketOptions">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets options for controlling the secure socket.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Helpers.SendMail.SmtpPort">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the SMTP port.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Helpers.SendMail.SmtpServer">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the SMTP server.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Helpers.SendMail.UserName">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the name of the user.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Helpers.SendMail.SendEmail(System.String,System.String,System.String,System.String,System.String,System.String,System.Boolean,MimeKit.MessagePriority,MimeKit.MimeEntity[])">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Send email using SMTP(S).
+            </summary>
+            <remarks>
+            sushi.at, 06/05/2021.
+            </remarks>
+            <param name="from">
+            The from address.
+            </param>
+            <param name="recipients">
+            The recipients of the message (Comma separated).
+            </param>
+            <param name="recipientsCC">
+            The recipients CC (Comma separated). This may be null.
+            </param>
+            <param name="recipientsBCC">
+            The recipients BCC (Comma separated). This may be null.
+            </param>
+            <param name="subject">
+            The subject of the message.
+            </param>
+            <param name="body">
+            The body of the message.
+            </param>
+            <param name="isBodyHtml">
+            Is the email body HTML formatted?.
+            </param>
+            <param name="priority">
+            The priority of the message.
+            </param>
+            <param name="attachments">
+            Array of email attachments to send.
+            </param>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Migrations.Airport">
+            -------------------------------------------------------------------------------------------------
+            <content>
+            Airport migration.
+            </content>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Migrations.Airport.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            <para>
+                            Builds the operations that will migrate the database 'up'.
+                        </para>
+            <para>
+                            That is, builds the operations that will take the database from the state
+                            left in by the previous migration so that it is up-to-date with regard to
+                            this migration.
+                        </para>
+            <para>
+                            This method must be overridden in each class the inherits from
+                            <see cref="T:Microsoft.EntityFrameworkCore.Migrations.Migration" />.
+                        </para>
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            <param name="migrationBuilder">
+            The <see cref="T:Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder" /> that will
+            build the operations.
+            </param>
+            <seealso cref="M:Microsoft.EntityFrameworkCore.Migrations.Migration.Up(MigrationBuilder)"/>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Migrations.Airport.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            <para>
+                            Builds the operations that will migrate the database 'down'.
+                        </para>
+            <para>
+                            That is, builds the operations that will take the database from the state
+                            left in by this migration so that it returns to the state that it was in
+                            before this migration was applied.
+                        </para>
+            <para>
+                            This method must be overridden in each class the inherits from
+                            <see cref="T:Microsoft.EntityFrameworkCore.Migrations.Migration" /> if both
+                            'up' and 'down' migrations are to be supported. If it is not overridden, then
+                            calling it will throw and it will not be possible to migrate in the 'down'
+                            direction.
+                        </para>
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            <param name="migrationBuilder">
+            The <see cref="T:Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder" /> that will
+            build the operations.
+            </param>
+            <seealso cref="M:Microsoft.EntityFrameworkCore.Migrations.Migration.Down(MigrationBuilder)"/>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Migrations.Authentication">
+            -------------------------------------------------------------------------------------------------
+            <content>
+            Authentication migration.
+            </content>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Migrations.Authentication.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            <para>
+                            Builds the operations that will migrate the database 'up'.
+                        </para>
+            <para>
+                            That is, builds the operations that will take the database from the state
+                            left in by the previous migration so that it is up-to-date with regard to
+                            this migration.
+                        </para>
+            <para>
+                            This method must be overridden in each class the inherits from
+                            <see cref="T:Microsoft.EntityFrameworkCore.Migrations.Migration" />.
+                        </para>
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            <param name="migrationBuilder">
+            The <see cref="T:Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder" /> that will
+            build the operations.
+            </param>
+            <seealso cref="M:Microsoft.EntityFrameworkCore.Migrations.Migration.Up(MigrationBuilder)"/>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Migrations.Authentication.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            <para>
+                            Builds the operations that will migrate the database 'down'.
+                        </para>
+            <para>
+                            That is, builds the operations that will take the database from the state
+                            left in by this migration so that it returns to the state that it was in
+                            before this migration was applied.
+                        </para>
+            <para>
+                            This method must be overridden in each class the inherits from
+                            <see cref="T:Microsoft.EntityFrameworkCore.Migrations.Migration" /> if both
+                            'up' and 'down' migrations are to be supported. If it is not overridden, then
+                            calling it will throw and it will not be possible to migrate in the 'down'
+                            direction.
+                        </para>
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            <param name="migrationBuilder">
+            The <see cref="T:Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder" /> that will
+            build the operations.
+            </param>
+            <seealso cref="M:Microsoft.EntityFrameworkCore.Migrations.Migration.Down(MigrationBuilder)"/>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Model.ApiResponse`1">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            API standard response model.
+            </summary>
+            <remarks>
+            sushi.at, 05/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Model.ApiResponse`1.#ctor">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenSky.API.Model.ApiResponse`1"></see> class.
+            </summary>
+            <remarks>
+            sushi.at, 05/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Model.ApiResponse`1.#ctor(System.Exception)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenSky.API.Model.ApiResponse`1"></see> class.
+            </summary>
+            <remarks>
+            sushi.at, 05/05/2021.
+            </remarks>
+            <param name="ex">
+            The exception to report.
+            </param>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Model.ApiResponse`1.#ctor(System.String,System.Exception)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenSky.API.Model.ApiResponse`1"></see> class.
+            </summary>
+            <remarks>
+            sushi.at, 05/05/2021.
+            </remarks>
+            <param name="message">
+            The message.
+            </param>
+            <param name="ex">
+            The exception to report.
+            </param>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Model.ApiResponse`1.#ctor(System.String)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenSky.API.Model.ApiResponse`1"></see> class.
+            </summary>
+            <remarks>
+            sushi.at, 05/05/2021.
+            </remarks>
+            <param name="message">
+            The message (status will be "Success").
+            </param>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.ApiResponse`1.ErrorDetails">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the error details (NULL if no error).
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.ApiResponse`1.IsError">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets a value indicating whether this response is reporting an error.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.ApiResponse`1.Message">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the message.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.ApiResponse`1.Status">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the status.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.ApiResponse`1.Data">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the embedded data of type T.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Model.Authentication.ChangePassword">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Change password model.
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ChangePassword.NewPassword">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the password.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ChangePassword.Password">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the password.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Model.Authentication.ForgotPassword">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Forgot password model.
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ForgotPassword.Email">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the email.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ForgotPassword.RecaptchaToken">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the recaptcha token.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Model.Authentication.Login">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Login model.
+            </summary>
+            <remarks>
+            sushi.at, 06/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.Login.Password">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the password.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.Login.RecaptchaToken">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the recaptcha token.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.Login.Username">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the username.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Model.Authentication.LoginResponse">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Login response model.
+            </summary>
+            <remarks>
+            sushi.at, 06/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.LoginResponse.Expiration">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the Date/Time of the expiration.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.LoginResponse.Token">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the token.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.LoginResponse.Username">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the username.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Model.Authentication.ReCaptchaRequest">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Google reCAPTCHAv3 request model.
+            </summary>
+            <remarks>
+            sushi.at, 06/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Model.Authentication.ReCaptchaRequest.#ctor(System.String,System.String,System.String,System.String)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenSky.API.Model.Authentication.ReCaptchaRequest"/> class.
+            </summary>
+            <remarks>
+            sushi.at, 06/05/2021.
+            </remarks>
+            <exception cref="T:System.Exception">
+            Thrown when an exception error condition occurs.
+            </exception>
+            <param name="path">
+            The API url path.
+            </param>
+            <param name="secret">
+            The secret key.
+            </param>
+            <param name="token">
+            The token from the client.
+            </param>
+            <param name="remoteIP">
+            The remote IP of the client.
+            </param>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ReCaptchaRequest.Path">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the path.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ReCaptchaRequest.RemoteIP">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the remote IP.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ReCaptchaRequest.Token">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the response.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ReCaptchaRequest.Secret">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the secret.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Model.Authentication.ReCaptchaRequestException">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            reCAPTCHA request exception.
+            </summary>
+            <remarks>
+            sushi.at, 06/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Model.Authentication.ReCaptchaRequestException.#ctor(OpenSky.API.Model.Authentication.ReCaptchaResponse)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenSky.API.Model.Authentication.ReCaptchaRequestException"/> class.
+            </summary>
+            <remarks>
+            sushi.at, 06/05/2021.
+            </remarks>
+            <param name="response">
+            The reCAPTCHA request response.
+            </param>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ReCaptchaRequestException.Response">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets the reCAPTCHA request response.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Model.Authentication.ReCaptchaResponse">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Google reCAPTCHAv3 response model.
+            </summary>
+            <remarks>
+            sushi.at, 06/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ReCaptchaResponse.ChallengeTS">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the challenge timestamp (ISO format yyyy-MM-dd'T'HH:mm:ssZZ).
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ReCaptchaResponse.ErrorCodes">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the error codes.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ReCaptchaResponse.Hostname">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the hostname.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ReCaptchaResponse.Score">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the score (1.0 good interaction, 0.0 bot).
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ReCaptchaResponse.Success">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets a value indicating whether the request was successful.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Model.Authentication.RegisterUser">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Register user model.
+            </summary>
+            <remarks>
+            sushi.at, 05/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.RegisterUser.Email">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the email.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.RegisterUser.Password">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the password.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.RegisterUser.RecaptchaToken">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the recaptcha token.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.RegisterUser.Username">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the username.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Model.Authentication.ResendValidationEmail">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Resend validation email model.
+            </summary>
+            <remarks>
+            sushi.at, 08/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ResendValidationEmail.Email">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the email.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ResendValidationEmail.RecaptchaToken">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the recaptcha token.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Model.Authentication.ResetPassword">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Reset password model.
+            </summary>
+            <remarks>
+            sushi.at, 06/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ResetPassword.Email">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the email.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ResetPassword.Password">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the password.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ResetPassword.RecaptchaToken">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the recaptcha token.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ResetPassword.Token">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the token.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Model.Authentication.UserRoles">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            OpenSky user roles.
+            </summary>
+            <remarks>
+            sushi.at, 05/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="F:OpenSky.API.Model.Authentication.UserRoles.Admin">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            The admin user role (used for server management).
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="F:OpenSky.API.Model.Authentication.UserRoles.Moderator">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            The moderator user role (extra permissions to deal with the everyday operations of OpenSky).
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="F:OpenSky.API.Model.Authentication.UserRoles.User">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            The user role - for players.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Model.Authentication.ValidateEmail">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Validate email model.
+            </summary>
+            <remarks>
+            sushi.at, 06/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ValidateEmail.Email">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the email.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ValidateEmail.RecaptchaToken">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the recaptcha token.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.Authentication.ValidateEmail.Token">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the token.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.OpenSkyDbContext">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            OpenSky database context.
+            </summary>
+            <remarks>
+            sushi.at, 03/05/2021.
+            </remarks>
+            <seealso cref="T:Microsoft.EntityFrameworkCore.DbContext"/>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.OpenSkyDbContext.#ctor(Microsoft.EntityFrameworkCore.DbContextOptions{OpenSky.API.OpenSkyDbContext})">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenSky.API.OpenSkyDbContext"/> class.
+            </summary>
+            <remarks>
+            sushi.at, 03/05/2021.
+            </remarks>
+            <param name="options">
+            Database context options.
+            </param>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.OpenSkyDbContext.Airports">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the airports.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.OpenSkyDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Configures the schema needed for the identity framework.
+            </summary>
+            <remarks>
+            sushi.at, 06/05/2021.
+            </remarks>
+            <param name="builder">
+            The builder being used to construct the model for this context.
+            </param>
+            <seealso cref="M:Microsoft.AspNetCore.Identity.EntityFrameworkCore.IdentityDbContext{OpenSky.API.DbModel.OpenSkyUser, Microsoft.AspNetCore.Identity.IdentityRole, System.String, Microsoft.AspNetCore.Identity.IdentityUserClaim{System.String}, Microsoft.AspNetCore.Identity.IdentityUserRole{System.String}, Microsoft.AspNetCore.Identity.IdentityUserLogin{System.String}, Microsoft.AspNetCore.Identity.IdentityRoleClaim{System.String}, Microsoft.AspNetCore.Identity.IdentityUserToken{System.String}}.OnModelCreating(ModelBuilder)"/>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Program">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Main entry point.
+            </summary>
+            <remarks>
+            sushi.at, 03/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Program.CreateHostBuilder(System.String[])">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Creates the host builder.
+            </summary>
+            <remarks>
+            sushi.at, 03/05/2021.
+            </remarks>
+            <param name="args">
+            The command line arguments arguments.
+            </param>
+            <returns>
+            The new host builder.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Program.Main(System.String[])">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Main entry-point for this application.
+            </summary>
+            <remarks>
+            sushi.at, 03/05/2021.
+            </remarks>
+            <param name="args">
+            The command line arguments arguments.
+            </param>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Services.GoogleRecaptchaV3Service">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Google reCAPTCHAv3 service.
+            </summary>
+            <remarks>
+            sushi.at, 06/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="F:OpenSky.API.Services.GoogleRecaptchaV3Service.httpClient">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            The HTTP client.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="F:OpenSky.API.Services.GoogleRecaptchaV3Service.logger">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            The logger.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Services.GoogleRecaptchaV3Service.#ctor(System.Net.Http.HttpClient,Microsoft.Extensions.Logging.ILogger{OpenSky.API.Services.GoogleRecaptchaV3Service})">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenSky.API.Services.GoogleRecaptchaV3Service"/> class.
+            </summary>
+            <remarks>
+            sushi.at, 06/05/2021.
+            </remarks>
+            <param name="httpClient">
+            The HTTP client.
+            </param>
+            <param name="logger">
+            The logger.
+            </param>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Services.GoogleRecaptchaV3Service.Execute(OpenSky.API.Model.Authentication.ReCaptchaRequest)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Execute Google RecaptchaV3 request.
+            </summary>
+            <remarks>
+            sushi.at, 06/05/2021.
+            </remarks>
+            <exception cref="T:OpenSky.API.Model.Authentication.ReCaptchaRequestException">
+            Thrown when a custom reCAPTCHA error condition occurs.
+            </exception>
+            <param name="request">
+            The reCAPTCHA request.
+            </param>
+            <returns>
+            An asynchronous result that yields a ReCaptchaResponse.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Startup">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            API startup class.
+            </summary>
+            <remarks>
+            sushi.at, 02/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Startup.#ctor(Microsoft.Extensions.Configuration.IConfiguration)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenSky.API.Startup"/> class.
+            </summary>
+            <remarks>
+            sushi.at, 02/05/2021.
+            </remarks>
+            <param name="configuration">
+            Gets the configuration.
+            </param>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Startup.Configuration">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets the configuration.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Startup.Configure(Microsoft.AspNetCore.Builder.IApplicationBuilder,Microsoft.AspNetCore.Hosting.IWebHostEnvironment)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            This method gets called by the runtime. Use this method to configure the HTTP request
+            pipeline.
+            </summary>
+            <remarks>
+            sushi.at, 02/05/2021.
+            </remarks>
+            <param name="app">
+            The application.
+            </param>
+            <param name="env">
+            The environment.
+            </param>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Startup.ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            This method gets called by the runtime. Use this method to add services to the container.
+            </summary>
+            <remarks>
+            sushi.at, 02/05/2021.
+            </remarks>
+            <param name="services">
+            The services collection.
+            </param>
+            -------------------------------------------------------------------------------------------------
+        </member>
+    </members>
+</doc>
