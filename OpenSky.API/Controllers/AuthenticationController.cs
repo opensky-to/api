@@ -10,7 +10,6 @@ namespace OpenSky.API.Controllers
     using System.Collections.Generic;
     using System.IdentityModel.Tokens.Jwt;
     using System.Linq;
-    using System.Net;
     using System.Security.Claims;
     using System.Text;
     using System.Text.RegularExpressions;
@@ -25,8 +24,6 @@ namespace OpenSky.API.Controllers
     using Microsoft.IdentityModel.Tokens;
 
     using MimeKit;
-
-    using Newtonsoft.Json.Linq;
 
     using OpenSky.API.DbModel;
     using OpenSky.API.Helpers;
@@ -92,6 +89,13 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The geo locate IP service.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly GeoLocateIPService geoLocateIPService;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Initializes a new instance of the <see cref="AuthenticationController"/> class.
         /// </summary>
         /// <remarks>
@@ -115,6 +119,9 @@ namespace OpenSky.API.Controllers
         /// <param name="googleRecaptchaV3Service">
         /// The Google reCAPTCHAv3 service.
         /// </param>
+        /// <param name="geoLocateIPService">
+        /// The geo locate IP service.
+        /// </param>
         /// -------------------------------------------------------------------------------------------------
         public AuthenticationController(
             ILogger<AuthenticationController> logger,
@@ -122,7 +129,8 @@ namespace OpenSky.API.Controllers
             RoleManager<IdentityRole> roleManager,
             SendMail sendMail,
             IConfiguration configuration,
-            GoogleRecaptchaV3Service googleRecaptchaV3Service)
+            GoogleRecaptchaV3Service googleRecaptchaV3Service,
+            GeoLocateIPService geoLocateIPService)
         {
             this.logger = logger;
             this.userManager = userManager;
@@ -130,6 +138,7 @@ namespace OpenSky.API.Controllers
             this.sendMail = sendMail;
             this.configuration = configuration;
             this.googleRecaptchaV3Service = googleRecaptchaV3Service;
+            this.geoLocateIPService = geoLocateIPService;
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -191,7 +200,7 @@ namespace OpenSky.API.Controllers
             this.logger.LogInformation($"Processing forgot password request for {forgotPassword.Email}");
 
             // Check Google reCAPTCHAv3
-            var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], forgotPassword.RecaptchaToken, this.Request.HttpContext.Connection.RemoteIpAddress?.ToString());
+            var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], forgotPassword.RecaptchaToken, this.GetRemoteIPAddress());
             var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
             if (!reCAPTCHAResponse.Success)
             {
@@ -253,7 +262,7 @@ namespace OpenSky.API.Controllers
             if (user != null && await this.userManager.CheckPasswordAsync(user, login.Password))
             {
                 // Check Google reCAPTCHAv3
-                var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], login.RecaptchaToken, this.Request.HttpContext.Connection.RemoteIpAddress?.ToString());
+                var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], login.RecaptchaToken, this.GetRemoteIPAddress());
                 var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
                 if (!reCAPTCHAResponse.Success)
                 {
@@ -289,28 +298,8 @@ namespace OpenSky.API.Controllers
                 );
 
                 user.LastLogin = DateTime.Now;
-                user.LastLoginIP = this.Request.HttpContext.Connection.RemoteIpAddress?.ToString();
-
-                // Try to geo-locate the IP if possible, todo turn this into a service, more scalable that way
-                if (!string.IsNullOrEmpty(user.LastLoginIP))
-                {
-                    try
-                    {
-                        using var client = new WebClient { Headers = { ["User-Agent"] = "keycdn-tools:https://api.opensky.to" } };
-                        var json = client.DownloadString($"https://tools.keycdn.com/geo.json?host={user.LastLoginIP}");
-                        var geo = JObject.Parse(json);
-                        var countryName = (string)geo["data"]?["geo"]?["country_name"];
-                        var countryCode = (string)geo["data"]?["geo"]?["country_code"];
-                        if (!string.IsNullOrEmpty(countryName) || !string.IsNullOrEmpty(countryCode))
-                        {
-                            user.LastLoginGeo = $"{countryName ?? "Unknown"} ({countryCode ?? "??"})";
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        this.logger.LogWarning(ex, $"Unable to geo-locate login IP address {user.LastLoginIP}");
-                    }
-                }
+                user.LastLoginIP = this.GetRemoteIPAddress();
+                user.LastLoginGeo = await this.geoLocateIPService.Execute(this.GetRemoteIPAddress());
 
                 var updateResult = await this.userManager.UpdateAsync(user);
                 if (!updateResult.Succeeded)
@@ -353,7 +342,7 @@ namespace OpenSky.API.Controllers
             }
 
             // Check Google reCAPTCHAv3
-            var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], registerUser.RecaptchaToken, this.Request.HttpContext.Connection.RemoteIpAddress?.ToString());
+            var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], registerUser.RecaptchaToken, this.GetRemoteIPAddress());
             var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
             if (!reCAPTCHAResponse.Success)
             {
@@ -435,7 +424,7 @@ namespace OpenSky.API.Controllers
                 this.configuration["GoogleReCaptchaV3:ApiUrl"],
                 this.configuration["GoogleReCaptchaV3:Secret"],
                 resendValidationEmail.RecaptchaToken,
-                this.Request.HttpContext.Connection.RemoteIpAddress?.ToString());
+                this.GetRemoteIPAddress());
             var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
             if (!reCAPTCHAResponse.Success)
             {
@@ -495,7 +484,7 @@ namespace OpenSky.API.Controllers
             this.logger.LogInformation($"Processing password reset for {resetPassword.Email} with token {resetPassword.Token.Base64Decode()}");
 
             // Check Google reCAPTCHAv3
-            var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], resetPassword.RecaptchaToken, this.Request.HttpContext.Connection.RemoteIpAddress?.ToString());
+            var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], resetPassword.RecaptchaToken, this.GetRemoteIPAddress());
             var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
             if (!reCAPTCHAResponse.Success)
             {
@@ -541,28 +530,8 @@ namespace OpenSky.API.Controllers
             );
 
             user.LastLogin = DateTime.Now;
-            user.LastLoginIP = this.Request.HttpContext.Connection.RemoteIpAddress?.ToString();
-
-            // Try to geo-locate the IP if possible, todo turn this into a service, more scalable that way
-            if (!string.IsNullOrEmpty(user.LastLoginIP))
-            {
-                try
-                {
-                    using var client = new WebClient { Headers = { ["User-Agent"] = "keycdn-tools:https://api.opensky.to" } };
-                    var json = client.DownloadString($"https://tools.keycdn.com/geo.json?host={user.LastLoginIP}");
-                    var geo = JObject.Parse(json);
-                    var countryName = (string)geo["data"]?["geo"]?["country_name"];
-                    var countryCode = (string)geo["data"]?["geo"]?["country_code"];
-                    if (!string.IsNullOrEmpty(countryName) || !string.IsNullOrEmpty(countryCode))
-                    {
-                        user.LastLoginGeo = $"{countryName ?? "Unknown"} ({countryCode ?? "??"})";
-                    }
-                }
-                catch (Exception ex)
-                {
-                    this.logger.LogWarning(ex, $"Unable to geo-locate login IP address {user.LastLoginIP}");
-                }
-            }
+            user.LastLoginIP = this.GetRemoteIPAddress();
+            user.LastLoginGeo = await this.geoLocateIPService.Execute(this.GetRemoteIPAddress());
 
             var updateResult = await this.userManager.UpdateAsync(user);
             if (!updateResult.Succeeded)
@@ -596,7 +565,7 @@ namespace OpenSky.API.Controllers
             this.logger.LogInformation($"Processing email validation for {validateEmail.Email} with token {validateEmail.Token.Base64Decode()}");
 
             // Check Google reCAPTCHAv3
-            var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], validateEmail.RecaptchaToken, this.Request.HttpContext.Connection.RemoteIpAddress?.ToString());
+            var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], validateEmail.RecaptchaToken, this.GetRemoteIPAddress());
             var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
             if (!reCAPTCHAResponse.Success)
             {
@@ -652,6 +621,28 @@ namespace OpenSky.API.Controllers
             }
 
             return this.Ok(new ApiResponse<string>("Thank you for verifying for OpenSky user email address, your registration is now complete."));
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Get the remote IP address for the current request with support for reverse proxies.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 09/05/2021.
+        /// </remarks>
+        /// <returns>
+        /// The remote IP address.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        private string GetRemoteIPAddress()
+        {
+            string forwaredForIP = null;
+            if (this.Request.Headers.TryGetValue("X-Forwarded-For", out var forwardedIps))
+            {
+                forwaredForIP = forwardedIps.First();
+            }
+
+            return forwaredForIP ?? this.Request.HttpContext.Connection.RemoteIpAddress?.ToString();
         }
     }
 }
