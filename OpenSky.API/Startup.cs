@@ -208,6 +208,8 @@ namespace OpenSky.API
             // Set up Google reCAPTCHAv3 service
             services.AddHttpClient<GoogleRecaptchaV3Service>();
             services.AddSingleton<GoogleRecaptchaV3Service>();
+            services.AddHttpClient<GeoLocateIPService>();
+            services.AddSingleton<GeoLocateIPService>();
 
             // API controllers
             services.AddControllers();

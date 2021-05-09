@@ -127,7 +127,14 @@
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>
-        <member name="M:OpenSky.API.Controllers.AuthenticationController.#ctor(Microsoft.Extensions.Logging.ILogger{OpenSky.API.Controllers.AuthenticationController},Microsoft.AspNetCore.Identity.UserManager{OpenSky.API.DbModel.OpenSkyUser},Microsoft.AspNetCore.Identity.RoleManager{Microsoft.AspNetCore.Identity.IdentityRole},OpenSky.API.Helpers.SendMail,Microsoft.Extensions.Configuration.IConfiguration,OpenSky.API.Services.GoogleRecaptchaV3Service)">
+        <member name="F:OpenSky.API.Controllers.AuthenticationController.geoLocateIPService">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            The geo locate IP service.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Controllers.AuthenticationController.#ctor(Microsoft.Extensions.Logging.ILogger{OpenSky.API.Controllers.AuthenticationController},Microsoft.AspNetCore.Identity.UserManager{OpenSky.API.DbModel.OpenSkyUser},Microsoft.AspNetCore.Identity.RoleManager{Microsoft.AspNetCore.Identity.IdentityRole},OpenSky.API.Helpers.SendMail,Microsoft.Extensions.Configuration.IConfiguration,OpenSky.API.Services.GoogleRecaptchaV3Service,OpenSky.API.Services.GeoLocateIPService)">
             -------------------------------------------------------------------------------------------------
             <summary>
             Initializes a new instance of the <see cref="T:OpenSky.API.Controllers.AuthenticationController"/> class.
@@ -152,6 +159,9 @@
             </param>
             <param name="googleRecaptchaV3Service">
             The Google reCAPTCHAv3 service.
+            </param>
+            <param name="geoLocateIPService">
+            The geo locate IP service.
             </param>
             -------------------------------------------------------------------------------------------------
         </member>
@@ -264,6 +274,19 @@
             </param>
             <returns>
             An IActionResult object returning an ApiResponse object in the body.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Controllers.AuthenticationController.GetRemoteIPAddress">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Get the remote IP address for the current request with support for reverse proxies.
+            </summary>
+            <remarks>
+            sushi.at, 09/05/2021.
+            </remarks>
+            <returns>
+            The remote IP address.
             </returns>
             -------------------------------------------------------------------------------------------------
         </member>
@@ -1361,6 +1384,62 @@
             <param name="args">
             The command line arguments arguments.
             </param>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Services.GeoLocateIPService">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Geo locate IP address service.
+            </summary>
+            <remarks>
+            sushi.at, 09/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="F:OpenSky.API.Services.GeoLocateIPService.httpClient">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            The HTTP client.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="F:OpenSky.API.Services.GeoLocateIPService.logger">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            The logger.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Services.GeoLocateIPService.#ctor(System.Net.Http.HttpClient,Microsoft.Extensions.Logging.ILogger{OpenSky.API.Services.GeoLocateIPService})">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenSky.API.Services.GeoLocateIPService"/> class.
+            </summary>
+            <remarks>
+            sushi.at, 09/05/2021.
+            </remarks>
+            <param name="httpClient">
+            The HTTP client.
+            </param>
+            <param name="logger">
+            The logger.
+            </param>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Services.GeoLocateIPService.Execute(System.String)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Execute geo IP lookup request.
+            </summary>
+            <remarks>
+            sushi.at, 09/05/2021.
+            </remarks>
+            <param name="ip">
+            The IP to geo locate.
+            </param>
+            <returns>
+            An asynchronous result that yields a string with the geo location "COUNTRY (CODE)".
+            </returns>
             -------------------------------------------------------------------------------------------------
         </member>
         <member name="T:OpenSky.API.Services.GoogleRecaptchaV3Service">
