@@ -347,6 +347,22 @@
             </returns>
             -------------------------------------------------------------------------------------------------
         </member>
+        <member name="M:OpenSky.API.Controllers.DataImportController.ImportLittleNavmapAirportsMSFS(System.Data.SQLite.SQLiteConnection)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Import the airports from an uploaded LittleNavmap database for MSFS.
+            </summary>
+            <remarks>
+            sushi.at, 10/05/2021.
+            </remarks>
+            <param name="connection">
+            The sqlite database connection.
+            </param>
+            <returns>
+            An asynchronous result that yields an int (airports processed count).
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
         <member name="T:OpenSky.API.DbModel.Airport">
             -------------------------------------------------------------------------------------------------
             <summary>
@@ -462,10 +478,17 @@
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>
-        <member name="P:OpenSky.API.DbModel.Airport.Runways">
+        <member name="P:OpenSky.API.DbModel.Airport.RunwayCount">
             -------------------------------------------------------------------------------------------------
             <summary>
             Gets or sets the number of runways.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Airport.Runways">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the runways.
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>
@@ -519,6 +542,194 @@
             -------------------------------------------------------------------------------------------------
             <summary>
             Gets or sets the Date/Time when the user registered.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.DbModel.Runway">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Runway model.
+            </summary>
+            <remarks>
+            sushi.at, 10/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Runway.Airport">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the airport.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Runway.AirportICAO">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the airport ICAO.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Runway.Altitude">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the altitude.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Runway.CenterLight">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            The type of center lighting (NULL for no lighting).
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Runway.EdgeLight">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            The type of available edge lighting (NULL for no lighting).
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Runway.ID">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the runway ID.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Runway.Length">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the length of the runway in feet.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Runway.RunwayEnds">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the runway ends.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Runway.Surface">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the surface type (can be "UNKNOWN" in a few cases).
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Runway.Width">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the width of the runway in feet.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.DbModel.RunwayEnd">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Runway-End model.
+            </summary>
+            <remarks>
+            sushi.at, 10/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.RunwayEnd.ApproachLightSystem">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the approach light system (NULL for no approach light).
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.RunwayEnd.HasClosedMarkings">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets a value indicating whether the runway end has closed markings painted on it.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.RunwayEnd.Heading">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the compass heading.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.RunwayEnd.ID">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the runway-end ID.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.RunwayEnd.Latitude">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the latitude.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.RunwayEnd.LeftVasiPitch">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the left VASI pitch angle.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.RunwayEnd.LeftVasiType">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the left VASI (Visual approach slope indicator) type.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.RunwayEnd.Longitude">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the longitude.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.RunwayEnd.Name">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the name (for example 04L).
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.RunwayEnd.OffsetThreshold">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the offset threshold in feet.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.RunwayEnd.RightVasiPitch">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the right VASI pitch angle.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.RunwayEnd.RightVasiType">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the right VASI (Visual approach slope indicator) type.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.RunwayEnd.Runway">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the runway.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.RunwayEnd.RunwayID">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the parent runway ID.
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>

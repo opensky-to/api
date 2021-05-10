@@ -1,163 +1,128 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Airport.cs" company="OpenSky">
+// <copyright file="RunwayEnd.cs" company="OpenSky">
 // sushi.at for OpenSky 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
 namespace OpenSky.API.DbModel
 {
-    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
+    using System.ComponentModel.DataAnnotations.Schema;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Airport model.
+    /// Runway-End model.
     /// </summary>
     /// <remarks>
-    /// sushi.at, 02/05/2021.
+    /// sushi.at, 10/05/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class Airport
+    public class RunwayEnd
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the altitude of the airport in feet.
+        /// Gets or sets the approach light system (NULL for no approach light).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public int Altitude { get; set; }
+        [StringLength(15)]
+        public string ApproachLightSystem { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the ATIS frequency (if available).
+        /// Gets or sets a value indicating whether the runway end has closed markings painted on it.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public int? AtisFrequency { get; set; }
+        public bool HasClosedMarkings { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the city.
+        /// Gets or sets the compass heading.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [StringLength(50)]
-        public string City { get; set; }
+        public double Heading { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the number of GA ramps.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public int GaRamps { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the number of gates.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public int Gates { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets a value indicating whether the airport has AV gas for refueling.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public bool HasAvGas { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets a value indicating whether the airport has jet fuel for refueling.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public bool HasJetFuel { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the ICAO identifier of the airport.
+        /// Gets or sets the runway-end ID.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [Key]
-        [StringLength(5, MinimumLength = 3)]
-        [Required]
-        public string ICAO { get; set; }
+        public int ID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets a value indicating whether the airport is closed.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public bool IsClosed { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets a value indicating whether the airport is a military one.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public bool IsMilitary { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the latitude of the airport.
+        /// Gets or sets the latitude.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public double Latitude { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the length of the longest runway in feet.
+        /// Gets or sets the left VASI pitch angle.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public int LongestRunwayLength { get; set; }
+        public double? LeftVasiPitch { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the surface type of the longest runway (can be "UNKNOWN" in a few cases).
+        /// Gets or sets the left VASI (Visual approach slope indicator) type.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [StringLength(7)]
-        [Required]
-        public string LongestRunwaySurface { get; set; }
+        [StringLength(15)]
+        public string LeftVasiType { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the longitude of the airport.
+        /// Gets or sets the longitude.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public double Longitude { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the name.
+        /// Gets or sets the name (for example 04L).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [StringLength(50)]
         [Required]
+        [StringLength(10)]
         public string Name { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the number of runways.
+        /// Gets or sets the offset threshold in feet.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public int RunwayCount { get; set; }
+        public int OffsetThreshold { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the runways.
+        /// Gets or sets the right VASI pitch angle.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public List<Runway> Runways { get; set; }
+        public double? RightVasiPitch { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the tower frequency (if available).
+        /// Gets or sets the right VASI (Visual approach slope indicator) type.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public int? TowerFrequency { get; set; }
+        [StringLength(15)]
+        public string RightVasiType { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the unicom frequency (if available).
+        /// Gets or sets the runway.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public int? UnicomFrequency { get; set; }
+        [ForeignKey("RunwayID")]
+        public Runway Runway { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the parent runway ID.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("Runway")]
+        public int RunwayID { get; set; }
     }
 }

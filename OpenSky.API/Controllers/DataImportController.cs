@@ -90,8 +90,6 @@ namespace OpenSky.API.Controllers
         public async Task<ActionResult<ApiResponse<string>>> PostLittleNavmapMSFS(IFormFile fileUpload)
         {
             var filePath = Path.GetTempFileName();
-            var airportsProcessed = 0;
-            var lastIdent = "???";
             try
             {
                 this.logger.LogInformation($"PostLittleNavmapMSFS received file with length {fileUpload.Length} bytes, saving to temporary file {filePath}");
@@ -102,18 +100,67 @@ namespace OpenSky.API.Controllers
 
                 var connection = new SQLiteConnection($"URI=file:{filePath}");
                 connection.Open();
+                int airportsProcessed;
                 try
                 {
-                    var airportCountCommand = new SQLiteCommand("SELECT COUNT(ident) FROM airport", connection);
-                    var count = airportCountCommand.ExecuteScalar();
-                    this.logger.LogInformation($"Uploaded sqlite database contains {count ?? 0} airports, processing...");
+                    airportsProcessed = await this.ImportLittleNavmapAirportsMSFS(connection);
+                }
+                finally
+                {
+                    connection.Close();
+                }
 
-                    var airportCommand = new SQLiteCommand("SELECT " +
-                                                           "ident,name,city,has_avgas,has_jetfuel,tower_frequency,atis_frequency,unicom_frequency,is_closed,is_military," +
-                                                           "num_parking_gate,num_parking_ga_ramp,num_runways,longest_runway_length,longest_runway_surface,laty,lonx " +
-                                                           "FROM airport", connection);
-                    await using var reader = airportCommand.ExecuteReader();
-                    while (reader.Read())
+                return this.Ok(new ApiResponse<string>($"Successfully processed {airportsProcessed} airports."));
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Unhandled exception processing LittleNavmapMSFS sqlite database.");
+                return this.Ok(new ApiResponse<string>(ex));
+            }
+            finally
+            {
+                if (System.IO.File.Exists(filePath))
+                {
+                    System.IO.File.Delete(filePath);
+                }
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Import the airports from an uploaded LittleNavmap database for MSFS.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 10/05/2021.
+        /// </remarks>
+        /// <param name="connection">
+        /// The sqlite database connection.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields an int (airports processed count).
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        private async Task<int> ImportLittleNavmapAirportsMSFS(SQLiteConnection connection)
+        {
+            var airportsProcessed = 0;
+            var lastIdent = "???";
+
+            try
+            {
+                var airportCountCommand = new SQLiteCommand("SELECT COUNT(ident) FROM airport", connection);
+                var count = await airportCountCommand.ExecuteScalarAsync();
+                this.logger.LogInformation($"Uploaded sqlite database contains {count ?? 0} airports, processing...");
+
+                var airportCommand = new SQLiteCommand(
+                    "SELECT " +
+                    "ident,name,city,has_avgas,has_jetfuel,tower_frequency,atis_frequency,unicom_frequency,is_closed,is_military," +
+                    "num_parking_gate,num_parking_ga_ramp,num_runways,longest_runway_length,longest_runway_surface,laty,lonx " +
+                    "FROM airport",
+                    connection);
+                var reader = await airportCommand.ExecuteReaderAsync();
+                await using (reader)
+                {
+                    while (await reader.ReadAsync())
                     {
                         airportsProcessed++;
                         if (airportsProcessed % 50 == 0)
@@ -126,7 +173,7 @@ namespace OpenSky.API.Controllers
                             {
                                 this.logger.LogError(ex, $"Error saving changes for last batch of airports, last ident was {lastIdent}");
                             }
-                            
+
                             this.logger.LogInformation($"Processed {airportsProcessed} airports...");
                         }
 
@@ -149,7 +196,7 @@ namespace OpenSky.API.Controllers
                                 IsMilitary = reader.GetBoolean("is_military"),
                                 Gates = reader.GetInt32("num_parking_gate"),
                                 GaRamps = reader.GetInt32("num_parking_ga_ramp"),
-                                Runways = reader.GetInt32("num_runways"),
+                                RunwayCount = reader.GetInt32("num_runways"),
                                 LongestRunwayLength = reader.GetInt32("longest_runway_length"),
                                 LongestRunwaySurface = reader.GetString("longest_runway_surface"),
                                 Latitude = reader.GetDouble("laty"),
@@ -170,7 +217,7 @@ namespace OpenSky.API.Controllers
                             existingAirport.IsMilitary = reader.GetBoolean("is_military");
                             existingAirport.Gates = reader.GetInt32("num_parking_gate");
                             existingAirport.GaRamps = reader.GetInt32("num_parking_ga_ramp");
-                            existingAirport.Runways = reader.GetInt32("num_runways");
+                            existingAirport.RunwayCount = reader.GetInt32("num_runways");
                             existingAirport.LongestRunwayLength = reader.GetInt32("longest_runway_length");
                             existingAirport.LongestRunwaySurface = reader.GetString("longest_runway_surface");
                             existingAirport.Latitude = reader.GetDouble("laty");
@@ -178,25 +225,13 @@ namespace OpenSky.API.Controllers
                         }
                     }
                 }
-                finally
-                {
-                    connection.Close();
-                }
-
-                return this.Ok(new ApiResponse<string>($"Successfully processed {airportsProcessed} airports."));
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, $"Unhandled exception processing LittleNavmapMSFS sqlite database. Last ident was {lastIdent}");
-                return this.StatusCode(StatusCodes.Status500InternalServerError,new ApiResponse<string>(ex));
+                this.logger.LogError(ex, $"Unhandled exception processing LittleNavmapMSFS sqlite database airports table, last ident was {lastIdent}.");
             }
-            finally
-            {
-                if (System.IO.File.Exists(filePath))
-                {
-                    System.IO.File.Delete(filePath);
-                }
-            }
+
+            return airportsProcessed;
         }
     }
 }
