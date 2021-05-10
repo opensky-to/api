@@ -79,8 +79,14 @@ namespace OpenSky.API
         /// <param name="env">
         /// The environment.
         /// </param>
+        /// <param name="dbContext">
+        /// OpenSky database context.
+        /// </param>
+        /// <param name="config">
+        /// The configuration.
+        /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, OpenSkyDbContext dbContext, IConfiguration config)
         {
             if (env.IsDevelopment())
             {
@@ -99,6 +105,12 @@ namespace OpenSky.API
             app.UseAuthentication();
             app.UseAuthorization();
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+
+            // Apply automatic database migrations?
+            if (bool.Parse(config["ConnectionStrings:ApplyMigrations"]))
+            {
+                dbContext.Database.Migrate();
+            }
         }
 
         /// -------------------------------------------------------------------------------------------------
