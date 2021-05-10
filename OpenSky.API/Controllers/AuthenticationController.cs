@@ -200,16 +200,19 @@ namespace OpenSky.API.Controllers
             this.logger.LogInformation($"Processing forgot password request for {forgotPassword.Email}");
 
             // Check Google reCAPTCHAv3
-            var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], forgotPassword.RecaptchaToken, this.GetRemoteIPAddress());
-            var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
-            if (!reCAPTCHAResponse.Success)
+            if (bool.Parse(this.configuration["GoogleReCaptchaV3:Enabled"]))
             {
-                return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA validation failed.", IsError = true });
-            }
+                var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], forgotPassword.RecaptchaToken, this.GetRemoteIPAddress());
+                var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
+                if (!reCAPTCHAResponse.Success)
+                {
+                    return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA validation failed.", IsError = true });
+                }
 
-            if (reCAPTCHAResponse.Score <= 0.3)
-            {
-                return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true });
+                if (reCAPTCHAResponse.Score <= 0.3)
+                {
+                    return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true });
+                }
             }
 
             var user = await this.userManager.FindByEmailAsync(forgotPassword.Email);
@@ -262,16 +265,19 @@ namespace OpenSky.API.Controllers
             if (user != null && await this.userManager.CheckPasswordAsync(user, login.Password))
             {
                 // Check Google reCAPTCHAv3
-                var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], login.RecaptchaToken, this.GetRemoteIPAddress());
-                var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
-                if (!reCAPTCHAResponse.Success)
+                if (bool.Parse(this.configuration["GoogleReCaptchaV3:Enabled"]))
                 {
-                    return this.Ok(new ApiResponse<LoginResponse> { Message = "reCAPTCHA validation failed.", IsError = true, Data = new LoginResponse() });
-                }
+                    var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], login.RecaptchaToken, this.GetRemoteIPAddress());
+                    var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
+                    if (!reCAPTCHAResponse.Success)
+                    {
+                        return this.Ok(new ApiResponse<LoginResponse> { Message = "reCAPTCHA validation failed.", IsError = true, Data = new LoginResponse() });
+                    }
 
-                if (reCAPTCHAResponse.Score <= 0.3)
-                {
-                    return this.Ok(new ApiResponse<LoginResponse> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true, Data = new LoginResponse() });
+                    if (reCAPTCHAResponse.Score <= 0.3)
+                    {
+                        return this.Ok(new ApiResponse<LoginResponse> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true, Data = new LoginResponse() });
+                    }
                 }
 
                 if (!user.EmailConfirmed)
@@ -342,16 +348,19 @@ namespace OpenSky.API.Controllers
             }
 
             // Check Google reCAPTCHAv3
-            var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], registerUser.RecaptchaToken, this.GetRemoteIPAddress());
-            var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
-            if (!reCAPTCHAResponse.Success)
+            if (bool.Parse(this.configuration["GoogleReCaptchaV3:Enabled"]))
             {
-                return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA validation failed.", IsError = true });
-            }
+                var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], registerUser.RecaptchaToken, this.GetRemoteIPAddress());
+                var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
+                if (!reCAPTCHAResponse.Success)
+                {
+                    return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA validation failed.", IsError = true });
+                }
 
-            if (reCAPTCHAResponse.Score <= 0.3)
-            {
-                return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true });
+                if (reCAPTCHAResponse.Score <= 0.3)
+                {
+                    return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true });
+                }
             }
 
             // Check if user with name/email already exists
@@ -420,20 +429,19 @@ namespace OpenSky.API.Controllers
             this.logger.LogInformation($"Sending new validation email to {resendValidationEmail.Email}");
 
             // Check Google reCAPTCHAv3
-            var reCAPTCHARequest = new ReCaptchaRequest(
-                this.configuration["GoogleReCaptchaV3:ApiUrl"],
-                this.configuration["GoogleReCaptchaV3:Secret"],
-                resendValidationEmail.RecaptchaToken,
-                this.GetRemoteIPAddress());
-            var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
-            if (!reCAPTCHAResponse.Success)
+            if (bool.Parse(this.configuration["GoogleReCaptchaV3:Enabled"]))
             {
-                return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA validation failed.", IsError = true });
-            }
+                var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], resendValidationEmail.RecaptchaToken, this.GetRemoteIPAddress());
+                var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
+                if (!reCAPTCHAResponse.Success)
+                {
+                    return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA validation failed.", IsError = true });
+                }
 
-            if (reCAPTCHAResponse.Score <= 0.3)
-            {
-                return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true });
+                if (reCAPTCHAResponse.Score <= 0.3)
+                {
+                    return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true });
+                }
             }
 
             var user = await this.userManager.FindByEmailAsync(resendValidationEmail.Email);
@@ -484,16 +492,19 @@ namespace OpenSky.API.Controllers
             this.logger.LogInformation($"Processing password reset for {resetPassword.Email} with token {resetPassword.Token.Base64Decode()}");
 
             // Check Google reCAPTCHAv3
-            var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], resetPassword.RecaptchaToken, this.GetRemoteIPAddress());
-            var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
-            if (!reCAPTCHAResponse.Success)
+            if (bool.Parse(this.configuration["GoogleReCaptchaV3:Enabled"]))
             {
-                return this.Ok(new ApiResponse<LoginResponse> { Message = "reCAPTCHA validation failed.", IsError = true, Data = new LoginResponse() });
-            }
+                var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], resetPassword.RecaptchaToken, this.GetRemoteIPAddress());
+                var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
+                if (!reCAPTCHAResponse.Success)
+                {
+                    return this.Ok(new ApiResponse<LoginResponse> { Message = "reCAPTCHA validation failed.", IsError = true, Data = new LoginResponse() });
+                }
 
-            if (reCAPTCHAResponse.Score <= 0.3)
-            {
-                return this.Ok(new ApiResponse<LoginResponse> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true, Data = new LoginResponse() });
+                if (reCAPTCHAResponse.Score <= 0.3)
+                {
+                    return this.Ok(new ApiResponse<LoginResponse> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true, Data = new LoginResponse() });
+                }
             }
 
             // Find the user
@@ -565,16 +576,19 @@ namespace OpenSky.API.Controllers
             this.logger.LogInformation($"Processing email validation for {validateEmail.Email} with token {validateEmail.Token.Base64Decode()}");
 
             // Check Google reCAPTCHAv3
-            var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], validateEmail.RecaptchaToken, this.GetRemoteIPAddress());
-            var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
-            if (!reCAPTCHAResponse.Success)
+            if (bool.Parse(this.configuration["GoogleReCaptchaV3:Enabled"]))
             {
-                return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA validation failed.", IsError = true });
-            }
+                var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], validateEmail.RecaptchaToken, this.GetRemoteIPAddress());
+                var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
+                if (!reCAPTCHAResponse.Success)
+                {
+                    return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA validation failed.", IsError = true });
+                }
 
-            if (reCAPTCHAResponse.Score <= 0.3)
-            {
-                return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true });
+                if (reCAPTCHAResponse.Score <= 0.3)
+                {
+                    return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true });
+                }
             }
 
             // Find the user
