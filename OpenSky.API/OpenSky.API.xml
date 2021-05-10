@@ -1531,7 +1531,7 @@
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>
-        <member name="M:OpenSky.API.Startup.Configure(Microsoft.AspNetCore.Builder.IApplicationBuilder,Microsoft.AspNetCore.Hosting.IWebHostEnvironment)">
+        <member name="M:OpenSky.API.Startup.Configure(Microsoft.AspNetCore.Builder.IApplicationBuilder,Microsoft.AspNetCore.Hosting.IWebHostEnvironment,OpenSky.API.OpenSkyDbContext,Microsoft.Extensions.Configuration.IConfiguration)">
             -------------------------------------------------------------------------------------------------
             <summary>
             This method gets called by the runtime. Use this method to configure the HTTP request
@@ -1545,6 +1545,12 @@
             </param>
             <param name="env">
             The environment.
+            </param>
+            <param name="dbContext">
+            OpenSky database context.
+            </param>
+            <param name="config">
+            The configuration.
             </param>
             -------------------------------------------------------------------------------------------------
         </member>
