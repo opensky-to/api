@@ -12,11 +12,11 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DocumentationFile>E:\OpenSky\api\OpenSky.API\OpenSky.API.xml</DocumentationFile>
+    <DocumentationFile>\bin\Debug\OpenSky.API.xml</DocumentationFile>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DocumentationFile>E:\OpenSky\api\OpenSky.API\OpenSky.API.xml</DocumentationFile>
+    <DocumentationFile>\bin\Release\OpenSky.API.xml</DocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
