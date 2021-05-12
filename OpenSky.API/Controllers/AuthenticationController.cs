@@ -280,12 +280,45 @@ namespace OpenSky.API.Controllers
                     }
                 }
 
+                // If the email address isn't confirmed, deny the login
                 if (!user.EmailConfirmed)
                 {
                     return this.Ok(new ApiResponse<LoginResponse> { Message = "Please validate your email address first!", IsError = true, Data = new LoginResponse() });
                 }
 
+                // Fetch the user's roles
                 var userRoles = await this.userManager.GetRolesAsync(user);
+                
+                // Check if this user is a global admin (from the config json file)
+                var globalAdmins = this.configuration["OpenSky:GlobalAdmins"].Split(',');
+                if (globalAdmins.Contains(user.Email) && !userRoles.Contains(UserRoles.Admin))
+                {
+                    userRoles.Add(UserRoles.Admin);
+
+                    // Make sure the admin role exists
+                    if (!await this.roleManager.RoleExistsAsync(UserRoles.Admin))
+                    {
+                        var roleResult = await this.roleManager.CreateAsync(new IdentityRole(UserRoles.Admin));
+                        if (!roleResult.Succeeded)
+                        {
+                            var errorDetails = roleResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
+                            return this.Ok(new ApiResponse<string> { Message = $"Error creating Admin role!{errorDetails}", IsError = true });
+                        }
+                    }
+
+                    // Add the global admin user to "Admin" role
+                    if (!await this.userManager.IsInRoleAsync(user, UserRoles.Admin))
+                    {
+                        var addToRoleResult = await this.userManager.AddToRoleAsync(user, UserRoles.Admin);
+                        if (!addToRoleResult.Succeeded)
+                        {
+                            var errorDetails = addToRoleResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
+                            return this.Ok(new ApiResponse<string> { Message = $"Error adding user to \"Admin\" role!{errorDetails}", IsError = true });
+                        }
+                    }
+                }
+
+                // Build claims
                 var authClaims = new List<Claim>
                 {
                     new(ClaimTypes.Name, user.UserName),
@@ -294,16 +327,18 @@ namespace OpenSky.API.Controllers
                 };
                 authClaims.AddRange(userRoles.Select(userRole => new Claim(ClaimTypes.Role, userRole)));
 
+                // Create JWT token
                 var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.configuration["JWT:Secret"]));
                 var token = new JwtSecurityToken(
                     this.configuration["JWT:ValidIssuer"],
                     this.configuration["JWT:ValidAudience"],
-                    expires: DateTime.Now.AddHours(1),
+                    expires: DateTime.UtcNow.AddHours(1),
                     claims: authClaims,
                     signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha512)
                 );
 
-                user.LastLogin = DateTime.Now;
+                // Record last login details and save them
+                user.LastLogin = DateTime.UtcNow;
                 user.LastLoginIP = this.GetRemoteIPAddress();
                 user.LastLoginGeo = await this.geoLocateIPService.Execute(this.GetRemoteIPAddress());
 
@@ -314,6 +349,7 @@ namespace OpenSky.API.Controllers
                     return this.Ok(new ApiResponse<LoginResponse> { Message = $"Error saving login history!{errorDetails}", IsError = true, Data = new LoginResponse() });
                 }
 
+                // All done, return the token to the client
                 return this.Ok(new ApiResponse<LoginResponse>("Logged in successfully!") { Data = new LoginResponse { Token = new JwtSecurityTokenHandler().WriteToken(token), Expiration = token.ValidTo, Username = user.UserName } });
             }
 
@@ -382,7 +418,7 @@ namespace OpenSky.API.Controllers
                 UserName = registerUser.Username,
                 Email = registerUser.Email,
                 SecurityStamp = Guid.NewGuid().ToString(),
-                RegisteredOn = DateTime.Now
+                RegisteredOn = DateTime.UtcNow
             };
 
             var createResult = await this.userManager.CreateAsync(user, registerUser.Password);
@@ -535,12 +571,12 @@ namespace OpenSky.API.Controllers
             var token = new JwtSecurityToken(
                 this.configuration["JWT:ValidIssuer"],
                 this.configuration["JWT:ValidAudience"],
-                expires: DateTime.Now.AddHours(1),
+                expires: DateTime.UtcNow.AddHours(1),
                 claims: authClaims,
                 signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha512)
             );
 
-            user.LastLogin = DateTime.Now;
+            user.LastLogin = DateTime.UtcNow;
             user.LastLoginIP = this.GetRemoteIPAddress();
             user.LastLoginGeo = await this.geoLocateIPService.Execute(this.GetRemoteIPAddress());
 

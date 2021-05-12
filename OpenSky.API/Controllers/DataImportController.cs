@@ -7,20 +7,20 @@
 namespace OpenSky.API.Controllers
 {
     using System;
-    using System.Data;
-    using System.Data.SQLite;
     using System.IO;
-    using System.Linq;
+    using System.Text.Json;
     using System.Threading.Tasks;
 
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
 
     using OpenSky.API.DbModel;
     using OpenSky.API.Model;
     using OpenSky.API.Model.Authentication;
+    using OpenSky.API.Workers;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -34,7 +34,7 @@ namespace OpenSky.API.Controllers
     [Authorize(Roles = UserRoles.Admin)]
     [ApiController]
     [Route("[controller]")]
-    public class DataImportController : ControllerBase
+    public partial class DataImportController : ControllerBase
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -72,6 +72,48 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Get data import status.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 12/05/2021.
+        /// </remarks>
+        /// <param name="importID">
+        /// Identifier for the import.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields the import status model.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet]
+        [Route("status")]
+        public async Task<ActionResult<ApiResponse<DataImportStatus>>> GetImportStatus(Guid importID)
+        {
+            if (DataImportWorkerService.Status.ContainsKey(importID))
+            {
+                return this.Ok(new ApiResponse<DataImportStatus> { Data = DataImportWorkerService.Status[importID] });
+            }
+            else
+            {
+                var dataImport = await this.db.DataImports.SingleOrDefaultAsync(i => i.ID == importID);
+                if (dataImport != null)
+                {
+                    if (!string.IsNullOrEmpty(dataImport.LogText))
+                    {
+                        var dataImportStatus = JsonSerializer.Deserialize<DataImportStatus>(dataImport.LogText);
+                        return this.Ok(new ApiResponse<DataImportStatus> { Data = dataImportStatus });
+                    }
+                    else
+                    {
+                        return this.Ok(new ApiResponse<DataImportStatus>("Specified import has no status saved.") { IsError = true, Data = new DataImportStatus() });
+                    }
+                }
+            }
+
+            return this.Ok(new ApiResponse<DataImportStatus>("No import with specified ID was found.") { IsError = true, Data = new DataImportStatus() });
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Post LittleNavmap MSFS sqlite database for import.
         /// </summary>
         /// <remarks>
@@ -87,115 +129,41 @@ namespace OpenSky.API.Controllers
         [HttpPost]
         [Route("littleNavmapMSFS")]
         [DisableRequestSizeLimit]
-        public async Task<ActionResult<ApiResponse<string>>> PostLittleNavmapMSFS(IFormFile fileUpload)
+        public async Task<ActionResult<ApiResponse<Guid?>>> PostLittleNavmapMSFS(IFormFile fileUpload)
         {
             var filePath = Path.GetTempFileName();
-            var airportsProcessed = 0;
-            var lastIdent = "???";
             try
             {
+                var username = this.User.Identity?.Name;
+                if (string.IsNullOrEmpty(username))
+                {
+                    return this.Ok(new ApiResponse<Guid?>("Unable to determine current user name, aborting.") { IsError = true });
+                }
+
                 this.logger.LogInformation($"PostLittleNavmapMSFS received file with length {fileUpload.Length} bytes, saving to temporary file {filePath}");
                 await using (var stream = System.IO.File.Create(filePath))
                 {
                     await fileUpload.CopyToAsync(stream);
                 }
 
-                var connection = new SQLiteConnection($"URI=file:{filePath}");
-                connection.Open();
-                try
+                // Create data import record
+                var dataImport = new DataImport
                 {
-                    var airportCountCommand = new SQLiteCommand("SELECT COUNT(ident) FROM airport", connection);
-                    var count = airportCountCommand.ExecuteScalar();
-                    this.logger.LogInformation($"Uploaded sqlite database contains {count ?? 0} airports, processing...");
+                    ID = Guid.NewGuid(),
+                    Type = "LittleNavmapMSFS",
+                    Started = DateTime.UtcNow,
+                    UserName = username,
+                    ImportDataSource = filePath
+                };
+                await this.db.DataImports.AddAsync(dataImport);
+                await this.db.SaveDatabaseChangesAsync(this.logger, "Error adding data import record to database.");
 
-                    var airportCommand = new SQLiteCommand("SELECT " +
-                                                           "ident,name,city,has_avgas,has_jetfuel,tower_frequency,atis_frequency,unicom_frequency,is_closed,is_military," +
-                                                           "num_parking_gate,num_parking_ga_ramp,num_runways,longest_runway_length,longest_runway_surface,laty,lonx " +
-                                                           "FROM airport", connection);
-                    await using var reader = airportCommand.ExecuteReader();
-                    while (reader.Read())
-                    {
-                        airportsProcessed++;
-                        if (airportsProcessed % 50 == 0)
-                        {
-                            try
-                            {
-                                await this.db.SaveChangesAsync();
-                            }
-                            catch (Exception ex)
-                            {
-                                this.logger.LogError(ex, $"Error saving changes for last batch of airports, last ident was {lastIdent}");
-                            }
-                            
-                            this.logger.LogInformation($"Processed {airportsProcessed} airports...");
-                        }
-
-                        var ident = reader.GetString("ident");
-                        lastIdent = ident;
-                        var existingAirport = this.db.Airports.SingleOrDefault(a => a.ICAO.Equals(ident));
-                        if (existingAirport == null)
-                        {
-                            var newAirport = new Airport
-                            {
-                                ICAO = ident,
-                                Name = !await reader.IsDBNullAsync("name") ? new string(reader.GetString("name").Take(50).ToArray()) : "???",
-                                City = !await reader.IsDBNullAsync("city") ? new string(reader.GetString("city").Take(50).ToArray()) : null,
-                                HasAvGas = reader.GetBoolean("has_avgas"),
-                                HasJetFuel = reader.GetBoolean("has_jetfuel"),
-                                TowerFrequency = !await reader.IsDBNullAsync("tower_frequency") ? (reader.GetInt32("tower_frequency") != 0 ? reader.GetInt32("tower_frequency") : null) : null,
-                                AtisFrequency = !await reader.IsDBNullAsync("atis_frequency") ? (reader.GetInt32("atis_frequency") != 0 ? reader.GetInt32("atis_frequency") : null) : null,
-                                UnicomFrequency = !await reader.IsDBNullAsync("unicom_frequency") ? (reader.GetInt32("unicom_frequency") != 0 ? reader.GetInt32("unicom_frequency") : null) : null,
-                                IsClosed = reader.GetBoolean("is_closed"),
-                                IsMilitary = reader.GetBoolean("is_military"),
-                                Gates = reader.GetInt32("num_parking_gate"),
-                                GaRamps = reader.GetInt32("num_parking_ga_ramp"),
-                                Runways = reader.GetInt32("num_runways"),
-                                LongestRunwayLength = reader.GetInt32("longest_runway_length"),
-                                LongestRunwaySurface = reader.GetString("longest_runway_surface"),
-                                Latitude = reader.GetDouble("laty"),
-                                Longitude = reader.GetDouble("lonx")
-                            };
-                            this.db.Airports.Add(newAirport);
-                        }
-                        else
-                        {
-                            existingAirport.Name = !await reader.IsDBNullAsync("name") ? new string(reader.GetString("name").Take(50).ToArray()) : "???";
-                            existingAirport.City = !await reader.IsDBNullAsync("city") ? new string(reader.GetString("city").Take(50).ToArray()) : null;
-                            existingAirport.HasAvGas = reader.GetBoolean("has_avgas");
-                            existingAirport.HasJetFuel = reader.GetBoolean("has_jetfuel");
-                            existingAirport.TowerFrequency = !await reader.IsDBNullAsync("tower_frequency") ? (reader.GetInt32("tower_frequency") != 0 ? reader.GetInt32("tower_frequency") : null) : null;
-                            existingAirport.AtisFrequency = !await reader.IsDBNullAsync("atis_frequency") ? (reader.GetInt32("atis_frequency") != 0 ? reader.GetInt32("atis_frequency") : null) : null;
-                            existingAirport.UnicomFrequency = !await reader.IsDBNullAsync("unicom_frequency") ? (reader.GetInt32("unicom_frequency") != 0 ? reader.GetInt32("unicom_frequency") : null) : null;
-                            existingAirport.IsClosed = reader.GetBoolean("is_closed");
-                            existingAirport.IsMilitary = reader.GetBoolean("is_military");
-                            existingAirport.Gates = reader.GetInt32("num_parking_gate");
-                            existingAirport.GaRamps = reader.GetInt32("num_parking_ga_ramp");
-                            existingAirport.Runways = reader.GetInt32("num_runways");
-                            existingAirport.LongestRunwayLength = reader.GetInt32("longest_runway_length");
-                            existingAirport.LongestRunwaySurface = reader.GetString("longest_runway_surface");
-                            existingAirport.Latitude = reader.GetDouble("laty");
-                            existingAirport.Longitude = reader.GetDouble("lonx");
-                        }
-                    }
-                }
-                finally
-                {
-                    connection.Close();
-                }
-
-                return this.Ok(new ApiResponse<string>($"Successfully processed {airportsProcessed} airports."));
+                return this.Ok(new ApiResponse<Guid?>("Successfully added data import to queue.") { Data = dataImport.ID });
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, $"Unhandled exception processing LittleNavmapMSFS sqlite database. Last ident was {lastIdent}");
-                return this.StatusCode(StatusCodes.Status500InternalServerError,new ApiResponse<string>(ex));
-            }
-            finally
-            {
-                if (System.IO.File.Exists(filePath))
-                {
-                    System.IO.File.Delete(filePath);
-                }
+                this.logger.LogError(ex, "Unhandled exception processing LittleNavmapMSFS sqlite database.");
+                return this.Ok(new ApiResponse<Guid?>(ex));
             }
         }
     }

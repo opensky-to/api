@@ -102,7 +102,7 @@ namespace OpenSky.API.Controllers
         public async Task<ActionResult<Airport>> Get(string icao)
         {
             this.logger.LogInformation($"{this.User.Identity?.Name} | GET Airport/{icao}");
-            return await this.db.Airports.FirstOrDefaultAsync(a => a.ICAO.Equals(icao));
+            return await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO.Equals(icao));
         }
     }
 }
