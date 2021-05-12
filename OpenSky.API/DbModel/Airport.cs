@@ -6,7 +6,12 @@
 
 namespace OpenSky.API.DbModel
 {
+    using System;
+    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
+    using System.Text.Json.Serialization;
+
+    using OpenSky.API.Helpers;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -20,10 +25,64 @@ namespace OpenSky.API.DbModel
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The approaches.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<Approach> approaches;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The runways.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<Runway> runways;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Airport"/> class.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 11/05/2021.
+        /// </remarks>
+        /// -------------------------------------------------------------------------------------------------
+        public Airport()
+        {
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Airport"/> class.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 11/05/2021.
+        /// </remarks>
+        /// <param name="lazyLoader">
+        /// The lazy loader.
+        /// </param>
+        /// -------------------------------------------------------------------------------------------------
+        public Airport(Action<object, string> lazyLoader)
+        {
+            this.LazyLoader = lazyLoader;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the altitude of the airport in feet.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public int Altitude { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the approaches.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        public ICollection<Approach> Approaches
+        {
+            get => this.LazyLoader.Load(this, ref this.approaches);
+            set => this.approaches = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -60,6 +119,14 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public bool HasAvGas { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the hash code (SHA1 over all data columns to detect if record needs updating).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [Required]
+        public string HashCode { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -136,7 +203,19 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the number of runways.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public int Runways { get; set; }
+        public int RunwayCount { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the runways.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        public ICollection<Runway> Runways
+        {
+            get => this.LazyLoader.Load(this, ref this.runways);
+            set => this.runways = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -151,5 +230,12 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public int? UnicomFrequency { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the lazy loader.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private Action<object, string> LazyLoader { get; }
     }
 }

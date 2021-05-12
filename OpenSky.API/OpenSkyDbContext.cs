@@ -6,9 +6,13 @@
 
 namespace OpenSky.API
 {
+    using System;
+    using System.Threading.Tasks;
+
     using Microsoft.AspNetCore.Identity;
     using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
     using Microsoft.EntityFrameworkCore;
+    using Microsoft.Extensions.Logging;
 
     using OpenSky.API.DbModel;
 
@@ -44,6 +48,67 @@ namespace OpenSky.API
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public virtual DbSet<Airport> Airports { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the approaches.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public virtual DbSet<Approach> Approaches { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the data imports.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public virtual DbSet<DataImport> DataImports { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the runway ends.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public virtual DbSet<RunwayEnd> RunwayEnds { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the runways.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public virtual DbSet<Runway> Runways { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Save database changes using a transaction.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 11/05/2021.
+        /// </remarks>
+        /// <param name="logger">
+        /// The logger to use in case of an error.
+        /// </param>
+        /// <param name="errorMessage">
+        /// (Optional) Message describing the error.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        public async Task SaveDatabaseChangesAsync(ILogger logger, string errorMessage = null)
+        {
+            await using var transaction = await this.Database.BeginTransactionAsync();
+            try
+            {
+                await this.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, !string.IsNullOrEmpty(errorMessage) ? errorMessage : "Error saving database changes.");
+                await transaction.RollbackAsync();
+                this.ChangeTracker.Clear();
+            }
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
