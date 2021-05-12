@@ -36,6 +36,7 @@
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="5.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.1.4" />
     <PackageReference Include="System.Data.SQLite.Core" Version="1.0.113.7" />
+    <PackageReference Include="Z.EntityFramework.Extensions.EFCore" Version="5.1.35" />
   </ItemGroup>
 
   <ItemGroup>
