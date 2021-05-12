@@ -1,133 +1,115 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Approach.cs" company="OpenSky">
+// <copyright file="DataImportStatus.cs" company="OpenSky">
 // sushi.at for OpenSky 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace OpenSky.API.DbModel
+namespace OpenSky.API.Model
 {
-    using System;
-    using System.ComponentModel.DataAnnotations;
-    using System.ComponentModel.DataAnnotations.Schema;
-    using System.Text.Json.Serialization;
-
-    using OpenSky.API.Helpers;
+    using System.Collections.Generic;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Approach model.
+    /// Data import status model.
     /// </summary>
     /// <remarks>
-    /// sushi.at, 11/05/2021.
+    /// sushi.at, 12/05/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class Approach
+    public class DataImportStatus
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The airport.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private Airport airport;
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Approach"/> class.
+        /// Initializes a new instance of the <see cref="DataImportStatus"/> class.
         /// </summary>
         /// <remarks>
-        /// sushi.at, 11/05/2021.
+        /// sushi.at, 12/05/2021.
         /// </remarks>
         /// -------------------------------------------------------------------------------------------------
-        public Approach()
+        public DataImportStatus()
         {
+            this.Elements = new Dictionary<string, DataImportElement>();
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="Approach"/> class.
+        /// Gets or sets the elements.
         /// </summary>
-        /// <remarks>
-        /// sushi.at, 11/05/2021.
-        /// </remarks>
-        /// <param name="lazyLoader">
-        /// The lazy loader.
-        /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public Approach(Action<object, string> lazyLoader)
-        {
-            this.LazyLoader = lazyLoader;
-        }
+        public Dictionary<string, DataImportElement> Elements { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the airport.
+        /// Gets the percent done.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [JsonIgnore]
-        [ForeignKey("AirportICAO")]
-        public Airport Airport
-        {
-            get => this.LazyLoader.Load(this, ref this.airport);
-            set => this.airport = value;
-        }
+        public int PercentDone => (int)((this.Processed / (double)this.Total) * 100.0);
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the airport ICAO.
+        /// Gets or sets the number of records processed.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [StringLength(5, MinimumLength = 3)]
-        [Required]
-        [ForeignKey("Airport")]
-        public string AirportICAO { get; set; }
+        public int Processed { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the hash code (SHA1 over all data columns to detect if record needs updating).
+        /// Gets or sets the total number of records to be processed. 
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [Required]
-        public string HashCode { get; set; }
+        public int Total { get; set; }
+    }
+
+    /// -------------------------------------------------------------------------------------------------
+    /// <summary>
+    /// Data import element model.
+    /// </summary>
+    /// <remarks>
+    /// sushi.at, 12/05/2021.
+    /// </remarks>
+    /// -------------------------------------------------------------------------------------------------
+    public class DataImportElement
+    {
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the number of new records inserted.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int New { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the approach ID.
+        /// Gets the percent done.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.None)]
-        public int ID { get; set; }
+        public int PercentDone => (int)((this.Processed / (double)this.Total) * 100.0);
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the name of the runway (can be NULL if approach doesn't specify a runway).
+        /// Gets or sets the number of records processed.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [StringLength(6)]
-        public string RunwayName { get; set; }
+        public int Processed { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the approach type suffix (Y, Z, etc.).
+        /// Gets or sets the number of skipped records.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [StringLength(1)]
-        public string Suffix { get; set; }
+        public int Skipped { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the approach type (ILS, RNAV, etc.).
+        /// Gets or sets the total number of records to be processed. 
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [Required]
-        [StringLength(25)]
-        public string Type { get; set; }
+        public int Total { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets the lazy loader.
+        /// Gets or sets the number of updated records.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private Action<object, string> LazyLoader { get; }
+        public int Updated { get; set; }
     }
 }

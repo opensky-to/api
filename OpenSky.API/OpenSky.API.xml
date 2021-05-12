@@ -331,6 +331,22 @@
             </param>
             -------------------------------------------------------------------------------------------------
         </member>
+        <member name="M:OpenSky.API.Controllers.DataImportController.GetImportStatus(System.Guid)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Get data import status.
+            </summary>
+            <remarks>
+            sushi.at, 12/05/2021.
+            </remarks>
+            <param name="importID">
+            Identifier for the import.
+            </param>
+            <returns>
+            An asynchronous result that yields the import status model.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
         <member name="M:OpenSky.API.Controllers.DataImportController.PostLittleNavmapMSFS(Microsoft.AspNetCore.Http.IFormFile)">
             -------------------------------------------------------------------------------------------------
             <summary>
@@ -357,17 +373,17 @@
             </remarks>
             -------------------------------------------------------------------------------------------------
         </member>
-        <member name="F:OpenSky.API.DbModel.Airport.runways">
-            -------------------------------------------------------------------------------------------------
-            <summary>
-            The runways.
-            </summary>
-            -------------------------------------------------------------------------------------------------
-        </member>
         <member name="F:OpenSky.API.DbModel.Airport.approaches">
             -------------------------------------------------------------------------------------------------
             <summary>
             The approaches.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="F:OpenSky.API.DbModel.Airport.runways">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            The runways.
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>
@@ -398,6 +414,13 @@
             -------------------------------------------------------------------------------------------------
             <summary>
             Gets or sets the altitude of the airport in feet.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Airport.Approaches">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets the approaches.
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>
@@ -433,6 +456,13 @@
             -------------------------------------------------------------------------------------------------
             <summary>
             Gets or sets a value indicating whether the airport has AV gas for refueling.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Airport.HashCode">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the hash code (SHA1 over all data columns to detect if record needs updating).
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>
@@ -513,13 +543,6 @@
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>
-        <member name="P:OpenSky.API.DbModel.Airport.Approaches">
-            -------------------------------------------------------------------------------------------------
-            <summary>
-            Gets the approaches.
-            </summary>
-            -------------------------------------------------------------------------------------------------
-        </member>
         <member name="P:OpenSky.API.DbModel.Airport.TowerFrequency">
             -------------------------------------------------------------------------------------------------
             <summary>
@@ -592,6 +615,13 @@
             -------------------------------------------------------------------------------------------------
             <summary>
             Gets or sets the airport ICAO.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.Approach.HashCode">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the hash code (SHA1 over all data columns to detect if record needs updating).
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>
@@ -810,6 +840,13 @@
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>
+        <member name="P:OpenSky.API.DbModel.Runway.HashCode">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the hash code (SHA1 over all data columns to detect if record needs updating).
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
         <member name="P:OpenSky.API.DbModel.Runway.ID">
             -------------------------------------------------------------------------------------------------
             <summary>
@@ -873,6 +910,13 @@
             -------------------------------------------------------------------------------------------------
             <summary>
             Gets or sets a value indicating whether the runway end has closed markings painted on it.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.DbModel.RunwayEnd.HashCode">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the hash code (SHA1 over all data columns to detect if record needs updating).
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>
@@ -999,6 +1043,32 @@
             </param>
             <returns>
             A Base64 string.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Helpers.DbDataReaderExtensions">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Database reader extension methods.
+            </summary>
+            <remarks>
+            sushi.at, 12/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Helpers.DbDataReaderExtensions.CalculateHashCode(System.Data.Common.DbDataReader)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            A DbDataReader extension method that calculates the SHA-1 hash code by combining all columns to a single string.
+            </summary>
+            <remarks>
+            sushi.at, 12/05/2021.
+            </remarks>
+            <param name="reader">
+            The reader to act on.
+            </param>
+            <returns>
+            The calculated hash code (hex string).
             </returns>
             -------------------------------------------------------------------------------------------------
         </member>
@@ -1778,6 +1848,106 @@
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>
+        <member name="T:OpenSky.API.Model.DataImportStatus">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Data import status model.
+            </summary>
+            <remarks>
+            sushi.at, 12/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="M:OpenSky.API.Model.DataImportStatus.#ctor">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenSky.API.Model.DataImportStatus"/> class.
+            </summary>
+            <remarks>
+            sushi.at, 12/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.DataImportStatus.Elements">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the elements.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.DataImportStatus.PercentDone">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets the percent done.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.DataImportStatus.Processed">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the number of records processed.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.DataImportStatus.Total">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the total number of records to be processed. 
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="T:OpenSky.API.Model.DataImportElement">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Data import element model.
+            </summary>
+            <remarks>
+            sushi.at, 12/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.DataImportElement.New">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the number of new records inserted.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.DataImportElement.PercentDone">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets the percent done.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.DataImportElement.Processed">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the number of records processed.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.DataImportElement.Skipped">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the number of skipped records.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.DataImportElement.Total">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the total number of records to be processed. 
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Model.DataImportElement.Updated">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets or sets the number of updated records.
+            </summary>
+            -------------------------------------------------------------------------------------------------
+        </member>
         <member name="T:OpenSky.API.OpenSkyDbContext">
             -------------------------------------------------------------------------------------------------
             <summary>
@@ -2113,6 +2283,16 @@
             </summary>
             -------------------------------------------------------------------------------------------------
         </member>
+        <member name="M:OpenSky.API.Workers.DataImportWorkerService.#cctor">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Initializes static members of the <see cref="T:OpenSky.API.Workers.DataImportWorkerService"/> class.
+            </summary>
+            <remarks>
+            sushi.at, 12/05/2021.
+            </remarks>
+            -------------------------------------------------------------------------------------------------
+        </member>
         <member name="M:OpenSky.API.Workers.DataImportWorkerService.#ctor(System.IServiceProvider,Microsoft.Extensions.Logging.ILogger{OpenSky.API.Workers.DataImportWorkerService})">
             -------------------------------------------------------------------------------------------------
             <summary>
@@ -2127,6 +2307,13 @@
             <param name="logger">
             The logger.
             </param>
+            -------------------------------------------------------------------------------------------------
+        </member>
+        <member name="P:OpenSky.API.Workers.DataImportWorkerService.Status">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Gets the status dictionary.
+            </summary>
             -------------------------------------------------------------------------------------------------
         </member>
         <member name="P:OpenSky.API.Workers.DataImportWorkerService.Services">
@@ -2264,6 +2451,31 @@
             </returns>
             -------------------------------------------------------------------------------------------------
         </member>
+        <member name="M:OpenSky.API.Workers.DataImportWorkerService.ImportLittleNavmapMSFSPopulateImportStatus(System.Data.SQLite.SQLiteConnection,OpenSky.API.Model.DataImportStatus,System.Threading.CancellationToken)">
+            -------------------------------------------------------------------------------------------------
+            <summary>
+            Populates import status dictionary for LittleNavmap MSFS import job.
+            </summary>
+            <remarks>
+            sushi.at, 12/05/2021.
+            </remarks>
+            <exception cref="T:System.Exception">
+            Thrown when an exception error condition occurs.
+            </exception>
+            <param name="connection">
+            The sqlite database connection.
+            </param>
+            <param name="dataImportStatus">
+            The data import status.
+            </param>
+            <param name="token">
+            A token that allows processing to be cancelled.
+            </param>
+            <returns>
+            An asynchronous result.
+            </returns>
+            -------------------------------------------------------------------------------------------------
+        </member>
         <member name="M:OpenSky.API.Workers.DataImportWorkerService.ImportLittleNavmapRunwayEndsMSFS(OpenSky.API.OpenSkyDbContext,OpenSky.API.DbModel.DataImport,System.Data.SQLite.SQLiteConnection,System.Threading.CancellationToken)">
             -------------------------------------------------------------------------------------------------
             <summary>
@@ -2289,7 +2501,7 @@
             </returns>
             -------------------------------------------------------------------------------------------------
         </member>
-        <member name="M:OpenSky.API.Workers.DataImportWorkerService.ImportLittleNavmapRunwayEndsMSFS(OpenSky.API.OpenSkyDbContext,OpenSky.API.DbModel.DataImport,System.Threading.CancellationToken,System.Data.Common.DbDataReader,System.String,System.Int64,System.Int32)">
+        <member name="M:OpenSky.API.Workers.DataImportWorkerService.ImportLittleNavmapRunwayEndsMSFS(OpenSky.API.OpenSkyDbContext,OpenSky.API.DbModel.DataImport,System.Threading.CancellationToken,System.Data.Common.DbDataReader)">
             -------------------------------------------------------------------------------------------------
             <summary>
             Import the runway ends from the specified data reader - source database has primary/secondary
@@ -2309,15 +2521,6 @@
             </param>
             <param name="reader">
             The reader containing the records to process.
-            </param>
-            <param name="origLogText">
-            The original log text.
-            </param>
-            <param name="count">
-            The total number of runway ends.
-            </param>
-            <param name="runwayEndsProcessed">
-            The number runway ends already processed.
             </param>
             <returns>
             An asynchronous result that yields an int (runway ends processed count).

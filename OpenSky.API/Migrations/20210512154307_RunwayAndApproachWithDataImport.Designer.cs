@@ -9,10 +9,12 @@ using OpenSky.API;
 namespace OpenSky.API.Migrations
 {
     [DbContext(typeof(OpenSkyDbContext))]
-    [Migration("20210511232547_RunwayAndApproachesWithDataImport")]
-    partial class RunwayAndApproachesWithDataImport
+    [Migration("20210512154307_RunwayAndApproachWithDataImport")]
+    partial class RunwayAndApproachWithDataImport
     {
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -175,6 +177,10 @@ namespace OpenSky.API.Migrations
                     b.Property<bool>("HasJetFuel")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<string>("HashCode")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
                     b.Property<bool>("IsClosed")
                         .HasColumnType("tinyint(1)");
 
@@ -217,13 +223,16 @@ namespace OpenSky.API.Migrations
             modelBuilder.Entity("OpenSky.API.DbModel.Approach", b =>
                 {
                     b.Property<int>("ID")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
                     b.Property<string>("AirportICAO")
                         .IsRequired()
                         .HasMaxLength(5)
                         .HasColumnType("varchar(5)");
+
+                    b.Property<string>("HashCode")
+                        .IsRequired()
+                        .HasColumnType("longtext");
 
                     b.Property<string>("RunwayName")
                         .HasMaxLength(6)
@@ -360,7 +369,6 @@ namespace OpenSky.API.Migrations
             modelBuilder.Entity("OpenSky.API.DbModel.Runway", b =>
                 {
                     b.Property<int>("ID")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
                     b.Property<string>("AirportICAO")
@@ -378,6 +386,10 @@ namespace OpenSky.API.Migrations
                     b.Property<string>("EdgeLight")
                         .HasMaxLength(1)
                         .HasColumnType("varchar(1)");
+
+                    b.Property<string>("HashCode")
+                        .IsRequired()
+                        .HasColumnType("longtext");
 
                     b.Property<int>("Length")
                         .HasColumnType("int");
@@ -400,7 +412,6 @@ namespace OpenSky.API.Migrations
             modelBuilder.Entity("OpenSky.API.DbModel.RunwayEnd", b =>
                 {
                     b.Property<int>("ID")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
                     b.Property<string>("ApproachLightSystem")
@@ -409,6 +420,10 @@ namespace OpenSky.API.Migrations
 
                     b.Property<bool>("HasClosedMarkings")
                         .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("HashCode")
+                        .IsRequired()
+                        .HasColumnType("longtext");
 
                     b.Property<double>("Heading")
                         .HasColumnType("double");

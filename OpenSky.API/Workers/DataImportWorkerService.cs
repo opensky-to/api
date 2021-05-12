@@ -7,6 +7,7 @@
 namespace OpenSky.API.Workers
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -14,6 +15,8 @@ namespace OpenSky.API.Workers
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
+
+    using OpenSky.API.Model;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -32,6 +35,19 @@ namespace OpenSky.API.Workers
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private readonly ILogger<DataImportWorkerService> logger;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Initializes static members of the <see cref="DataImportWorkerService"/> class.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 12/05/2021.
+        /// </remarks>
+        /// -------------------------------------------------------------------------------------------------
+        static DataImportWorkerService()
+        {
+            Status = new Dictionary<Guid, DataImportStatus>();
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -54,6 +70,13 @@ namespace OpenSky.API.Workers
             this.Services = services;
             this.logger = logger;
         }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the status dictionary.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public static Dictionary<Guid, DataImportStatus> Status { get; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

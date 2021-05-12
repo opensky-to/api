@@ -8,16 +8,19 @@ namespace OpenSky.API.Controllers
 {
     using System;
     using System.IO;
+    using System.Text.Json;
     using System.Threading.Tasks;
 
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
 
     using OpenSky.API.DbModel;
     using OpenSky.API.Model;
     using OpenSky.API.Model.Authentication;
+    using OpenSky.API.Workers;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -65,6 +68,48 @@ namespace OpenSky.API.Controllers
         {
             this.logger = logger;
             this.db = db;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Get data import status.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 12/05/2021.
+        /// </remarks>
+        /// <param name="importID">
+        /// Identifier for the import.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields the import status model.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet]
+        [Route("status")]
+        public async Task<ActionResult<ApiResponse<DataImportStatus>>> GetImportStatus(Guid importID)
+        {
+            if (DataImportWorkerService.Status.ContainsKey(importID))
+            {
+                return this.Ok(new ApiResponse<DataImportStatus> { Data = DataImportWorkerService.Status[importID] });
+            }
+            else
+            {
+                var dataImport = await this.db.DataImports.SingleOrDefaultAsync(i => i.ID == importID);
+                if (dataImport != null)
+                {
+                    if (!string.IsNullOrEmpty(dataImport.LogText))
+                    {
+                        var dataImportStatus = JsonSerializer.Deserialize<DataImportStatus>(dataImport.LogText);
+                        return this.Ok(new ApiResponse<DataImportStatus> { Data = dataImportStatus });
+                    }
+                    else
+                    {
+                        return this.Ok(new ApiResponse<DataImportStatus>("Specified import has no status saved.") { IsError = true, Data = new DataImportStatus() });
+                    }
+                }
+            }
+
+            return this.Ok(new ApiResponse<DataImportStatus>("No import with specified ID was found.") { IsError = true, Data = new DataImportStatus() });
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -121,7 +166,5 @@ namespace OpenSky.API.Controllers
                 return this.Ok(new ApiResponse<Guid?>(ex));
             }
         }
-
-        // todo add method that returns import status
     }
 }
