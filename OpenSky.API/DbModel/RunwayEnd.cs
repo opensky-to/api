@@ -8,6 +8,7 @@ namespace OpenSky.API.DbModel
 {
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
+    using System.Text.Json.Serialization;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -43,7 +44,7 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the runway-end ID.
+        /// Gets or sets the runway end ID.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [Key]
@@ -115,6 +116,7 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("RunwayID")]
+        [JsonIgnore]
         public Runway Runway { get; set; }
 
         /// -------------------------------------------------------------------------------------------------

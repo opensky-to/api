@@ -332,13 +332,13 @@ namespace OpenSky.API.Controllers
                 var token = new JwtSecurityToken(
                     this.configuration["JWT:ValidIssuer"],
                     this.configuration["JWT:ValidAudience"],
-                    expires: DateTime.Now.AddHours(1),
+                    expires: DateTime.UtcNow.AddHours(1),
                     claims: authClaims,
                     signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha512)
                 );
 
                 // Record last login details and save them
-                user.LastLogin = DateTime.Now;
+                user.LastLogin = DateTime.UtcNow;
                 user.LastLoginIP = this.GetRemoteIPAddress();
                 user.LastLoginGeo = await this.geoLocateIPService.Execute(this.GetRemoteIPAddress());
 
@@ -418,7 +418,7 @@ namespace OpenSky.API.Controllers
                 UserName = registerUser.Username,
                 Email = registerUser.Email,
                 SecurityStamp = Guid.NewGuid().ToString(),
-                RegisteredOn = DateTime.Now
+                RegisteredOn = DateTime.UtcNow
             };
 
             var createResult = await this.userManager.CreateAsync(user, registerUser.Password);
@@ -571,12 +571,12 @@ namespace OpenSky.API.Controllers
             var token = new JwtSecurityToken(
                 this.configuration["JWT:ValidIssuer"],
                 this.configuration["JWT:ValidAudience"],
-                expires: DateTime.Now.AddHours(1),
+                expires: DateTime.UtcNow.AddHours(1),
                 claims: authClaims,
                 signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha512)
             );
 
-            user.LastLogin = DateTime.Now;
+            user.LastLogin = DateTime.UtcNow;
             user.LastLoginIP = this.GetRemoteIPAddress();
             user.LastLoginGeo = await this.geoLocateIPService.Execute(this.GetRemoteIPAddress());
 
