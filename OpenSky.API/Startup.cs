@@ -29,6 +29,7 @@ namespace OpenSky.API
     using OpenSky.API.DbModel;
     using OpenSky.API.Helpers;
     using OpenSky.API.Services;
+    using OpenSky.API.Workers;
 
     using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 
@@ -136,7 +137,10 @@ namespace OpenSky.API
                     }));
 
             // Primary database connection pool
-            services.AddDbContextPool<OpenSkyDbContext>(options => options.UseMySql(this.Configuration.GetConnectionString("OpenSkyConnectionString"), ServerVersion.Parse("10.4.18", ServerType.MariaDb)));
+            services.AddDbContextPool<OpenSkyDbContext>(options =>
+            {
+                options.UseMySql(this.Configuration.GetConnectionString("OpenSkyConnectionString"), ServerVersion.Parse("10.4.18", ServerType.MariaDb));
+            });
             
             // Add swagger
             services.AddSwaggerGen(
@@ -220,8 +224,13 @@ namespace OpenSky.API
             // Set up Google reCAPTCHAv3 service
             services.AddHttpClient<GoogleRecaptchaV3Service>();
             services.AddSingleton<GoogleRecaptchaV3Service>();
+            
+            // Set up geo location service
             services.AddHttpClient<GeoLocateIPService>();
             services.AddSingleton<GeoLocateIPService>();
+
+            // Set up hosted worker services
+            services.AddHostedService<DataImportWorkerService>();
 
             // API controllers
             services.AddControllers();

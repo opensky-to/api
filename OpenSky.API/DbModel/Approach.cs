@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Runway.cs" company="OpenSky">
+// <copyright file="Approach.cs" company="OpenSky">
 // sushi.at for OpenSky 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
@@ -7,7 +7,6 @@
 namespace OpenSky.API.DbModel
 {
     using System;
-    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
     using System.Text.Json.Serialization;
@@ -16,13 +15,13 @@ namespace OpenSky.API.DbModel
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Runway model.
+    /// Approach model.
     /// </summary>
     /// <remarks>
-    /// sushi.at, 10/05/2021.
+    /// sushi.at, 11/05/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class Runway
+    public class Approach
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -33,19 +32,19 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="Runway"/> class.
+        /// Initializes a new instance of the <see cref="Approach"/> class.
         /// </summary>
         /// <remarks>
         /// sushi.at, 11/05/2021.
         /// </remarks>
         /// -------------------------------------------------------------------------------------------------
-        public Runway()
+        public Approach()
         {
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="Runway"/> class.
+        /// Initializes a new instance of the <see cref="Approach"/> class.
         /// </summary>
         /// <remarks>
         /// sushi.at, 11/05/2021.
@@ -54,7 +53,7 @@ namespace OpenSky.API.DbModel
         /// The lazy loader.
         /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public Runway(Action<object, string> lazyLoader)
+        public Approach(Action<object, string> lazyLoader)
         {
             this.LazyLoader = lazyLoader;
         }
@@ -84,30 +83,7 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the altitude.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public int Altitude { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// The type of center lighting (NULL for no lighting).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [StringLength(1)]
-        public string CenterLight { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// The type of available edge lighting (NULL for no lighting).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [StringLength(1)]
-        public string EdgeLight { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the runway ID.
+        /// Gets or sets the approach ID.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [Key]
@@ -115,33 +91,28 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the length of the runway in feet.
+        /// Gets or sets the name of the runway (can be NULL if approach doesn't specify a runway).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public int Length { get; set; }
+        [StringLength(6)]
+        public string RunwayName { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the runway ends.
+        /// Gets or sets the approach type suffix (Y, Z, etc.).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public ICollection<RunwayEnd> RunwayEnds { get; set; }
+        [StringLength(1)]
+        public string Suffix { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the surface type (can be "UNKNOWN" in a few cases).
+        /// Gets or sets the approach type (ILS, RNAV, etc.).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [Required]
-        [StringLength(7)]
-        public string Surface { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the width of the runway in feet.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public int Width { get; set; }
+        [StringLength(25)]
+        public string Type { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
