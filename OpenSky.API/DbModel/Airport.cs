@@ -13,6 +13,16 @@ namespace OpenSky.API.DbModel
 
     using OpenSky.API.Helpers;
 
+    /*
+     * AIRPORT EXAMPLE RECORD FROM DB (LOWW - Vienna International)
+     *
+     * INSERT INTO `Airports` (`ICAO`, `Altitude`, `AtisFrequency`, `City`, `GaRamps`, `Gates`, `HasAvGas`, `HasJetFuel`, `IsClosed`, `IsMilitary`, `Latitude`,
+     * `LongestRunwayLength`, `LongestRunwaySurface`, `Longitude`, `Name`, `RunwayCount`, `TowerFrequency`, `UnicomFrequency`, `HashCode`)
+     *
+     * VALUES ('LOWW', '0', '121730', 'Schwechat', '29', '31', '1', '1', '0', '0', '48.11007308959961',
+     * '11811', 'A', '16.569616317749023', 'Flughafen Wien-Schwechat', '2', '119400', '118525', '4f01ce9c5810102d0f121913e2a13a75dd8f4d1b')
+     */
+
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
     /// Airport model.
