@@ -10,6 +10,17 @@ namespace OpenSky.API.DbModel
     using System.ComponentModel.DataAnnotations.Schema;
     using System.Text.Json.Serialization;
 
+    /*
+     * RUNWAY-END EXAMPLE RECORD FROM DB (LOWW - Vienna International)
+     *
+     * INSERT INTO `RunwayEnds` (`ID`, `ApproachLightSystem`, `HasClosedMarkings`, `HashCode`, `Heading`, `Latitude`, `LeftVasiPitch`, `LeftVasiType`, `Longitude`, `Name`, `OffsetThreshold`, `RightVasiPitch`, `RightVasiType`, `RunwayID`)
+     *
+     * VALUES ('87881', 'ALSF1', '0', 'bc8eb2c524c7ba98fde2e538d7eccdcf0bc5d079', '115.95314025878906', '48.122825622558594', '3', 'PAPI4', '16.53326416015625', '11', '0', NULL, NULL, '43941'),
+     *        ('87882', 'ALSF2', '0', '58d7af94775abb0217a6f8d97448e938af52c0f2', '295.953125', '48.10904312133789', '3', 'PAPI4', '16.57568359375', '29', '0', NULL, NULL, '43941'),
+     *        ('87883', 'ALSF2', '0', 'f50609081d7ea45be66cda31d427886563c99209', '164.1750030517578', '48.11979293823242', '3', 'PAPI4', '16.578155517578125', '16', '0', NULL, NULL, '43942'),
+     *        ('87884', 'ALSF2', '0', '47373c2f3a2c9bc1baa1962a16734c09e6e7017b', '344.17498779296875', '48.088626861572266', '3', 'PAPI4', '16.59136962890625', '34', '0', NULL, NULL, '43942')
+     */
+
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
     /// Runway-End model.

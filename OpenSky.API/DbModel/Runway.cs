@@ -14,6 +14,15 @@ namespace OpenSky.API.DbModel
 
     using OpenSky.API.Helpers;
 
+    /*
+     * RUNWAY EXAMPLE RECORD FROM DB (LOWW - Vienna International)
+     *
+     * INSERT INTO `Runways` (`ID`, `AirportICAO`, `Altitude`, `CenterLight`, `EdgeLight`, `HashCode`, `Length`, `Surface`, `Width`)
+     *
+     * VALUES ('43941', 'LOWW', '592', 'H', 'H', '6bbeddf73786156a63cbc492a2df1d99a69fa3f0', '11483', 'M', '167'),
+     *        ('43942', 'LOWW', '592', 'L', 'L', '8a19613321794ec7f9535524be947905df12b6b2', '11811', 'A', '148')
+     */
+
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
     /// Runway model.
