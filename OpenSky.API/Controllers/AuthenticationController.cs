@@ -353,6 +353,11 @@ namespace OpenSky.API.Controllers
                 return this.Ok(new ApiResponse<LoginResponse>("Logged in successfully!") { Data = new LoginResponse { Token = new JwtSecurityTokenHandler().WriteToken(token), Expiration = token.ValidTo, Username = user.UserName } });
             }
 
+            if (user != null)
+            {
+                await this.userManager.AccessFailedAsync(user);
+            }
+
             return this.Ok(new ApiResponse<LoginResponse> { Message = "Invalid login!", IsError = true, Data = new LoginResponse() });
         }
 
