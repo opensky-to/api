@@ -96,6 +96,13 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The OpenSky database.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly OpenSkyDbContext db;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Initializes a new instance of the <see cref="AuthenticationController"/> class.
         /// </summary>
         /// <remarks>
@@ -122,6 +129,9 @@ namespace OpenSky.API.Controllers
         /// <param name="geoLocateIPService">
         /// The geo locate IP service.
         /// </param>
+        /// <param name="db">
+        /// The OpenSky database.
+        /// </param>
         /// -------------------------------------------------------------------------------------------------
         public AuthenticationController(
             ILogger<AuthenticationController> logger,
@@ -130,7 +140,8 @@ namespace OpenSky.API.Controllers
             SendMail sendMail,
             IConfiguration configuration,
             GoogleRecaptchaV3Service googleRecaptchaV3Service,
-            GeoLocateIPService geoLocateIPService)
+            GeoLocateIPService geoLocateIPService,
+            OpenSkyDbContext db)
         {
             this.logger = logger;
             this.userManager = userManager;
@@ -139,6 +150,7 @@ namespace OpenSky.API.Controllers
             this.configuration = configuration;
             this.googleRecaptchaV3Service = googleRecaptchaV3Service;
             this.geoLocateIPService = geoLocateIPService;
+            this.db = db;
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -288,7 +300,7 @@ namespace OpenSky.API.Controllers
 
                 // Fetch the user's roles
                 var userRoles = await this.userManager.GetRolesAsync(user);
-                
+
                 // Check if this user is a global admin (from the config json file)
                 var globalAdmins = this.configuration["OpenSky:GlobalAdmins"].Split(',');
                 if (globalAdmins.Contains(user.Email) && !userRoles.Contains(UserRoles.Admin))
@@ -332,7 +344,8 @@ namespace OpenSky.API.Controllers
                 var token = new JwtSecurityToken(
                     this.configuration["JWT:ValidIssuer"],
                     this.configuration["JWT:ValidAudience"],
-                    expires: DateTime.UtcNow.AddHours(1),
+                    notBefore: DateTime.UtcNow,
+                    expires: DateTime.UtcNow.AddMinutes(10),
                     claims: authClaims,
                     signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha512)
                 );
@@ -349,8 +362,23 @@ namespace OpenSky.API.Controllers
                     return this.Ok(new ApiResponse<LoginResponse> { Message = $"Error saving login history!{errorDetails}", IsError = true, Data = new LoginResponse() });
                 }
 
+                // Create OpenSky token
+                var openSkyToken = new OpenSkyToken
+                {
+                    ID = Guid.NewGuid(),
+                    Name = "website",
+                    Created = DateTime.UtcNow,
+                    Expiry = login.RememberMe ? DateTime.UtcNow.AddDays(30) : DateTime.UtcNow.AddMinutes(30),
+                    UserID = user.Id
+                };
+                await this.db.OpenSkyTokens.AddAsync(openSkyToken);
+                if (!await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving OpenSky token."))
+                {
+                    return this.Ok(new ApiResponse<LoginResponse> { Message = "Error saving OpenSky access token!", IsError = true, Data = new LoginResponse() });
+                }
+
                 // All done, return the token to the client
-                return this.Ok(new ApiResponse<LoginResponse>("Logged in successfully!") { Data = new LoginResponse { Token = new JwtSecurityTokenHandler().WriteToken(token), Expiration = token.ValidTo, Username = user.UserName } });
+                return this.Ok(new ApiResponse<LoginResponse>("Logged in successfully!") { Data = new LoginResponse { Token = new JwtSecurityTokenHandler().WriteToken(token), Expiration = token.ValidTo, Username = user.UserName, RefreshToken = openSkyToken.ID.ToString("N"), RefreshTokenExpiration = openSkyToken.Expiry} });
             }
 
             if (user != null)
