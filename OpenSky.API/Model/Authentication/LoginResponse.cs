@@ -27,6 +27,20 @@ namespace OpenSky.API.Model.Authentication
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the refresh token.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string RefreshToken { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the Date/Time of the refresh token expiration.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public DateTime RefreshTokenExpiration { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the token.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -34,7 +48,7 @@ namespace OpenSky.API.Model.Authentication
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the username.
+        /// Gets or sets the username (in case the user logged in with the email address).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string Username { get; set; }

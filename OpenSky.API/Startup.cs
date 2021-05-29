@@ -133,7 +133,7 @@ namespace OpenSky.API
                     "OpenSkyAllowSpecificOrigins",
                     builder =>
                     {
-                        builder.WithOrigins("https://www.opensky.to", "http://localhost:5001").AllowAnyHeader().AllowAnyMethod();
+                        builder.WithOrigins("https://www.opensky.to", "https://www-dev.opensky.to", "http://localhost:5001").AllowAnyHeader().AllowAnyMethod();
                     }));
 
             // Primary database connection pool
@@ -210,7 +210,6 @@ namespace OpenSky.API
                     .AddJwtBearer(options =>
                     {
                         options.SaveToken = true;
-                        options.RequireHttpsMetadata = false;
                         options.TokenValidationParameters = new TokenValidationParameters
                         {
                             ValidateIssuer = true,
@@ -219,7 +218,9 @@ namespace OpenSky.API
                             ValidIssuer = this.Configuration["JWT:ValidIssuer"],
                             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.Configuration["JWT:Secret"]))
                         };
-                    });
+
+                        options.RequireHttpsMetadata = false;
+                    }); // todo add other login providers like google, facebook, etc.?
 
             // Set up Google reCAPTCHAv3 service
             services.AddHttpClient<GoogleRecaptchaV3Service>();

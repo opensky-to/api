@@ -7,8 +7,13 @@
 namespace OpenSky.API.DbModel
 {
     using System;
+    using System.Collections.Generic;
 
     using Microsoft.AspNetCore.Identity;
+
+    using Newtonsoft.Json;
+
+    using OpenSky.API.Helpers;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -21,6 +26,41 @@ namespace OpenSky.API.DbModel
     /// -------------------------------------------------------------------------------------------------
     public class OpenSkyUser : IdentityUser
     {
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The access tokens of the user.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<OpenSkyToken> tokens;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OpenSkyUser"/> class.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 29/05/2021.
+        /// </remarks>
+        /// -------------------------------------------------------------------------------------------------
+        public OpenSkyUser()
+        {
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OpenSkyUser"/> class.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 29/05/2021.
+        /// </remarks>
+        /// <param name="lazyLoader">
+        /// The lazy loader.
+        /// </param>
+        /// -------------------------------------------------------------------------------------------------
+        public OpenSkyUser(Action<object, string> lazyLoader)
+        {
+            this.LazyLoader = lazyLoader;
+        }
+
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
         /// Gets or sets the Date/Time of the last login.
@@ -48,5 +88,24 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public DateTime RegisteredOn { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the access tokens of the user.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        public ICollection<OpenSkyToken> Tokens
+        {
+            get => this.LazyLoader.Load(this, ref this.tokens);
+            set => this.tokens = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the lazy loader.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private Action<object, string> LazyLoader { get; }
     }
 }

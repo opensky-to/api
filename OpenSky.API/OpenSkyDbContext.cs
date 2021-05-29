@@ -47,7 +47,14 @@ namespace OpenSky.API
         /// Gets or sets the aircraft types.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public virtual DbSet<AircraftType> AircraftTypes { get; set; }
+        //public virtual DbSet<AircraftType> AircraftTypes { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the OpenSky tokens.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public virtual DbSet<OpenSkyToken> OpenSkyTokens { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -101,13 +108,14 @@ namespace OpenSky.API
         /// An asynchronous result.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        public async Task SaveDatabaseChangesAsync(ILogger logger, string errorMessage = null)
+        public async Task<bool> SaveDatabaseChangesAsync(ILogger logger, string errorMessage = null)
         {
             await using var transaction = await this.Database.BeginTransactionAsync();
             try
             {
                 await this.SaveChangesAsync();
                 await transaction.CommitAsync();
+                return true;
             }
             catch (Exception ex)
             {
@@ -115,6 +123,8 @@ namespace OpenSky.API
                 await transaction.RollbackAsync();
                 this.ChangeTracker.Clear();
             }
+
+            return false;
         }
 
         /// -------------------------------------------------------------------------------------------------
