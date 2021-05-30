@@ -216,10 +216,12 @@ namespace OpenSky.API
                             ValidateAudience = true,
                             ValidAudience = this.Configuration["JWT:ValidAudience"],
                             ValidIssuer = this.Configuration["JWT:ValidIssuer"],
-                            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.Configuration["JWT:Secret"]))
+                            ValidateIssuerSigningKey = true,
+                            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.Configuration["JWT:Secret"])),
+                            ValidateLifetime = true
                         };
 
-                        options.RequireHttpsMetadata = false;
+                        options.RequireHttpsMetadata = true; // todo test if this works for localhost development version
                     }); // todo add other login providers like google, facebook, etc.?
 
             // Set up Google reCAPTCHAv3 service
