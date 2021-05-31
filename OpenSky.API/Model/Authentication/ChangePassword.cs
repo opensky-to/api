@@ -33,5 +33,12 @@ namespace OpenSky.API.Model.Authentication
         /// -------------------------------------------------------------------------------------------------
         [Required(ErrorMessage = "Password is required")]
         public string Password { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets a value indicating whether to reset all OpenSky api tokens.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public bool ResetTokens { get; set; } = true;
     }
 }
