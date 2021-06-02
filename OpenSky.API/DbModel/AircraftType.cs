@@ -8,6 +8,10 @@ namespace OpenSky.API.DbModel
 {
     using System;
     using System.ComponentModel.DataAnnotations;
+    using System.ComponentModel.DataAnnotations.Schema;
+    using System.Text.Json.Serialization;
+
+    using OpenSky.API.Helpers;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -21,10 +25,60 @@ namespace OpenSky.API.DbModel
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Type of the next version.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private AircraftType nextVersionType;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The uploader.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private OpenSkyUser uploader;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The type this aircraft is a variant of.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private AircraftType variantType;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AircraftType"/> class.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 01/06/2021.
+        /// </remarks>
+        /// -------------------------------------------------------------------------------------------------
+        public AircraftType()
+        {
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AircraftType"/> class.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 01/06/2021.
+        /// </remarks>
+        /// <param name="lazyLoader">
+        /// The lazy loader.
+        /// </param>
+        /// -------------------------------------------------------------------------------------------------
+        public AircraftType(Action<object, string> lazyLoader)
+        {
+            this.LazyLoader = lazyLoader;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the ATCModel property in the sim.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [StringLength(100)]
+        [Required]
         public string AtcModel { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -33,6 +87,7 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [StringLength(100)]
+        [Required]
         public string AtcType { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -43,6 +98,13 @@ namespace OpenSky.API.DbModel
         [Required]
         [StringLength(10)]
         public string Category { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the comments (moderation status, retired, needs fixing, etc.).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string Comments { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -58,6 +120,13 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public double EmptyWeight { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets a value indicating whether this aircraft type is enabled.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public bool Enabled { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -116,6 +185,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the ID of the aircraft that this one is a variant of.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("VariantType")]
         public Guid? IsVariantOf { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -161,6 +231,63 @@ namespace OpenSky.API.DbModel
         /// new type.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("NextVersionType")]
         public Guid? NextVersion { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the type of the next version - to migrate existing aircraft to this new type.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("NextVersion")]
+        [JsonIgnore]
+        public AircraftType NextVersionType
+        {
+            get => this.LazyLoader.Load(this, ref this.nextVersionType);
+            set => this.nextVersionType = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the uploader.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("UploaderID")]
+        [JsonIgnore]
+        public OpenSkyUser Uploader
+        {
+            get => this.LazyLoader.Load(this, ref this.uploader);
+            set => this.uploader = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the identifier of the uploader user.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [StringLength(255)]
+        [Required]
+        [ForeignKey("Uploader")]
+        public string UploaderID { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the type this one is a variant of.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("IsVariantOf")]
+        [JsonIgnore]
+        public AircraftType VariantType
+        {
+            get => this.LazyLoader.Load(this, ref this.variantType);
+            set => this.variantType = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the lazy loader.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private Action<object, string> LazyLoader { get; }
     }
 }

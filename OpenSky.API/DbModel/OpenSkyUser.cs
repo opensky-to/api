@@ -8,10 +8,9 @@ namespace OpenSky.API.DbModel
 {
     using System;
     using System.Collections.Generic;
+    using System.Text.Json.Serialization;
 
     using Microsoft.AspNetCore.Identity;
-
-    using Newtonsoft.Json;
 
     using OpenSky.API.Helpers;
 
