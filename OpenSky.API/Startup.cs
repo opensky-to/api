@@ -147,6 +147,8 @@ namespace OpenSky.API
                 c =>
                 {
                     c.SwaggerDoc("v1", new OpenApiInfo { Title = "OpenSky.API", Version = "v1" });
+                    c.SchemaFilter<EnumSchemaFilter>();
+                    c.DocumentFilter<SwaggerAddEnumDescriptions>();
                     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                     {
                         Description = "JWT Authorization header using the Bearer scheme. \r\n\r\n" +

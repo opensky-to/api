@@ -96,8 +96,7 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [Required]
-        [StringLength(10)]
-        public string Category { get; set; }
+        public AircraftTypeCategory Category { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -289,5 +288,51 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private Action<object, string> LazyLoader { get; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Values that represent aircraft type categories.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 03/06/2021.
+        /// </remarks>
+        /// -------------------------------------------------------------------------------------------------
+        public enum AircraftTypeCategory
+        {
+            /// <summary>
+            /// Single Engine Piston
+            /// </summary>
+            SEP,
+
+            /// <summary>
+            /// Multi Engine Piston
+            /// </summary>
+            MEP, 
+
+            /// <summary>
+            /// Single Engine Turboprop
+            /// </summary>
+            SET, 
+
+            /// <summary>
+            /// Multi Engine Turboprop
+            /// </summary>
+            MET, 
+
+            /// <summary>
+            /// Jet (small private and business jets)
+            /// </summary>
+            Jet, 
+
+            /// <summary>
+            /// Narrow-Body Airliner
+            /// </summary>
+            NBAirliner, 
+
+            /// <summary>
+            /// Wide-Body Airliner
+            /// </summary>
+            WBAirliner
+        }
     }
 }
