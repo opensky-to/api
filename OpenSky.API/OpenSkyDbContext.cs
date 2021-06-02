@@ -44,17 +44,17 @@ namespace OpenSky.API
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the aircraft types.
+        /// Gets or sets the aircraft.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        //public virtual DbSet<AircraftType> AircraftTypes { get; set; }
+        public virtual DbSet<Aircraft> Aircraft { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the OpenSky tokens.
+        /// Gets or sets the aircraft types.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public virtual DbSet<OpenSkyToken> OpenSkyTokens { get; set; }
+        public virtual DbSet<AircraftType> AircraftTypes { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -76,6 +76,13 @@ namespace OpenSky.API
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public virtual DbSet<DataImport> DataImports { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the OpenSky tokens.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public virtual DbSet<OpenSkyToken> OpenSkyTokens { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -108,23 +115,22 @@ namespace OpenSky.API
         /// An asynchronous result.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        public async Task<bool> SaveDatabaseChangesAsync(ILogger logger, string errorMessage = null)
+        public async Task<Exception> SaveDatabaseChangesAsync(ILogger logger, string errorMessage = null)
         {
             await using var transaction = await this.Database.BeginTransactionAsync();
             try
             {
                 await this.SaveChangesAsync();
                 await transaction.CommitAsync();
-                return true;
+                return null;
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, !string.IsNullOrEmpty(errorMessage) ? errorMessage : "Error saving database changes.");
                 await transaction.RollbackAsync();
                 this.ChangeTracker.Clear();
+                return ex;
             }
-
-            return false;
         }
 
         /// -------------------------------------------------------------------------------------------------

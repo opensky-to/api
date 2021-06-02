@@ -91,6 +91,32 @@ namespace OpenSky.API.Model
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Initializes a new instance of the <see cref="ApiResponse&lt;T&gt;"></see> class.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 02/06/2021.
+        /// </remarks>
+        /// <param name="data">
+        /// The data object to embed (status will be "Success").
+        /// </param>
+        /// -------------------------------------------------------------------------------------------------
+        public ApiResponse(T data)
+        {
+            this.Status = "Success";
+            this.IsError = false;
+            this.Message = string.Empty;
+            this.Data = data;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the embedded data of type T.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public T Data { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the error details (NULL if no error).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -116,12 +142,5 @@ namespace OpenSky.API.Model
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string Status { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the embedded data of type T.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public T Data { get; set; }
     }
 }

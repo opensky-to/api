@@ -64,6 +64,7 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [JsonIgnore]
+        [ForeignKey("AirportICAO")]
         public Airport Airport
         {
             get => this.LazyLoader.Load(this, ref this.airport);
@@ -78,6 +79,7 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [Required]
         [StringLength(5, MinimumLength = 3)]
+        [ForeignKey("Airport")]
         public string AirportICAO { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -106,6 +108,22 @@ namespace OpenSky.API.DbModel
         [Key]
         [StringLength(10, MinimumLength = 5)]
         public string Registry { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the aircraft type.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("TypeID")]
+        public AircraftType Type { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the identifier of the aircraft type.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("Type")]
+        public Guid TypeID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

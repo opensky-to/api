@@ -349,9 +349,10 @@ namespace OpenSky.API.Controllers
                 UserID = user.Id
             };
             await this.db.OpenSkyTokens.AddAsync(openSkyToken);
-            if (!await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving OpenSky token."))
+            var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving OpenSky token.");
+            if (saveEx != null)
             {
-                return this.Ok(new ApiResponse<LoginResponse> { Message = "Error saving OpenSky access token!", IsError = true, Data = new LoginResponse() });
+                return this.Ok(new ApiResponse<LoginResponse>("Error saving OpenSky access token!", saveEx) { Data = new LoginResponse() });
             }
 
             // All done, return the tokens to the client
@@ -489,9 +490,10 @@ namespace OpenSky.API.Controllers
                     UserID = user.Id
                 };
                 await this.db.OpenSkyTokens.AddAsync(openSkyToken);
-                if (!await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving OpenSky token."))
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving OpenSky token.");
+                if (saveEx != null)
                 {
-                    return this.Ok(new ApiResponse<LoginResponse> { Message = "Error saving OpenSky access token!", IsError = true, Data = new LoginResponse() });
+                    return this.Ok(new ApiResponse<LoginResponse>("Error saving OpenSky access token!", saveEx) { Data = new LoginResponse() });
                 }
 
                 // All done, return the tokens to the client
@@ -572,9 +574,10 @@ namespace OpenSky.API.Controllers
             }
 
             this.db.OpenSkyTokens.RemoveRange(user.Tokens);
-            if (!await this.db.SaveDatabaseChangesAsync(this.logger, "Error deleting user tokens"))
+            var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error deleting user tokens");
+            if (saveEx != null)
             {
-                return this.Ok(new ApiResponse<string> { Message = "Unable to delete tokens!", IsError = true });
+                return this.Ok(new ApiResponse<string>("Unable to delete tokens!", saveEx));
             }
 
             return this.Ok(new ApiResponse<string>("Success"));
@@ -661,9 +664,10 @@ namespace OpenSky.API.Controllers
                 };
                 this.db.OpenSkyTokens.Remove(openSkyToken);
                 this.db.OpenSkyTokens.Add(newOpenSkyToken);
-                if (!await this.db.SaveDatabaseChangesAsync(this.logger, "Error exchanging OpenSky token."))
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error exchanging OpenSky token.");
+                if (saveEx != null)
                 {
-                    return this.Ok(new ApiResponse<RefreshTokenResponse> { Message = "Error exchanging OpenSky access token!", IsError = true, Data = new RefreshTokenResponse() });
+                    return this.Ok(new ApiResponse<RefreshTokenResponse>("Error exchanging OpenSky access token!", saveEx) { Data = new RefreshTokenResponse() });
                 }
 
                 // All done, return the tokens to the client
@@ -924,9 +928,10 @@ namespace OpenSky.API.Controllers
                 UserID = user.Id
             };
             await this.db.OpenSkyTokens.AddAsync(openSkyToken);
-            if (!await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving OpenSky token."))
+            var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving OpenSky token.");
+            if (saveEx != null)
             {
-                return this.Ok(new ApiResponse<LoginResponse> { Message = "Error saving OpenSky access token!", IsError = true, Data = new LoginResponse() });
+                return this.Ok(new ApiResponse<LoginResponse>("Error saving OpenSky access token!", saveEx) { Data = new LoginResponse() });
             }
 
             // All done, return the tokens to the client
