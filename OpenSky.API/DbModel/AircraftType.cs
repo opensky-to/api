@@ -11,6 +11,7 @@ namespace OpenSky.API.DbModel
     using System.ComponentModel.DataAnnotations.Schema;
     using System.Text.Json.Serialization;
 
+    using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Helpers;
 
     /// -------------------------------------------------------------------------------------------------
@@ -140,7 +141,7 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [Required]
-        public string EngineType { get; set; }
+        public EngineType EngineType { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -196,6 +197,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the version number of this type.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int VersionNumber { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the maximum selling price.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -248,6 +256,14 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the simulator of the aircraft type.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [Required]
+        public Simulator Simulator { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the uploader.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -288,51 +304,5 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private Action<object, string> LazyLoader { get; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Values that represent aircraft type categories.
-        /// </summary>
-        /// <remarks>
-        /// sushi.at, 03/06/2021.
-        /// </remarks>
-        /// -------------------------------------------------------------------------------------------------
-        public enum AircraftTypeCategory
-        {
-            /// <summary>
-            /// Single Engine Piston
-            /// </summary>
-            SEP,
-
-            /// <summary>
-            /// Multi Engine Piston
-            /// </summary>
-            MEP, 
-
-            /// <summary>
-            /// Single Engine Turboprop
-            /// </summary>
-            SET, 
-
-            /// <summary>
-            /// Multi Engine Turboprop
-            /// </summary>
-            MET, 
-
-            /// <summary>
-            /// Jet (small private and business jets)
-            /// </summary>
-            Jet, 
-
-            /// <summary>
-            /// Narrow-Body Airliner
-            /// </summary>
-            NBAirliner, 
-
-            /// <summary>
-            /// Wide-Body Airliner
-            /// </summary>
-            WBAirliner
-        }
     }
 }

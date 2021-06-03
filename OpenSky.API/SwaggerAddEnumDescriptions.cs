@@ -56,39 +56,34 @@ namespace OpenSky.API
             // add enum descriptions to input parameters
             foreach (var (key, value) in swaggerDoc.Paths)
             {
-                this.DescribeEnumParameters(value.Operations, swaggerDoc, context.ApiDescriptions, key);
+                DescribeEnumParameters(value.Operations, swaggerDoc, context.ApiDescriptions, key);
             }
         }
 
-        private static string DescribeEnum(IEnumerable<IOpenApiAny> enums, string proprtyTypeName)
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Describe enum for documentation.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 03/06/2021.
+        /// </remarks>
+        /// <param name="enums">
+        /// The enums.
+        /// </param>
+        /// <param name="propertyTypeName">
+        /// Name of the property type.
+        /// </param>
+        /// <returns>
+        /// A string describing the enum for the documentation.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        private static string DescribeEnum(IEnumerable<IOpenApiAny> enums, string propertyTypeName)
         {
-            var enumType = GetEnumTypeByName(proprtyTypeName);
+            var enumType = GetEnumTypeByName(propertyTypeName);
             if (enumType == null)
                 return null;
 
             return " " + string.Join(", ", (from OpenApiInteger enumOption in enums select enumOption.Value into enumInt select $"{enumInt} = {Enum.GetName(enumType, enumInt)}").ToArray());
-        }
-
-        private static Type GetEnumTypeByName(string enumTypeName)
-        {
-            return AppDomain.CurrentDomain
-                            .GetAssemblies()
-                            .SelectMany(x => x.GetTypes())
-                            .FirstOrDefault(x => x.Name == enumTypeName);
-        }
-
-        private static Type GetTypeIEnumerableType(Type type)
-        {
-            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
-            {
-                var underlyingType = type.GetGenericArguments()[0];
-                if (underlyingType.IsEnum)
-                {
-                    return underlyingType;
-                }
-            }
-
-            return null;
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -111,7 +106,7 @@ namespace OpenSky.API
         /// Full pathname of the file.
         /// </param>
         /// -------------------------------------------------------------------------------------------------
-        private void DescribeEnumParameters(IDictionary<OperationType, OpenApiOperation> operations, OpenApiDocument swaggerDoc, IEnumerable<ApiDescription> apiDescriptions, string path)
+        private static void DescribeEnumParameters(IDictionary<OperationType, OpenApiOperation> operations, OpenApiDocument swaggerDoc, IEnumerable<ApiDescription> apiDescriptions, string path)
         {
             path = path.Trim('/');
             if (operations != null)
@@ -123,7 +118,7 @@ namespace OpenSky.API
                     foreach (var param in value.Parameters)
                     {
                         var parameterDescription = operationDescription?.ParameterDescriptions.FirstOrDefault(a => a.Name == param.Name);
-                        if (parameterDescription != null && this.TryGetEnumType(parameterDescription.Type, out var enumType))
+                        if (parameterDescription != null && TryGetEnumType(parameterDescription.Type, out var enumType))
                         {
                             var paramEnum = swaggerDoc.Components.Schemas.FirstOrDefault(x => x.Key == enumType.Name);
                             if (paramEnum.Value != null)
@@ -134,6 +129,56 @@ namespace OpenSky.API
                     }
                 }
             }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Get enum by type name.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 03/06/2021.
+        /// </remarks>
+        /// <param name="enumTypeName">
+        /// Name of the enum type.
+        /// </param>
+        /// <returns>
+        /// The enum type by name.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        private static Type GetEnumTypeByName(string enumTypeName)
+        {
+            return AppDomain.CurrentDomain
+                            .GetAssemblies()
+                            .SelectMany(x => x.GetTypes())
+                            .FirstOrDefault(x => x.Name == enumTypeName);
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets type of an enum contained in a generic IEnumerable.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 03/06/2021.
+        /// </remarks>
+        /// <param name="type">
+        /// The type to check.
+        /// </param>
+        /// <returns>
+        /// The enum type, or null.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        private static Type GetTypeIEnumerableType(Type type)
+        {
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+            {
+                var underlyingType = type.GetGenericArguments()[0];
+                if (underlyingType.IsEnum)
+                {
+                    return underlyingType;
+                }
+            }
+
+            return null;
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -153,7 +198,7 @@ namespace OpenSky.API
         /// True if it succeeds, false if it fails.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        private bool TryGetEnumType(Type type, out Type enumType)
+        private static bool TryGetEnumType(Type type, out Type enumType)
         {
             if (type.IsEnum)
             {

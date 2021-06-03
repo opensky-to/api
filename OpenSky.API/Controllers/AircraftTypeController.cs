@@ -166,7 +166,7 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("Error saving new aircraft type", saveEx);
                 }
 
-                return new ApiResponse<string>("Success");
+                return new ApiResponse<string>("New aircraft type added successfully but it needs to be reviewed before it will be active in OpenSky.");
             }
             catch (Exception ex)
             {

@@ -145,6 +145,129 @@ namespace OpenSky.API.Migrations
                     b.ToTable("UserTokens");
                 });
 
+            modelBuilder.Entity("OpenSky.API.DbModel.Aircraft", b =>
+                {
+                    b.Property<string>("Registry")
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)");
+
+                    b.Property<string>("AirportICAO")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("varchar(5)");
+
+                    b.Property<string>("OwnerID")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<Guid>("TypeID")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Registry");
+
+                    b.HasIndex("AirportICAO");
+
+                    b.HasIndex("OwnerID");
+
+                    b.HasIndex("TypeID");
+
+                    b.ToTable("Aircraft");
+                });
+
+            modelBuilder.Entity("OpenSky.API.DbModel.AircraftType", b =>
+                {
+                    b.Property<Guid>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("AtcModel")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("AtcType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Comments")
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("DetailedChecksDisabled")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<double>("EmptyWeight")
+                        .HasColumnType("double");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("EngineCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EngineType")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("FlapsAvailable")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<double>("FuelTotalCapacity")
+                        .HasColumnType("double");
+
+                    b.Property<bool>("IsGearRetractable")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsVanilla")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<Guid?>("IsVariantOf")
+                        .HasColumnType("char(36)");
+
+                    b.Property<double>("MaxGrossWeight")
+                        .HasColumnType("double");
+
+                    b.Property<int>("MaxPrice")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MinPrice")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<bool>("NeedsCoPilot")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<Guid?>("NextVersion")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("Simulator")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UploaderID")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("IsVariantOf");
+
+                    b.HasIndex("NextVersion");
+
+                    b.HasIndex("UploaderID");
+
+                    b.ToTable("AircraftTypes");
+                });
+
             modelBuilder.Entity("OpenSky.API.DbModel.Airport", b =>
                 {
                     b.Property<string>("ICAO")
@@ -540,6 +663,54 @@ namespace OpenSky.API.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("OpenSky.API.DbModel.Aircraft", b =>
+                {
+                    b.HasOne("OpenSky.API.DbModel.Airport", "Airport")
+                        .WithMany()
+                        .HasForeignKey("AirportICAO")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("OpenSky.API.DbModel.OpenSkyUser", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerID");
+
+                    b.HasOne("OpenSky.API.DbModel.AircraftType", "Type")
+                        .WithMany()
+                        .HasForeignKey("TypeID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Airport");
+
+                    b.Navigation("Owner");
+
+                    b.Navigation("Type");
+                });
+
+            modelBuilder.Entity("OpenSky.API.DbModel.AircraftType", b =>
+                {
+                    b.HasOne("OpenSky.API.DbModel.AircraftType", "VariantType")
+                        .WithMany()
+                        .HasForeignKey("IsVariantOf");
+
+                    b.HasOne("OpenSky.API.DbModel.AircraftType", "NextVersionType")
+                        .WithMany()
+                        .HasForeignKey("NextVersion");
+
+                    b.HasOne("OpenSky.API.DbModel.OpenSkyUser", "Uploader")
+                        .WithMany()
+                        .HasForeignKey("UploaderID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("NextVersionType");
+
+                    b.Navigation("Uploader");
+
+                    b.Navigation("VariantType");
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.Approach", b =>
