@@ -84,32 +84,27 @@ namespace OpenSky.API.Controllers
         /// An asynchronous result that yields the import status model.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpGet]
-        [Route("status")]
+        [HttpGet("status/{importID}", Name = "GetImportStatus")]
         public async Task<ActionResult<ApiResponse<DataImportStatus>>> GetImportStatus(Guid importID)
         {
             if (DataImportWorkerService.Status.ContainsKey(importID))
             {
-                return this.Ok(new ApiResponse<DataImportStatus> { Data = DataImportWorkerService.Status[importID] });
-            }
-            else
-            {
-                var dataImport = await this.db.DataImports.SingleOrDefaultAsync(i => i.ID == importID);
-                if (dataImport != null)
-                {
-                    if (!string.IsNullOrEmpty(dataImport.LogText))
-                    {
-                        var dataImportStatus = JsonSerializer.Deserialize<DataImportStatus>(dataImport.LogText);
-                        return this.Ok(new ApiResponse<DataImportStatus> { Data = dataImportStatus });
-                    }
-                    else
-                    {
-                        return this.Ok(new ApiResponse<DataImportStatus>("Specified import has no status saved.") { IsError = true, Data = new DataImportStatus() });
-                    }
-                }
+                return new ApiResponse<DataImportStatus> { Data = DataImportWorkerService.Status[importID] };
             }
 
-            return this.Ok(new ApiResponse<DataImportStatus>("No import with specified ID was found.") { IsError = true, Data = new DataImportStatus() });
+            var dataImport = await this.db.DataImports.SingleOrDefaultAsync(i => i.ID == importID);
+            if (dataImport != null)
+            {
+                if (!string.IsNullOrEmpty(dataImport.LogText))
+                {
+                    var dataImportStatus = JsonSerializer.Deserialize<DataImportStatus>(dataImport.LogText);
+                    return new ApiResponse<DataImportStatus> { Data = dataImportStatus };
+                }
+
+                return new ApiResponse<DataImportStatus>("Specified import has no status saved.") { IsError = true, Data = new DataImportStatus() };
+            }
+
+            return new ApiResponse<DataImportStatus>("No import with specified ID was found.") { IsError = true, Data = new DataImportStatus() };
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -126,8 +121,7 @@ namespace OpenSky.API.Controllers
         /// A basic IActionResult containing status or error messages.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpPost]
-        [Route("littleNavmapMSFS")]
+        [HttpPost("littleNavmapMSFS")]
         [DisableRequestSizeLimit]
         public async Task<ActionResult<ApiResponse<Guid?>>> PostLittleNavmapMSFS(IFormFile fileUpload)
         {
@@ -137,7 +131,7 @@ namespace OpenSky.API.Controllers
                 var username = this.User.Identity?.Name;
                 if (string.IsNullOrEmpty(username))
                 {
-                    return this.Ok(new ApiResponse<Guid?>("Unable to determine current user name, aborting.") { IsError = true });
+                    return new ApiResponse<Guid?>("Unable to determine current user name, aborting.") { IsError = true };
                 }
 
                 this.logger.LogInformation($"PostLittleNavmapMSFS received file with length {fileUpload.Length} bytes, saving to temporary file {filePath}");
@@ -158,12 +152,12 @@ namespace OpenSky.API.Controllers
                 await this.db.DataImports.AddAsync(dataImport);
                 await this.db.SaveDatabaseChangesAsync(this.logger, "Error adding data import record to database.");
 
-                return this.Ok(new ApiResponse<Guid?>("Successfully added data import to queue.") { Data = dataImport.ID });
+                return new ApiResponse<Guid?>("Successfully added data import to queue.") { Data = dataImport.ID };
             }
             catch (Exception ex)
             {
                 this.logger.LogError(ex, "Unhandled exception processing LittleNavmapMSFS sqlite database.");
-                return this.Ok(new ApiResponse<Guid?>(ex));
+                return new ApiResponse<Guid?>(ex);
             }
         }
     }

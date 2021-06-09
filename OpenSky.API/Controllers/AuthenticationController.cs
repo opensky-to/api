@@ -169,8 +169,7 @@ namespace OpenSky.API.Controllers
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
         [Authorize(Roles = UserRoles.User)]
-        [HttpPost]
-        [Route("changePassword")]
+        [HttpPost("changePassword")]
         public async Task<ActionResult<ApiResponse<string>>> ChangePassword([FromBody] ChangePassword changePassword)
         {
             this.logger.LogInformation($"Changing password for user {this.User.Identity?.Name}");
@@ -178,14 +177,14 @@ namespace OpenSky.API.Controllers
             var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
             if (user == null)
             {
-                return this.Ok(new ApiResponse<LoginResponse> { Message = "Unable to find user record!", IsError = true });
+                return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
             }
 
             var changeResult = await this.userManager.ChangePasswordAsync(user, changePassword.Password, changePassword.NewPassword);
             if (!changeResult.Succeeded)
             {
                 var errorDetails = changeResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
-                return this.Ok(new ApiResponse<string> { Message = $"Error changing password!{errorDetails}", IsError = true });
+                return new ApiResponse<string> { Message = $"Error changing password!{errorDetails}", IsError = true };
             }
 
             if (changePassword.ResetTokens)
@@ -194,7 +193,7 @@ namespace OpenSky.API.Controllers
                 await this.db.SaveDatabaseChangesAsync(this.logger, "Error clearing OpenSky token.");
             }
 
-            return this.Ok(new ApiResponse<string>("Your password was changed."));
+            return new ApiResponse<string>("Your password was changed.");
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -211,8 +210,7 @@ namespace OpenSky.API.Controllers
         /// An IActionResult object returning an ApiResponse object in the body.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpPost]
-        [Route("forgotPassword")]
+        [HttpPost("forgotPassword")]
         [AllowAnonymous]
         public async Task<ActionResult<ApiResponse<string>>> ForgotPassword([FromBody] ForgotPassword forgotPassword)
         {
@@ -225,24 +223,24 @@ namespace OpenSky.API.Controllers
                 var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
                 if (!reCAPTCHAResponse.Success)
                 {
-                    return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA validation failed.", IsError = true });
+                    return new ApiResponse<string> { Message = "reCAPTCHA validation failed.", IsError = true };
                 }
 
                 if (reCAPTCHAResponse.Score <= 0.3)
                 {
-                    return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true });
+                    return new ApiResponse<string> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true };
                 }
             }
 
             var user = await this.userManager.FindByEmailAsync(forgotPassword.Email);
             if (user == null)
             {
-                return this.Ok(new ApiResponse<string> { Message = "No user with specified email address exists!", IsError = true });
+                return new ApiResponse<string> { Message = "No user with specified email address exists!", IsError = true };
             }
 
             if (!await this.userManager.IsEmailConfirmedAsync(user))
             {
-                return this.Ok(new ApiResponse<string> { Message = "You need to verify your email address first!" });
+                return new ApiResponse<string> { Message = "You need to verify your email address first!" };
             }
 
             // Send password reset email
@@ -258,7 +256,7 @@ namespace OpenSky.API.Controllers
             //// ReSharper disable once AssignNullToNotNullAttribute
             this.sendMail.SendEmail(this.configuration["Email:FromAddress"], forgotPassword.Email, null, null, "OpenSky Account Password Reset", emailBody, true, MessagePriority.Normal);
 
-            return this.Ok(new ApiResponse<string>("Please check your inbox for the password reset email we just sent you."));
+            return new ApiResponse<string>("Please check your inbox for the password reset email we just sent you.");
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -275,8 +273,7 @@ namespace OpenSky.API.Controllers
         /// An IActionResult object returning an ApiResponse object in the body.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpPost]
-        [Route("applicationToken")]
+        [HttpPost("applicationToken")]
         public async Task<ActionResult<ApiResponse<LoginResponse>>> GetApplicationToken([FromBody] ApplicationToken applicationToken)
         {
             this.logger.LogInformation($"Creating application token for user {this.User.Identity?.Name}, application name: {applicationToken.Name}");
@@ -284,7 +281,7 @@ namespace OpenSky.API.Controllers
             var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
             if (user == null)
             {
-                return this.Ok(new ApiResponse<LoginResponse> { Message = "Unable to find user record!", IsError = true });
+                return new ApiResponse<LoginResponse> { Message = "Unable to find user record!", IsError = true };
             }
 
             // Fetch the user's roles
@@ -303,7 +300,7 @@ namespace OpenSky.API.Controllers
                     if (!roleResult.Succeeded)
                     {
                         var errorDetails = roleResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
-                        return this.Ok(new ApiResponse<string> { Message = $"Error creating Admin role!{errorDetails}", IsError = true });
+                        return new ApiResponse<LoginResponse> { Message = $"Error creating Admin role!{errorDetails}", IsError = true };
                     }
                 }
 
@@ -314,18 +311,18 @@ namespace OpenSky.API.Controllers
                     if (!addToRoleResult.Succeeded)
                     {
                         var errorDetails = addToRoleResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
-                        return this.Ok(new ApiResponse<string> { Message = $"Error adding user to \"Admin\" role!{errorDetails}", IsError = true });
+                        return new ApiResponse<LoginResponse> { Message = $"Error adding user to \"Admin\" role!{errorDetails}", IsError = true };
                     }
                 }
             }
 
             // Build claims
             var authClaims = new List<Claim>
-                {
-                    new(ClaimTypes.Name, user.UserName),
-                    new(ClaimTypes.Email, user.Email),
-                    new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                };
+            {
+                new(ClaimTypes.Name, user.UserName),
+                new(ClaimTypes.Email, user.Email),
+                new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            };
             authClaims.AddRange(userRoles.Select(userRole => new Claim(ClaimTypes.Role, userRole)));
 
             // Create JWT token
@@ -352,22 +349,32 @@ namespace OpenSky.API.Controllers
             var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving OpenSky token.");
             if (saveEx != null)
             {
-                return this.Ok(new ApiResponse<LoginResponse>("Error saving OpenSky access token!", saveEx) { Data = new LoginResponse() });
+                return new ApiResponse<LoginResponse>("Error saving OpenSky access token!", saveEx) { Data = new LoginResponse() };
             }
 
             // All done, return the tokens to the client
-            return this.Ok(
-                new ApiResponse<LoginResponse>("Application token created successfully!")
-                {
-                    Data = new LoginResponse
-                    {
-                        Token = new JwtSecurityTokenHandler().WriteToken(token),
-                        Expiration = token.ValidTo,
-                        Username = user.UserName,
-                        RefreshToken = openSkyToken.ID.ToString("N"),
-                        RefreshTokenExpiration = openSkyToken.Expiry
-                    }
-                });
+            return new ApiResponse<LoginResponse>("Application token created successfully!")
+            {
+                Data = new LoginResponse { Token = new JwtSecurityTokenHandler().WriteToken(token), Expiration = token.ValidTo, Username = user.UserName, RefreshToken = openSkyToken.ID.ToString("N"), RefreshTokenExpiration = openSkyToken.Expiry }
+            };
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the roles of the current OpenSky user.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 04/06/2021.
+        /// </remarks>
+        /// <returns>
+        /// The user roles.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet("userRoles", Name = "GetUserRoles")]
+        public ActionResult<ApiResponse<IEnumerable<string>>> GetUserRoles()
+        {
+            this.logger.LogInformation($"{this.User.Identity?.Name} | GET Authentication/userRoles");
+            return new ApiResponse<IEnumerable<string>>(this.User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList());
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -384,8 +391,7 @@ namespace OpenSky.API.Controllers
         /// An IActionResult object returning an ApiResponse object in the body.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpPost]
-        [Route("login")]
+        [HttpPost("login")]
         [AllowAnonymous]
         public async Task<ActionResult<ApiResponse<LoginResponse>>> Login([FromBody] Login login)
         {
@@ -401,19 +407,19 @@ namespace OpenSky.API.Controllers
                     var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
                     if (!reCAPTCHAResponse.Success)
                     {
-                        return this.Ok(new ApiResponse<LoginResponse> { Message = "reCAPTCHA validation failed.", IsError = true, Data = new LoginResponse() });
+                        return new ApiResponse<LoginResponse> { Message = "reCAPTCHA validation failed.", IsError = true, Data = new LoginResponse() };
                     }
 
                     if (reCAPTCHAResponse.Score <= 0.3)
                     {
-                        return this.Ok(new ApiResponse<LoginResponse> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true, Data = new LoginResponse() });
+                        return new ApiResponse<LoginResponse> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true, Data = new LoginResponse() };
                     }
                 }
 
                 // If the email address isn't confirmed, deny the login
                 if (!user.EmailConfirmed)
                 {
-                    return this.Ok(new ApiResponse<LoginResponse> { Message = "Please validate your email address first!", IsError = true, Data = new LoginResponse() });
+                    return new ApiResponse<LoginResponse> { Message = "Please validate your email address first!", IsError = true, Data = new LoginResponse() };
                 }
 
                 // Fetch the user's roles
@@ -432,7 +438,7 @@ namespace OpenSky.API.Controllers
                         if (!roleResult.Succeeded)
                         {
                             var errorDetails = roleResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
-                            return this.Ok(new ApiResponse<string> { Message = $"Error creating Admin role!{errorDetails}", IsError = true });
+                            return new ApiResponse<LoginResponse> { Message = $"Error creating Admin role!{errorDetails}", IsError = true };
                         }
                     }
 
@@ -443,7 +449,7 @@ namespace OpenSky.API.Controllers
                         if (!addToRoleResult.Succeeded)
                         {
                             var errorDetails = addToRoleResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
-                            return this.Ok(new ApiResponse<string> { Message = $"Error adding user to \"Admin\" role!{errorDetails}", IsError = true });
+                            return new ApiResponse<LoginResponse> { Message = $"Error adding user to \"Admin\" role!{errorDetails}", IsError = true };
                         }
                     }
                 }
@@ -477,7 +483,7 @@ namespace OpenSky.API.Controllers
                 if (!updateResult.Succeeded)
                 {
                     var errorDetails = updateResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
-                    return this.Ok(new ApiResponse<LoginResponse> { Message = $"Error saving login history!{errorDetails}", IsError = true, Data = new LoginResponse() });
+                    return new ApiResponse<LoginResponse> { Message = $"Error saving login history!{errorDetails}", IsError = true, Data = new LoginResponse() };
                 }
 
                 // Create OpenSky (refresh) token
@@ -493,22 +499,14 @@ namespace OpenSky.API.Controllers
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving OpenSky token.");
                 if (saveEx != null)
                 {
-                    return this.Ok(new ApiResponse<LoginResponse>("Error saving OpenSky access token!", saveEx) { Data = new LoginResponse() });
+                    return new ApiResponse<LoginResponse>("Error saving OpenSky access token!", saveEx) { Data = new LoginResponse() };
                 }
 
                 // All done, return the tokens to the client
-                return this.Ok(
-                    new ApiResponse<LoginResponse>("Logged in successfully!")
-                    {
-                        Data = new LoginResponse
-                        {
-                            Token = new JwtSecurityTokenHandler().WriteToken(token),
-                            Expiration = token.ValidTo,
-                            Username = user.UserName,
-                            RefreshToken = openSkyToken.ID.ToString("N"),
-                            RefreshTokenExpiration = openSkyToken.Expiry
-                        }
-                    });
+                return new ApiResponse<LoginResponse>("Logged in successfully!")
+                {
+                    Data = new LoginResponse { Token = new JwtSecurityTokenHandler().WriteToken(token), Expiration = token.ValidTo, Username = user.UserName, RefreshToken = openSkyToken.ID.ToString("N"), RefreshTokenExpiration = openSkyToken.Expiry }
+                };
             }
 
             if (user != null)
@@ -516,71 +514,7 @@ namespace OpenSky.API.Controllers
                 await this.userManager.AccessFailedAsync(user);
             }
 
-            return this.Ok(new ApiResponse<LoginResponse> { Message = "Invalid login!", IsError = true, Data = new LoginResponse() });
-        }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Revoke specified OpenSky refresh token.
-        /// </summary>
-        /// <remarks>
-        /// sushi.at, 31/05/2021.
-        /// </remarks>
-        /// <param name="revokeToken">
-        /// The revoke token model.
-        /// </param>
-        /// <returns>
-        /// An IActionResult object returning an ApiResponse object in the body.
-        /// </returns>
-        /// -------------------------------------------------------------------------------------------------
-        [HttpDelete]
-        [Route("revokeToken")]
-        public async Task<ActionResult<ApiResponse<string>>> RevokeToken([FromBody] RevokeToken revokeToken)
-        {
-            this.logger.LogInformation($"Revoking token for user {this.User.Identity?.Name}, token being invalidated: {revokeToken.Token}");
-
-            var token = await this.db.OpenSkyTokens.SingleOrDefaultAsync(t => t.ID == Guid.Parse(revokeToken.Token));
-            if (token != null)
-            {
-                this.db.OpenSkyTokens.Remove(token);
-                await this.db.SaveDatabaseChangesAsync(this.logger, $"Error deleting OpenSky token {revokeToken.Token}");
-                return this.Ok(new ApiResponse<string>("Success"));
-            }
-
-            return this.Ok(new ApiResponse<string>("Success, token already revoked or expired"));
-        }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Revoke all OpenSky refresh tokens.
-        /// </summary>
-        /// <remarks>
-        /// sushi.at, 31/05/2021.
-        /// </remarks>
-        /// <returns>
-        /// An IActionResult object returning an ApiResponse object in the body.
-        /// </returns>
-        /// -------------------------------------------------------------------------------------------------
-        [HttpDelete]
-        [Route("revokeAllTokens")]
-        public async Task<ActionResult<ApiResponse<string>>> RevokeAllTokens()
-        {
-            this.logger.LogInformation($"Revoking all tokens for user {this.User.Identity?.Name}");
-
-            var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
-            if (user == null)
-            {
-                return this.Ok(new ApiResponse<string> { Message = "Unable to find user record!", IsError = true });
-            }
-
-            this.db.OpenSkyTokens.RemoveRange(user.Tokens);
-            var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error deleting user tokens");
-            if (saveEx != null)
-            {
-                return this.Ok(new ApiResponse<string>("Unable to delete tokens!", saveEx));
-            }
-
-            return this.Ok(new ApiResponse<string>("Success"));
+            return new ApiResponse<LoginResponse> { Message = "Invalid login!", IsError = true, Data = new LoginResponse() };
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -600,8 +534,7 @@ namespace OpenSky.API.Controllers
         /// An IActionResult object returning an ApiResponse object in the body.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpPost]
-        [Route("refreshToken")]
+        [HttpPost("refreshToken")]
         [AllowAnonymous]
         public async Task<ActionResult<ApiResponse<RefreshTokenResponse>>> RefreshToken([FromBody] RefreshToken refreshToken)
         {
@@ -629,19 +562,60 @@ namespace OpenSky.API.Controllers
                 var user = await this.userManager.FindByNameAsync(principal.Identity?.Name);
                 if (user == null)
                 {
-                    return this.Ok(new ApiResponse<RefreshTokenResponse> { Message = "Unable to refresh token: No matching user record!", IsError = true, Data = new RefreshTokenResponse() });
+                    return new ApiResponse<RefreshTokenResponse> { Message = "Unable to refresh token: No matching user record!", IsError = true, Data = new RefreshTokenResponse() };
                 }
 
                 var openSkyToken = user.Tokens.SingleOrDefault(t => t.ID == Guid.Parse(refreshToken.Refresh));
                 if (openSkyToken == null)
                 {
-                    return this.Ok(new ApiResponse<RefreshTokenResponse> { Message = "Unable to refresh token: Invalid refresh token!", IsError = true, Data = new RefreshTokenResponse() });
+                    return new ApiResponse<RefreshTokenResponse> { Message = "Unable to refresh token: Invalid refresh token!", IsError = true, Data = new RefreshTokenResponse() };
                 }
 
                 if (openSkyToken.Expiry <= DateTime.UtcNow)
                 {
-                    return this.Ok(new ApiResponse<RefreshTokenResponse> { Message = "Unable to refresh token: Expired refresh token!", IsError = true, Data = new RefreshTokenResponse() });
+                    return new ApiResponse<RefreshTokenResponse> { Message = "Unable to refresh token: Expired refresh token!", IsError = true, Data = new RefreshTokenResponse() };
                 }
+
+                // Fetch the user's roles (don't just copy from old token, so that role/permission changes propagate without having to logout/login)
+                var userRoles = await this.userManager.GetRolesAsync(user);
+
+                // Check if this user is a global admin (from the config json file)
+                var globalAdmins = this.configuration["OpenSky:GlobalAdmins"].Split(',');
+                if (globalAdmins.Contains(user.Email) && !userRoles.Contains(UserRoles.Admin))
+                {
+                    userRoles.Add(UserRoles.Admin);
+
+                    // Make sure the admin role exists
+                    if (!await this.roleManager.RoleExistsAsync(UserRoles.Admin))
+                    {
+                        var roleResult = await this.roleManager.CreateAsync(new IdentityRole(UserRoles.Admin));
+                        if (!roleResult.Succeeded)
+                        {
+                            var errorDetails = roleResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
+                            return new ApiResponse<RefreshTokenResponse> { Message = $"Error creating Admin role!{errorDetails}", IsError = true };
+                        }
+                    }
+
+                    // Add the global admin user to "Admin" role
+                    if (!await this.userManager.IsInRoleAsync(user, UserRoles.Admin))
+                    {
+                        var addToRoleResult = await this.userManager.AddToRoleAsync(user, UserRoles.Admin);
+                        if (!addToRoleResult.Succeeded)
+                        {
+                            var errorDetails = addToRoleResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
+                            return new ApiResponse<RefreshTokenResponse> { Message = $"Error adding user to \"Admin\" role!{errorDetails}", IsError = true };
+                        }
+                    }
+                }
+
+                // Build claims
+                var authClaims = new List<Claim>
+                {
+                    new(ClaimTypes.Name, user.UserName),
+                    new(ClaimTypes.Email, user.Email),
+                    new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                };
+                authClaims.AddRange(userRoles.Select(userRole => new Claim(ClaimTypes.Role, userRole)));
 
                 // Create new JWT token
                 var token = new JwtSecurityToken(
@@ -649,7 +623,7 @@ namespace OpenSky.API.Controllers
                     this.configuration["JWT:ValidAudience"],
                     notBefore: DateTime.UtcNow,
                     expires: DateTime.UtcNow.AddSeconds((int)(securityToken.ValidTo - securityToken.ValidFrom).TotalSeconds),
-                    claims: principal.Claims,
+                    claims: authClaims,
                     signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha512)
                 );
 
@@ -667,17 +641,16 @@ namespace OpenSky.API.Controllers
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error exchanging OpenSky token.");
                 if (saveEx != null)
                 {
-                    return this.Ok(new ApiResponse<RefreshTokenResponse>("Error exchanging OpenSky access token!", saveEx) { Data = new RefreshTokenResponse() });
+                    return new ApiResponse<RefreshTokenResponse>("Error exchanging OpenSky access token!", saveEx) { Data = new RefreshTokenResponse() };
                 }
 
                 // All done, return the tokens to the client
-                return this.Ok(
-                    new ApiResponse<RefreshTokenResponse>("Token refreshed successfully!")
-                        { Data = new RefreshTokenResponse { Token = new JwtSecurityTokenHandler().WriteToken(token), Expiration = token.ValidTo, RefreshToken = newOpenSkyToken.ID.ToString("N"), RefreshTokenExpiration = newOpenSkyToken.Expiry } });
+                return new ApiResponse<RefreshTokenResponse>("Token refreshed successfully!")
+                    { Data = new RefreshTokenResponse { Token = new JwtSecurityTokenHandler().WriteToken(token), Expiration = token.ValidTo, RefreshToken = newOpenSkyToken.ID.ToString("N"), RefreshTokenExpiration = newOpenSkyToken.Expiry } };
             }
             catch (Exception ex)
             {
-                return this.Ok(new ApiResponse<RefreshTokenResponse> { Message = $"Unable to refresh token: {ex.Message}", IsError = true, Data = new RefreshTokenResponse() });
+                return new ApiResponse<RefreshTokenResponse> { Message = $"Unable to refresh token: {ex.Message}", IsError = true, Data = new RefreshTokenResponse() };
             }
         }
 
@@ -695,8 +668,7 @@ namespace OpenSky.API.Controllers
         /// An IActionResult object returning an ApiResponse object in the body.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpPost]
-        [Route("register")]
+        [HttpPost("register")]
         [AllowAnonymous]
         public async Task<ActionResult<ApiResponse<string>>> Register([FromBody] RegisterUser registerUser)
         {
@@ -705,7 +677,7 @@ namespace OpenSky.API.Controllers
             // Check if values are ok
             if (!Regex.IsMatch(registerUser.Username, @"^[ A-Za-z0-9.\-_]+$"))
             {
-                return this.Ok(new ApiResponse<string> { Message = "Username can only contain A-Z, 0-9 and the .-_ special characters!", IsError = true });
+                return new ApiResponse<string> { Message = "Username can only contain A-Z, 0-9 and the .-_ special characters!", IsError = true };
             }
 
             // Check Google reCAPTCHAv3
@@ -715,12 +687,12 @@ namespace OpenSky.API.Controllers
                 var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
                 if (!reCAPTCHAResponse.Success)
                 {
-                    return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA validation failed.", IsError = true });
+                    return new ApiResponse<string> { Message = "reCAPTCHA validation failed.", IsError = true };
                 }
 
                 if (reCAPTCHAResponse.Score <= 0.3)
                 {
-                    return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true });
+                    return new ApiResponse<string> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true };
                 }
             }
 
@@ -728,13 +700,13 @@ namespace OpenSky.API.Controllers
             var userExists = await this.userManager.FindByNameAsync(registerUser.Username);
             if (userExists != null)
             {
-                return this.Ok(new ApiResponse<string> { Message = "A user with this name already exists!", IsError = true });
+                return new ApiResponse<string> { Message = "A user with this name already exists!", IsError = true };
             }
 
             userExists = await this.userManager.FindByEmailAsync(registerUser.Email);
             if (userExists != null)
             {
-                return this.Ok(new ApiResponse<string> { Message = "A user with this email address already exists!", IsError = true });
+                return new ApiResponse<string> { Message = "A user with this email address already exists!", IsError = true };
             }
 
             // Create user
@@ -750,7 +722,7 @@ namespace OpenSky.API.Controllers
             if (!createResult.Succeeded)
             {
                 var errorDetails = createResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
-                return this.Ok(new ApiResponse<string> { Message = $"User creation failed!{errorDetails}", IsError = true });
+                return new ApiResponse<string> { Message = $"User creation failed!{errorDetails}", IsError = true };
             }
 
             // Send email validation
@@ -765,7 +737,7 @@ namespace OpenSky.API.Controllers
             // ReSharper disable once AssignNullToNotNullAttribute
             this.sendMail.SendEmail(this.configuration["Email:FromAddress"], registerUser.Email, null, null, "OpenSky Account Email Validation", emailBody, true, MessagePriority.Normal);
 
-            return this.Ok(new ApiResponse<string>("Your OpenSky user was created successfully, please check your inbox for a validation email we just sent you."));
+            return new ApiResponse<string>("Your OpenSky user was created successfully, please check your inbox for a validation email we just sent you.");
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -782,8 +754,7 @@ namespace OpenSky.API.Controllers
         /// An IActionResult object returning an ApiResponse object in the body.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpPost]
-        [Route("resendValidationEmail")]
+        [HttpPost("resendValidationEmail")]
         [AllowAnonymous]
         public async Task<ActionResult<ApiResponse<string>>> ResendValidationEmail([FromBody] ResendValidationEmail resendValidationEmail)
         {
@@ -796,24 +767,24 @@ namespace OpenSky.API.Controllers
                 var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
                 if (!reCAPTCHAResponse.Success)
                 {
-                    return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA validation failed.", IsError = true });
+                    return new ApiResponse<string> { Message = "reCAPTCHA validation failed.", IsError = true };
                 }
 
                 if (reCAPTCHAResponse.Score <= 0.3)
                 {
-                    return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true });
+                    return new ApiResponse<string> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true };
                 }
             }
 
             var user = await this.userManager.FindByEmailAsync(resendValidationEmail.Email);
             if (user == null)
             {
-                return this.Ok(new ApiResponse<string> { Message = "No user with specified email address exists!", IsError = true });
+                return new ApiResponse<string> { Message = "No user with specified email address exists!", IsError = true };
             }
 
             if (await this.userManager.IsEmailConfirmedAsync(user))
             {
-                return this.Ok(new ApiResponse<string> { Message = "You already verified your email address!" });
+                return new ApiResponse<string> { Message = "You already verified your email address!" };
             }
 
             // Send email validation
@@ -828,7 +799,7 @@ namespace OpenSky.API.Controllers
             // ReSharper disable once AssignNullToNotNullAttribute
             this.sendMail.SendEmail(this.configuration["Email:FromAddress"], resendValidationEmail.Email, null, null, "OpenSky Account Email Validation", emailBody, true, MessagePriority.Normal);
 
-            return this.Ok(new ApiResponse<string>("Please check your inbox for the new validation email we just sent you."));
+            return new ApiResponse<string>("Please check your inbox for the new validation email we just sent you.");
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -845,8 +816,7 @@ namespace OpenSky.API.Controllers
         /// An IActionResult object returning an ApiResponse object in the body.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpPost]
-        [Route("resetPassword")]
+        [HttpPost("resetPassword")]
         [AllowAnonymous]
         public async Task<ActionResult<ApiResponse<LoginResponse>>> ResetPassword([FromBody] ResetPassword resetPassword)
         {
@@ -859,12 +829,12 @@ namespace OpenSky.API.Controllers
                 var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
                 if (!reCAPTCHAResponse.Success)
                 {
-                    return this.Ok(new ApiResponse<LoginResponse> { Message = "reCAPTCHA validation failed.", IsError = true, Data = new LoginResponse() });
+                    return new ApiResponse<LoginResponse> { Message = "reCAPTCHA validation failed.", IsError = true, Data = new LoginResponse() };
                 }
 
                 if (reCAPTCHAResponse.Score <= 0.3)
                 {
-                    return this.Ok(new ApiResponse<LoginResponse> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true, Data = new LoginResponse() });
+                    return new ApiResponse<LoginResponse> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true, Data = new LoginResponse() };
                 }
             }
 
@@ -872,7 +842,7 @@ namespace OpenSky.API.Controllers
             var user = await this.userManager.FindByEmailAsync(resetPassword.Email);
             if (user == null)
             {
-                return this.Ok(new ApiResponse<LoginResponse> { Message = "No user with specified email address exists!", IsError = true, Data = new LoginResponse() });
+                return new ApiResponse<LoginResponse> { Message = "No user with specified email address exists!", IsError = true, Data = new LoginResponse() };
             }
 
             // Reset the user's password
@@ -880,7 +850,7 @@ namespace OpenSky.API.Controllers
             if (!resetResult.Succeeded)
             {
                 var errorDetails = resetResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
-                return this.Ok(new ApiResponse<LoginResponse> { Message = $"Error resetting password!{errorDetails}", IsError = true, Data = new LoginResponse() });
+                return new ApiResponse<LoginResponse> { Message = $"Error resetting password!{errorDetails}", IsError = true, Data = new LoginResponse() };
             }
 
             if (resetPassword.ResetTokens)
@@ -915,7 +885,7 @@ namespace OpenSky.API.Controllers
             if (!updateResult.Succeeded)
             {
                 var errorDetails = updateResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
-                return this.Ok(new ApiResponse<LoginResponse> { Message = $"Error saving login history!{errorDetails}", IsError = true, Data = new LoginResponse() });
+                return new ApiResponse<LoginResponse> { Message = $"Error saving login history!{errorDetails}", IsError = true, Data = new LoginResponse() };
             }
 
             // Create OpenSky (refresh) token
@@ -931,22 +901,76 @@ namespace OpenSky.API.Controllers
             var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving OpenSky token.");
             if (saveEx != null)
             {
-                return this.Ok(new ApiResponse<LoginResponse>("Error saving OpenSky access token!", saveEx) { Data = new LoginResponse() });
+                return new ApiResponse<LoginResponse>("Error saving OpenSky access token!", saveEx) { Data = new LoginResponse() };
             }
 
             // All done, return the tokens to the client
-            return this.Ok(
-                new ApiResponse<LoginResponse>("Success")
-                {
-                    Data = new LoginResponse
-                    {
-                        Token = new JwtSecurityTokenHandler().WriteToken(token),
-                        Expiration = token.ValidTo,
-                        Username = user.UserName,
-                        RefreshToken = openSkyToken.ID.ToString("N"),
-                        RefreshTokenExpiration = openSkyToken.Expiry
-                    }
-                });
+            return new ApiResponse<LoginResponse>("Success")
+            {
+                Data = new LoginResponse { Token = new JwtSecurityTokenHandler().WriteToken(token), Expiration = token.ValidTo, Username = user.UserName, RefreshToken = openSkyToken.ID.ToString("N"), RefreshTokenExpiration = openSkyToken.Expiry }
+            };
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Revoke all OpenSky refresh tokens.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 31/05/2021.
+        /// </remarks>
+        /// <returns>
+        /// An IActionResult object returning an ApiResponse object in the body.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpDelete("revokeAllTokens")]
+        public async Task<ActionResult<ApiResponse<string>>> RevokeAllTokens()
+        {
+            this.logger.LogInformation($"Revoking all tokens for user {this.User.Identity?.Name}");
+
+            var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+            if (user == null)
+            {
+                return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
+            }
+
+            this.db.OpenSkyTokens.RemoveRange(user.Tokens);
+            var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error deleting user tokens");
+            if (saveEx != null)
+            {
+                return new ApiResponse<string>("Unable to delete tokens!", saveEx);
+            }
+
+            return new ApiResponse<string>("Success");
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Revoke specified OpenSky refresh token.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 31/05/2021.
+        /// </remarks>
+        /// <param name="revokeToken">
+        /// The revoke token model.
+        /// </param>
+        /// <returns>
+        /// An IActionResult object returning an ApiResponse object in the body.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpDelete("revokeToken")]
+        public async Task<ActionResult<ApiResponse<string>>> RevokeToken([FromBody] RevokeToken revokeToken)
+        {
+            this.logger.LogInformation($"Revoking token for user {this.User.Identity?.Name}, token being invalidated: {revokeToken.Token}");
+
+            var token = await this.db.OpenSkyTokens.SingleOrDefaultAsync(t => t.ID == Guid.Parse(revokeToken.Token));
+            if (token != null)
+            {
+                this.db.OpenSkyTokens.Remove(token);
+                await this.db.SaveDatabaseChangesAsync(this.logger, $"Error deleting OpenSky token {revokeToken.Token}");
+                return new ApiResponse<string>("Success");
+            }
+
+            return new ApiResponse<string>("Success, token already revoked or expired");
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -963,8 +987,7 @@ namespace OpenSky.API.Controllers
         /// An IActionResult object returning an ApiResponse object in the body.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpPost]
-        [Route("validateEmail")]
+        [HttpPost("validateEmail")]
         [AllowAnonymous]
         public async Task<ActionResult<ApiResponse<string>>> ValidateEmail([FromBody] ValidateEmail validateEmail)
         {
@@ -977,12 +1000,12 @@ namespace OpenSky.API.Controllers
                 var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
                 if (!reCAPTCHAResponse.Success)
                 {
-                    return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA validation failed.", IsError = true });
+                    return new ApiResponse<string> { Message = "reCAPTCHA validation failed.", IsError = true };
                 }
 
                 if (reCAPTCHAResponse.Score <= 0.3)
                 {
-                    return this.Ok(new ApiResponse<string> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true });
+                    return new ApiResponse<string> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true };
                 }
             }
 
@@ -990,13 +1013,13 @@ namespace OpenSky.API.Controllers
             var user = await this.userManager.FindByEmailAsync(validateEmail.Email);
             if (user == null)
             {
-                return this.Ok(new ApiResponse<string> { Message = "No user with specified email address exists!", IsError = true });
+                return new ApiResponse<string> { Message = "No user with specified email address exists!", IsError = true };
             }
 
             // Check if email isn't already verified
             if (await this.userManager.IsEmailConfirmedAsync(user))
             {
-                return this.Ok(new ApiResponse<string> { Message = "You already verified your email address!" });
+                return new ApiResponse<string> { Message = "You already verified your email address!" };
             }
 
             // Verify the token is valid
@@ -1004,7 +1027,7 @@ namespace OpenSky.API.Controllers
             if (!confirmResult.Succeeded)
             {
                 var errorDetails = confirmResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
-                return this.Ok(new ApiResponse<string> { Message = $"Error validation email address!{errorDetails}", IsError = true });
+                return new ApiResponse<string> { Message = $"Error validation email address!{errorDetails}", IsError = true };
             }
 
             // Make sure the user role exists
@@ -1014,7 +1037,7 @@ namespace OpenSky.API.Controllers
                 if (!roleResult.Succeeded)
                 {
                     var errorDetails = roleResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
-                    return this.Ok(new ApiResponse<string> { Message = $"Error creating User role!{errorDetails}", IsError = true });
+                    return new ApiResponse<string> { Message = $"Error creating User role!{errorDetails}", IsError = true };
                 }
             }
 
@@ -1025,11 +1048,11 @@ namespace OpenSky.API.Controllers
                 if (!addToRoleResult.Succeeded)
                 {
                     var errorDetails = addToRoleResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
-                    return this.Ok(new ApiResponse<string> { Message = $"Error adding user to \"User\" role!{errorDetails}", IsError = true });
+                    return new ApiResponse<string> { Message = $"Error adding user to \"User\" role!{errorDetails}", IsError = true };
                 }
             }
 
-            return this.Ok(new ApiResponse<string>("Thank you for verifying for OpenSky user email address, your registration is now complete."));
+            return new ApiResponse<string>("Thank you for verifying for OpenSky user email address, your registration is now complete.");
         }
 
         /// -------------------------------------------------------------------------------------------------
