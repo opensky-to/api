@@ -1,146 +1,135 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="ApiResponse.cs" company="OpenSky">
+// <copyright file="Aircraft.cs" company="OpenSky">
 // sushi.at for OpenSky 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace OpenSky.API.Model
+namespace OpenSky.API.DbModel
 {
     using System;
+    using System.ComponentModel.DataAnnotations;
+    using System.ComponentModel.DataAnnotations.Schema;
+    using System.Text.Json.Serialization;
+
+    using OpenSky.API.Helpers;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// API standard response model.
+    /// Aircraft model.
     /// </summary>
     /// <remarks>
-    /// sushi.at, 05/05/2021.
+    /// sushi.at, 13/05/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class ApiResponse<T>
+    public class Aircraft
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="ApiResponse&lt;T&gt;"></see> class.
+        /// The airport (current or origin if aircraft currently in flight).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private Airport airport;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Aircraft"/> class.
         /// </summary>
         /// <remarks>
-        /// sushi.at, 05/05/2021.
+        /// sushi.at, 13/05/2021.
         /// </remarks>
         /// -------------------------------------------------------------------------------------------------
-        public ApiResponse()
+        public Aircraft()
         {
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="ApiResponse&lt;T&gt;"></see> class.
+        /// Initializes a new instance of the <see cref="Aircraft"/> class.
         /// </summary>
         /// <remarks>
-        /// sushi.at, 05/05/2021.
+        /// sushi.at, 13/05/2021.
         /// </remarks>
-        /// <param name="ex">
-        /// The exception to report.
+        /// <param name="lazyLoader">
+        /// The lazy loader.
         /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public ApiResponse(Exception ex)
+        public Aircraft(Action<object, string> lazyLoader)
         {
-            this.Status = "Error";
-            this.IsError = true;
-            this.Message = ex.Message;
-            this.ErrorDetails = ex.ToString();
+            this.LazyLoader = lazyLoader;
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="ApiResponse&lt;T&gt;"></see> class.
+        /// Gets or sets the airport (current or origin if aircraft currently in flight).
         /// </summary>
-        /// <remarks>
-        /// sushi.at, 05/05/2021.
-        /// </remarks>
-        /// <param name="message">
-        /// The message.
-        /// </param>
-        /// <param name="ex">
-        /// The exception to report.
-        /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public ApiResponse(string message, Exception ex)
+        [JsonIgnore]
+        [ForeignKey("AirportICAO")]
+        public Airport Airport
         {
-            this.Status = "Error";
-            this.IsError = true;
-            this.Message = message;
-            this.ErrorDetails = ex.ToString();
+            get => this.LazyLoader.Load(this, ref this.airport);
+            set => this.airport = value;
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="ApiResponse&lt;T&gt;"></see> class.
+        /// Gets or sets the airport ICAO the plane is located at, note this is the departure airport if
+        /// the aircraft currently is flying.
         /// </summary>
-        /// <remarks>
-        /// sushi.at, 05/05/2021.
-        /// </remarks>
-        /// <param name="message">
-        /// The message (status will be "Success").
-        /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public ApiResponse(string message)
-        {
-            this.Status = "Success";
-            this.Message = message;
-            this.IsError = false;
-        }
+        [Required]
+        [StringLength(5, MinimumLength = 3)]
+        [ForeignKey("Airport")]
+        public string AirportICAO { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="ApiResponse&lt;T&gt;"></see> class.
+        /// Gets or sets the user owner (NULL if no user owner).
         /// </summary>
-        /// <remarks>
-        /// sushi.at, 02/06/2021.
-        /// </remarks>
-        /// <param name="data">
-        /// The data object to embed (status will be "Success").
-        /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public ApiResponse(T data)
-        {
-            this.Status = "Success";
-            this.IsError = false;
-            this.Message = string.Empty;
-            this.Data = data;
-        }
+        [ForeignKey("OwnerID")]
+        [JsonIgnore]
+        public OpenSkyUser Owner { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the embedded data of type T.
+        /// Gets or sets the identifier of the user that owns this aircraft (NULL if no user owner).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public T Data { get; set; }
+        [ForeignKey("Owner")]
+        [StringLength(255)]
+        public string OwnerID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the error details (NULL if no error).
+        /// Gets or sets the aircraft registration.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public string ErrorDetails { get; set; }
+        [Key]
+        [StringLength(10, MinimumLength = 5)]
+        public string Registry { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets a value indicating whether this response is reporting an error.
+        /// Gets or sets the aircraft type.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public bool IsError { get; set; }
+        [ForeignKey("TypeID")]
+        public AircraftType Type { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the message.
+        /// Gets or sets the identifier of the aircraft type.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public string Message { get; set; }
+        [ForeignKey("Type")]
+        public Guid TypeID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the status.
+        /// Gets the lazy loader.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public string Status { get; set; }
+        private Action<object, string> LazyLoader { get; }
     }
 }
