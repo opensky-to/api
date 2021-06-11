@@ -84,7 +84,7 @@ namespace OpenSky.API.Controllers
         /// An asynchronous result that yields the import status model.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpGet("status/{importID}", Name = "GetImportStatus")]
+        [HttpGet("status/{importID:guid}", Name = "GetImportStatus")]
         public async Task<ActionResult<ApiResponse<DataImportStatus>>> GetImportStatus(Guid importID)
         {
             if (DataImportWorkerService.Status.ContainsKey(importID))
