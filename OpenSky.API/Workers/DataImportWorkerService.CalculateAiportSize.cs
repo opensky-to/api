@@ -91,7 +91,7 @@
         private static int CalculateAirportSize(Airport airport)
         {
             // First we have a look at the longest runway length, this forms our base value, but special rules can downgrade from this
-            var size = airport.LongestRunwayLength switch
+            var size = airport.Runways.Where(r => !r.RunwayEnds.All(e => e.HasClosedMarkings)).Max(r => r.Length) switch
             {
                 >= 10000 => 5,
                 >= 8000 => 4,
@@ -108,7 +108,7 @@
             }
 
             // Size 5 airports must have a second 10000 feet runway
-            if (size == 5 && airport.Runways.Count(r => r.Length >= 10000) < 2)
+            if (size == 5 && airport.Runways.Count(r => !r.RunwayEnds.All(e => e.HasClosedMarkings) && r.Length >= 10000) < 2)
             {
                 size = 4;
             }
