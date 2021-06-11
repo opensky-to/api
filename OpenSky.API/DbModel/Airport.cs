@@ -17,10 +17,10 @@ namespace OpenSky.API.DbModel
      * AIRPORT EXAMPLE RECORD FROM DB (LOWW - Vienna International)
      *
      * INSERT INTO `Airports` (`ICAO`, `Altitude`, `AtisFrequency`, `City`, `GaRamps`, `Gates`, `HasAvGas`, `HasJetFuel`, `IsClosed`, `IsMilitary`, `Latitude`,
-     * `LongestRunwayLength`, `LongestRunwaySurface`, `Longitude`, `Name`, `RunwayCount`, `TowerFrequency`, `UnicomFrequency`, `HashCode`)
+     * `LongestRunwayLength`, `LongestRunwaySurface`, `Longitude`, `Name`, `RunwayCount`, `TowerFrequency`, `UnicomFrequency`, `Size`, `MSFS`)
      *
      * VALUES ('LOWW', '0', '121730', 'Schwechat', '29', '31', '1', '1', '0', '0', '48.11007308959961',
-     * '11811', 'A', '16.569616317749023', 'Flughafen Wien-Schwechat', '2', '119400', '118525', '4f01ce9c5810102d0f121913e2a13a75dd8f4d1b')
+     * '11811', 'A', '16.569616317749023', 'Flughafen Wien-Schwechat', '2', '119400', '118525', '5', '1')
      */
 
     /// -------------------------------------------------------------------------------------------------
@@ -132,14 +132,6 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the hash code (SHA1 over all data columns to detect if record needs updating).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [Required]
-        public string HashCode { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// Gets or sets a value indicating whether the airport has jet fuel for refueling.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -201,6 +193,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets a value indicating whether the airport if available in MSFS 2020.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public bool MSFS { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the name.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -226,6 +225,13 @@ namespace OpenSky.API.DbModel
             get => this.LazyLoader.Load(this, ref this.runways);
             set => this.runways = value;
         }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the size of the airport (from 0 to 5).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int? Size { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

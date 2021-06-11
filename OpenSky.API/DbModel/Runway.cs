@@ -17,10 +17,10 @@ namespace OpenSky.API.DbModel
     /*
      * RUNWAY EXAMPLE RECORD FROM DB (LOWW - Vienna International)
      *
-     * INSERT INTO `Runways` (`ID`, `AirportICAO`, `Altitude`, `CenterLight`, `EdgeLight`, `HashCode`, `Length`, `Surface`, `Width`)
+     * INSERT INTO `Runways` (`ID`, `AirportICAO`, `Altitude`, `CenterLight`, `EdgeLight`, `Length`, `Surface`, `Width`)
      *
-     * VALUES ('43941', 'LOWW', '592', 'H', 'H', '6bbeddf73786156a63cbc492a2df1d99a69fa3f0', '11483', 'M', '167'),
-     *        ('43942', 'LOWW', '592', 'L', 'L', '8a19613321794ec7f9535524be947905df12b6b2', '11811', 'A', '148')
+     * VALUES ('43941', 'LOWW', '592', 'H', 'H', '11483', 'M', '167'),
+     *        ('43942', 'LOWW', '592', 'L', 'L', '11811', 'A', '148')
      */
 
     /// -------------------------------------------------------------------------------------------------
@@ -113,14 +113,6 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [StringLength(1)]
         public string EdgeLight { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the hash code (SHA1 over all data columns to detect if record needs updating).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [Required]
-        public string HashCode { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
