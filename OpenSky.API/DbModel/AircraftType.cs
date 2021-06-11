@@ -26,6 +26,13 @@ namespace OpenSky.API.DbModel
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The last edited by user.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private OpenSkyUser lastEditedBy;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Type of the next version.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -190,6 +197,36 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the last edited by user.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("LastEditedByID")]
+        [JsonIgnore]
+        public OpenSkyUser LastEditedBy
+        {
+            get => this.LazyLoader.Load(this, ref this.lastEditedBy);
+            set => this.lastEditedBy = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the identifier of the last edited by user.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [StringLength(255)]
+        [ForeignKey("LastEditedBy")]
+        public string LastEditedByID { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the name of the last edited by user.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [NotMapped]
+        public string LastEditedByName => this.LastEditedBy?.UserName;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the maximum gross weight in pounds.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -284,7 +321,7 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [NotMapped]
-        public string UploaderName => this.Uploader.UserName;
+        public string UploaderName => this.Uploader?.UserName;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

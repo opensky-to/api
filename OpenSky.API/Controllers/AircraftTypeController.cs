@@ -131,6 +131,56 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Deletes the specified aircraft type.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 11/06/2021.
+        /// </remarks>
+        /// <param name="typeID">
+        /// Identifier for the type.
+        /// </param>
+        /// <returns>
+        /// A basic API result.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpDelete("{typeID:guid}", Name = "DeleteAircraftType")]
+        [Authorize(Roles = UserRoles.Admin)]
+        public async Task<ActionResult<ApiResponse<string>>> DeleteAircraftType(Guid typeID)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | DELETE AircraftType/{typeID}");
+                var type = await this.db.AircraftTypes.SingleOrDefaultAsync(t => t.ID == typeID);
+                if (type == null)
+                {
+                    return new ApiResponse<string> { Message = "Unable to find existing aircraft type!", IsError = true };
+                }
+
+                // Make sure there are no aircraft using the type
+                var inUse = await this.db.Aircraft.AnyAsync(a => a.TypeID == typeID);
+                if (inUse)
+                {
+                    return new ApiResponse<string> { Message = "This aircraft type is in use and can't be deleted!", IsError = true };
+                }
+
+                this.db.AircraftTypes.Remove(type);
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error deleting aircraft type.");
+                if (saveEx != null)
+                {
+                    return new ApiResponse<string>("Error deleting aircraft type", saveEx);
+                }
+
+                return new ApiResponse<string>("The aircraft type was deleted successfully.");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | DELETE AircraftType/{typeID}");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Disables the specified aircraft type.
         /// </summary>
         /// <remarks>
@@ -143,7 +193,7 @@ namespace OpenSky.API.Controllers
         /// A basic API result.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpPut("disable/{typeID}", Name = "DisableAircraftType")]
+        [HttpPut("disable/{typeID:guid}", Name = "DisableAircraftType")]
         [Roles(UserRoles.Moderator, UserRoles.Admin)]
         public async Task<ActionResult<ApiResponse<string>>> DisableAircraftType(Guid typeID)
         {
@@ -151,14 +201,66 @@ namespace OpenSky.API.Controllers
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | PUT AircraftType/disable/{typeID}");
                 var type = await this.db.AircraftTypes.SingleOrDefaultAsync(t => t.ID == typeID);
+                if (type == null)
+                {
+                    return new ApiResponse<string> { Message = "Unable to find existing aircraft type!", IsError = true };
+                }
+
                 type.Enabled = false;
-                await this.db.SaveChangesAsync();
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error disabling aircraft type.");
+                if (saveEx != null)
+                {
+                    return new ApiResponse<string>("Error disabling aircraft type", saveEx);
+                }
 
                 return new ApiResponse<string>("Success.");
             }
             catch (Exception ex)
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | PUT AircraftType/disable/{typeID}");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Disables the specified aircraft type's detailed checks (only to be used on patch days until a new aircraft type version can be created!).
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 09/06/2021.
+        /// </remarks>
+        /// <param name="typeID">
+        /// Identifier for the type.
+        /// </param>
+        /// <returns>
+        /// A basic API result.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPut("disableDetailedChecks/{typeID:guid}", Name = "DisableAircraftTypeDetailedChecks")]
+        [Roles(UserRoles.Moderator, UserRoles.Admin)]
+        public async Task<ActionResult<ApiResponse<string>>> DisableAircraftTypeDetailedChecks(Guid typeID)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | PUT AircraftType/disableDetailedChecks/{typeID}");
+                var type = await this.db.AircraftTypes.SingleOrDefaultAsync(t => t.ID == typeID);
+                if (type == null)
+                {
+                    return new ApiResponse<string> { Message = "Unable to find existing aircraft type!", IsError = true };
+                }
+
+                type.DetailedChecksDisabled = true;
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error disabling aircraft type detailed checks.");
+                if (saveEx != null)
+                {
+                    return new ApiResponse<string>("Error disabling aircraft type detailed checks", saveEx);
+                }
+
+                return new ApiResponse<string>("Success.");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | PUT AircraftType/disableDetailedChecks/{typeID}");
                 return new ApiResponse<string>(ex);
             }
         }
@@ -177,7 +279,7 @@ namespace OpenSky.API.Controllers
         /// A basic API result.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpPut("enable/{typeID}", Name = "EnableAircraftType")]
+        [HttpPut("enable/{typeID:guid}", Name = "EnableAircraftType")]
         [Roles(UserRoles.Moderator, UserRoles.Admin)]
         public async Task<ActionResult<ApiResponse<string>>> EnableAircraftType(Guid typeID)
         {
@@ -185,14 +287,66 @@ namespace OpenSky.API.Controllers
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | PUT AircraftType/enable/{typeID}");
                 var type = await this.db.AircraftTypes.SingleOrDefaultAsync(t => t.ID == typeID);
+                if (type == null)
+                {
+                    return new ApiResponse<string> { Message = "Unable to find existing aircraft type!", IsError = true };
+                }
+
                 type.Enabled = true;
-                await this.db.SaveChangesAsync();
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error enabling aircraft type.");
+                if (saveEx != null)
+                {
+                    return new ApiResponse<string>("Error enabling aircraft type", saveEx);
+                }
 
                 return new ApiResponse<string>("Success.");
             }
             catch (Exception ex)
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | PUT AircraftType/enable/{typeID}");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Enables the specified aircraft type's detailed checks (only to be used on patch days until a new aircraft type version can be created!).
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 09/06/2021.
+        /// </remarks>
+        /// <param name="typeID">
+        /// Identifier for the type.
+        /// </param>
+        /// <returns>
+        /// A basic API result.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPut("enableDetailedChecks/{typeID:guid}", Name = "EnableAircraftTypeDetailedChecks")]
+        [Roles(UserRoles.Moderator, UserRoles.Admin)]
+        public async Task<ActionResult<ApiResponse<string>>> EnableAircraftTypeDetailedChecks(Guid typeID)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | PUT AircraftType/enableDetailedChecks/{typeID}");
+                var type = await this.db.AircraftTypes.SingleOrDefaultAsync(t => t.ID == typeID);
+                if (type == null)
+                {
+                    return new ApiResponse<string> { Message = "Unable to find existing aircraft type!", IsError = true };
+                }
+
+                type.DetailedChecksDisabled = false;
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error enabling aircraft type detailed checks.");
+                if (saveEx != null)
+                {
+                    return new ApiResponse<string>("Error enabling aircraft type detailed checks", saveEx);
+                }
+
+                return new ApiResponse<string>("Success.");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | PUT AircraftType/enableDetailedChecks/{typeID}");
                 return new ApiResponse<string>(ex);
             }
         }
@@ -248,6 +402,70 @@ namespace OpenSky.API.Controllers
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET AircraftType/all");
                 return new ApiResponse<IEnumerable<AircraftType>>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Updates an existing aircraft type.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 11/06/2021.
+        /// </remarks>
+        /// <param name="type">
+        /// The aircraft type to update.
+        /// </param>
+        /// <returns>
+        /// A basic API result.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPut(Name = "UpdateAircraftType")]
+        [Roles(UserRoles.Moderator, UserRoles.Admin)]
+        public async Task<ActionResult<ApiResponse<string>>> UpdateAircraftType([FromBody] AircraftType type)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | PUT AircraftType");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
+                }
+
+                // Make sure type exists and that certain values can't be overridden (like original uploader and last edited by)
+                var existingType = await this.db.AircraftTypes.SingleOrDefaultAsync(t => t.ID == type.ID);
+                if (existingType == null)
+                {
+                    return new ApiResponse<string> { Message = "Unable to find existing aircraft type!", IsError = true };
+                }
+
+                // Transfer the editable properties
+                existingType.Name = type.Name;
+                existingType.VersionNumber = type.VersionNumber;
+                existingType.Category = type.Category;
+                existingType.IsVanilla = type.IsVanilla;
+                existingType.NeedsCoPilot = type.NeedsCoPilot;
+                existingType.IsVariantOf = type.IsVariantOf;
+                existingType.NextVersion = type.NextVersion;
+                existingType.MinPrice = type.MinPrice;
+                existingType.MaxPrice = type.MaxPrice;
+                existingType.Comments = type.Comments;
+
+                // Make sure to record who edited it
+                existingType.LastEditedByID = user.Id;
+
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving changes to aircraft type.");
+                if (saveEx != null)
+                {
+                    return new ApiResponse<string>("Error saving changes to aircraft type", saveEx);
+                }
+
+                return new ApiResponse<string>("Changes saved successfully.");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | PUT AircraftType");
+                return new ApiResponse<string>(ex);
             }
         }
     }

@@ -226,6 +226,10 @@ namespace OpenSky.API.Migrations
                     b.Property<Guid?>("IsVariantOf")
                         .HasColumnType("char(36)");
 
+                    b.Property<string>("LastEditedByID")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
                     b.Property<double>("MaxGrossWeight")
                         .HasColumnType("double");
 
@@ -260,6 +264,8 @@ namespace OpenSky.API.Migrations
                     b.HasKey("ID");
 
                     b.HasIndex("IsVariantOf");
+
+                    b.HasIndex("LastEditedByID");
 
                     b.HasIndex("NextVersion");
 
@@ -696,6 +702,10 @@ namespace OpenSky.API.Migrations
                         .WithMany()
                         .HasForeignKey("IsVariantOf");
 
+                    b.HasOne("OpenSky.API.DbModel.OpenSkyUser", "LastEditedBy")
+                        .WithMany()
+                        .HasForeignKey("LastEditedByID");
+
                     b.HasOne("OpenSky.API.DbModel.AircraftType", "NextVersionType")
                         .WithMany()
                         .HasForeignKey("NextVersion");
@@ -705,6 +715,8 @@ namespace OpenSky.API.Migrations
                         .HasForeignKey("UploaderID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("LastEditedBy");
 
                     b.Navigation("NextVersionType");
 
