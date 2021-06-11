@@ -1,44 +1,33 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="ChangePassword.cs" company="OpenSky">
+// <copyright file="RefreshToken.cs" company="OpenSky">
 // sushi.at for OpenSky 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
 namespace OpenSky.API.Model.Authentication
 {
-    using System.ComponentModel.DataAnnotations;
-
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Change password model.
+    /// Refresh JWT token model.
     /// </summary>
     /// <remarks>
-    /// sushi.at, 08/05/2021.
+    /// sushi.at, 29/05/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class ChangePassword
+    public class RefreshToken
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the password.
+        /// Gets or sets the refresh token.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [Required(ErrorMessage = "New password is required")]
-        public string NewPassword { get; set; }
+        public string Refresh { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the password.
+        /// Gets or sets the token.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [Required(ErrorMessage = "Password is required")]
-        public string Password { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets a value indicating whether to reset all OpenSky api tokens.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public bool ResetTokens { get; set; } = true;
+        public string Token { get; set; }
     }
 }

@@ -1,60 +1,49 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="ResetPassword.cs" company="OpenSky">
+// <copyright file="RefreshTokenResponse.cs" company="OpenSky">
 // sushi.at for OpenSky 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
 namespace OpenSky.API.Model.Authentication
 {
-    using System.ComponentModel.DataAnnotations;
+    using System;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Reset password model.
+    /// Refresh token response model.
     /// </summary>
     /// <remarks>
-    /// sushi.at, 06/05/2021.
+    /// sushi.at, 29/05/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class ResetPassword
+    public class RefreshTokenResponse
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the email.
+        /// Gets or sets the Date/Time of the expiration.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [EmailAddress]
-        [Required(ErrorMessage = "Email is required")]
-        public string Email { get; set; }
+        public DateTime Expiration { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the password.
+        /// Gets or sets the refresh token.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [Required(ErrorMessage = "Password is required")]
-        public string Password { get; set; }
+        public string RefreshToken { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the recaptcha token.
+        /// Gets or sets the Date/Time of the refresh token expiration.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public string RecaptchaToken { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets a value indicating whether to reset all OpenSky api tokens.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public bool ResetTokens { get; set; } = true;
+        public DateTime RefreshTokenExpiration { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
         /// Gets or sets the token.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [Required(ErrorMessage = "Token is required")]
         public string Token { get; set; }
     }
 }

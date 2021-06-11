@@ -133,7 +133,7 @@ namespace OpenSky.API
                     "OpenSkyAllowSpecificOrigins",
                     builder =>
                     {
-                        builder.WithOrigins("https://www.opensky.to", "http://localhost:5001").AllowAnyHeader().AllowAnyMethod();
+                        builder.WithOrigins("https://www.opensky.to", "https://www-dev.opensky.to", "http://localhost:5001").AllowAnyHeader().AllowAnyMethod();
                     }));
 
             // Primary database connection pool
@@ -147,6 +147,8 @@ namespace OpenSky.API
                 c =>
                 {
                     c.SwaggerDoc("v1", new OpenApiInfo { Title = "OpenSky.API", Version = "v1" });
+                    c.SchemaFilter<EnumSchemaFilter>();
+                    c.DocumentFilter<SwaggerAddEnumDescriptions>();
                     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                     {
                         Description = "JWT Authorization header using the Bearer scheme. \r\n\r\n" +
@@ -210,16 +212,19 @@ namespace OpenSky.API
                     .AddJwtBearer(options =>
                     {
                         options.SaveToken = true;
-                        options.RequireHttpsMetadata = false;
                         options.TokenValidationParameters = new TokenValidationParameters
                         {
                             ValidateIssuer = true,
                             ValidateAudience = true,
                             ValidAudience = this.Configuration["JWT:ValidAudience"],
                             ValidIssuer = this.Configuration["JWT:ValidIssuer"],
-                            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.Configuration["JWT:Secret"]))
+                            ValidateIssuerSigningKey = true,
+                            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.Configuration["JWT:Secret"])),
+                            ValidateLifetime = true
                         };
-                    });
+
+                        options.RequireHttpsMetadata = true; // todo test if this works for localhost development version
+                    }); // todo add other login providers like google, facebook, etc.?
 
             // Set up Google reCAPTCHAv3 service
             services.AddHttpClient<GoogleRecaptchaV3Service>();

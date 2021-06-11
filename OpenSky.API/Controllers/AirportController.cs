@@ -6,6 +6,7 @@
 
 namespace OpenSky.API.Controllers
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
@@ -16,6 +17,7 @@ namespace OpenSky.API.Controllers
     using Microsoft.Extensions.Logging;
 
     using OpenSky.API.DbModel;
+    using OpenSky.API.Model;
     using OpenSky.API.Model.Authentication;
 
     /// -------------------------------------------------------------------------------------------------
@@ -77,11 +79,20 @@ namespace OpenSky.API.Controllers
         /// All available airports.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpGet]
-        public async Task<IEnumerable<string>> Get()
+        [HttpGet(Name = "GetAirports")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<string>>>> GetAirports()
         {
-            this.logger.LogInformation($"{this.User.Identity?.Name} | GET Airport");
-            return await this.db.Airports.Select(a => a.ICAO).ToListAsync();
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Airport");
+            var icaos = await this.db.Airports.Select(a => a.ICAO).ToListAsync();
+            return new ApiResponse<IEnumerable<string>>(icaos);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Airport");
+                return new ApiResponse<IEnumerable<string>>(ex);
+            }
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -98,11 +109,20 @@ namespace OpenSky.API.Controllers
         /// The airport record if found, nothing otherwise.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpGet("{icao}", Name = "FindOne")]
-        public async Task<ActionResult<Airport>> Get(string icao)
+        [HttpGet("{icao}", Name = "GetAirport")]
+        public async Task<ActionResult<ApiResponse<Airport>>> GetAirport(string icao)
         {
-            this.logger.LogInformation($"{this.User.Identity?.Name} | GET Airport/{icao}");
-            return await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO.Equals(icao));
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Airport/{icao}");
+            var airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO.Equals(icao));
+            return new ApiResponse<Airport>(airport);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Airport/{icao}");
+                return new ApiResponse<Airport>(ex);
+            }
         }
     }
 }
