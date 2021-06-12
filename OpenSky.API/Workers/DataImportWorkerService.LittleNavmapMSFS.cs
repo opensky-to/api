@@ -63,7 +63,7 @@ namespace OpenSky.API.Workers
                 var airportCommand = new SQLiteCommand(
                     "SELECT " +
                     "ident,name,city,has_avgas,has_jetfuel,tower_frequency,atis_frequency,unicom_frequency,is_closed,is_military," +
-                    "num_parking_gate,num_parking_ga_ramp,num_runways,longest_runway_length,longest_runway_surface,laty,lonx " +
+                    "num_parking_gate,num_parking_ga_ramp,num_runways,longest_runway_length,longest_runway_surface,laty,lonx,altitude " +
                     "FROM airport",
                     connection);
 
