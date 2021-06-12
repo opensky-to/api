@@ -14,6 +14,15 @@ namespace OpenSky.API.DbModel
 
     using OpenSky.API.Helpers;
 
+    /*
+     * RUNWAY EXAMPLE RECORD FROM DB (LOWW - Vienna International)
+     *
+     * INSERT INTO `Runways` (`ID`, `AirportICAO`, `Altitude`, `CenterLight`, `EdgeLight`, `Length`, `Surface`, `Width`)
+     *
+     * VALUES ('43941', 'LOWW', '592', 'H', 'H', '11483', 'M', '167'),
+     *        ('43942', 'LOWW', '592', 'L', 'L', '11811', 'A', '148')
+     */
+
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
     /// Runway model.
@@ -30,6 +39,13 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private Airport airport;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The runway ends.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<RunwayEnd> runwayEnds;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -107,14 +123,6 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the hash code (SHA1 over all data columns to detect if record needs updating).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [Required]
-        public string HashCode { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// Gets or sets the runway ID.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -134,7 +142,11 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the runway ends.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public ICollection<RunwayEnd> RunwayEnds { get; set; }
+        public ICollection<RunwayEnd> RunwayEnds
+        {
+            get => this.LazyLoader.Load(this, ref this.runwayEnds);
+            set => this.runwayEnds = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

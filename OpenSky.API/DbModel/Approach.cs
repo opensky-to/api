@@ -13,6 +13,32 @@ namespace OpenSky.API.DbModel
 
     using OpenSky.API.Helpers;
 
+    /*
+     * APPROACH EXAMPLE RECORD FROM DB (LOWW - Vienna International)
+     *
+     * INSERT INTO `Approaches` (`ID`, `AirportICAO`, `RunwayName`, `Suffix`, `Type`)
+     *
+     * VALUES ('12541', 'LOWW', '16', NULL, 'VORDME'),
+     *        ('12542', 'LOWW', '34', NULL, 'VORDME'),
+     *        ('12543', 'LOWW', '11', NULL, 'ILS'),
+     *        ('12544', 'LOWW', '16', NULL, 'ILS'),
+     *        ('12545', 'LOWW', '29', NULL, 'ILS'),
+     *        ('12546', 'LOWW', '34', NULL, 'ILS'),
+     *        ('12547', 'LOWW', '11', NULL, 'LOC'),
+     *        ('12548', 'LOWW', '16', NULL, 'LOC'),
+     *        ('12549', 'LOWW', '29', NULL, 'LOC'),
+     *        ('12550', 'LOWW', '34', NULL, 'LOC'),
+     *        ('12551', 'LOWW', '11', NULL, 'NDBDME'),
+     *        ('12552', 'LOWW', '29', NULL, 'NDBDME'),
+     *        ('12553', 'LOWW', '11', 'Z', 'RNAV'),
+     *        ('12554', 'LOWW', '16', 'E', 'RNAV'),
+     *        ('12555', 'LOWW', '16', 'N', 'RNAV'),
+     *        ('12556', 'LOWW', '16', 'Z', 'RNAV'),
+     *        ('12557', 'LOWW', '29', 'X', 'RNAV'),
+     *        ('12558', 'LOWW', '29', 'Z', 'RNAV'),
+     *        ('12559', 'LOWW', '34', NULL, 'RNAV')
+     */
+
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
     /// Approach model.
@@ -80,14 +106,6 @@ namespace OpenSky.API.DbModel
         [Required]
         [ForeignKey("Airport")]
         public string AirportICAO { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the hash code (SHA1 over all data columns to detect if record needs updating).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [Required]
-        public string HashCode { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

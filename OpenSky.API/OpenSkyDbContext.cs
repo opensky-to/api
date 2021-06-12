@@ -100,6 +100,22 @@ namespace OpenSky.API
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Resets the MSFS flag for all airports.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 12/06/2021.
+        /// </remarks>
+        /// <returns>
+        /// An asynchronous result that yields an int of rows affected.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        public async Task<int> ResetAirportsMSFS()
+        {
+            return await this.Database.ExecuteSqlRawAsync("UPDATE Airports SET MSFS=0");
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Save database changes using a transaction.
         /// </summary>
         /// <remarks>

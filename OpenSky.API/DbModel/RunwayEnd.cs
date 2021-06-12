@@ -10,6 +10,17 @@ namespace OpenSky.API.DbModel
     using System.ComponentModel.DataAnnotations.Schema;
     using System.Text.Json.Serialization;
 
+    /*
+     * RUNWAY-END EXAMPLE RECORD FROM DB (LOWW - Vienna International)
+     *
+     * INSERT INTO `RunwayEnds` (`ID`, `ApproachLightSystem`, `HasClosedMarkings`, `Heading`, `Latitude`, `LeftVasiPitch`, `LeftVasiType`, `Longitude`, `Name`, `OffsetThreshold`, `RightVasiPitch`, `RightVasiType`, `RunwayID`)
+     *
+     * VALUES ('87881', 'ALSF1', '0', '115.95314025878906', '48.122825622558594', '3', 'PAPI4', '16.53326416015625', '11', '0', NULL, NULL, '43941'),
+     *        ('87882', 'ALSF2', '0', '295.953125', '48.10904312133789', '3', 'PAPI4', '16.57568359375', '29', '0', NULL, NULL, '43941'),
+     *        ('87883', 'ALSF2', '0', '164.1750030517578', '48.11979293823242', '3', 'PAPI4', '16.578155517578125', '16', '0', NULL, NULL, '43942'),
+     *        ('87884', 'ALSF2', '0', '344.17498779296875', '48.088626861572266', '3', 'PAPI4', '16.59136962890625', '34', '0', NULL, NULL, '43942')
+     */
+
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
     /// Runway-End model.
@@ -34,14 +45,6 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public bool HasClosedMarkings { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the hash code (SHA1 over all data columns to detect if record needs updating).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [Required]
-        public string HashCode { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
