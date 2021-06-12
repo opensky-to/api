@@ -42,6 +42,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The runway ends.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<RunwayEnd> runwayEnds;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Initializes a new instance of the <see cref="Runway"/> class.
         /// </summary>
         /// <remarks>
@@ -135,7 +142,11 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the runway ends.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public ICollection<RunwayEnd> RunwayEnds { get; set; }
+        public ICollection<RunwayEnd> RunwayEnds
+        {
+            get => this.LazyLoader.Load(this, ref this.runwayEnds);
+            set => this.runwayEnds = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

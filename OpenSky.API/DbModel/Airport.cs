@@ -17,10 +17,10 @@ namespace OpenSky.API.DbModel
      * AIRPORT EXAMPLE RECORD FROM DB (LOWW - Vienna International)
      *
      * INSERT INTO `Airports` (`ICAO`, `Altitude`, `AtisFrequency`, `City`, `GaRamps`, `Gates`, `HasAvGas`, `HasJetFuel`, `IsClosed`, `IsMilitary`, `Latitude`,
-     * `LongestRunwayLength`, `LongestRunwaySurface`, `Longitude`, `Name`, `RunwayCount`, `TowerFrequency`, `UnicomFrequency`, `Size`, `MSFS`)
+     * `LongestRunwayLength`, `LongestRunwaySurface`, `Longitude`, `Name`, `RunwayCount`, `TowerFrequency`, `UnicomFrequency`, `Size`, `MSFS`, `SupportsSuper`)
      *
      * VALUES ('LOWW', '0', '121730', 'Schwechat', '29', '31', '1', '1', '0', '0', '48.11007308959961',
-     * '11811', 'A', '16.569616317749023', 'Flughafen Wien-Schwechat', '2', '119400', '118525', '5', '1')
+     * '11811', 'A', '16.569616317749023', 'Flughafen Wien-Schwechat', '2', '119400', '118525', '5', '1', '1')
      */
 
     /// -------------------------------------------------------------------------------------------------
@@ -228,10 +228,17 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the size of the airport (from 0 to 5).
+        /// Gets or sets the size of the airport (from -1 to 6).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public int? Size { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets a value indicating whether the airport supports super-heavy aircraft like the Airbus A380.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public bool SupportsSuper { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

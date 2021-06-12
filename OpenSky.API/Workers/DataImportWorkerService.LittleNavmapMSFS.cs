@@ -67,6 +67,9 @@ namespace OpenSky.API.Workers
                     "FROM airport",
                     connection);
 
+                // Load "static" dataset for A380 airports
+                var a380Airports = await File.ReadAllLinesAsync("Datasets/a380airports.txt", token);
+
                 var newAirports = new List<Airport>();
                 var updatedAirports = new List<Airport>();
                 var reader = await airportCommand.ExecuteReaderAsync(token);
@@ -105,7 +108,9 @@ namespace OpenSky.API.Workers
                                 LongestRunwaySurface = reader.GetString("longest_runway_surface"),
                                 Latitude = reader.GetDouble("laty"),
                                 Longitude = reader.GetDouble("lonx"),
+                                Altitude = reader.GetInt32("altitude"),
                                 MSFS = true,
+                                SupportsSuper = a380Airports.Contains(ident),
                                 Size = null // This will be calculated later as this depends on runways and approaches that aren't imported yet
                             };
                             newAirports.Add(newAirport);
@@ -130,7 +135,9 @@ namespace OpenSky.API.Workers
                             existingAirport.LongestRunwaySurface = reader.GetString("longest_runway_surface");
                             existingAirport.Latitude = reader.GetDouble("laty");
                             existingAirport.Longitude = reader.GetDouble("lonx");
+                            existingAirport.Altitude = reader.GetInt32("altitude");
                             existingAirport.MSFS = true;
+                            existingAirport.SupportsSuper = a380Airports.Contains(ident);
                             existingAirport.Size = null; // Re-calculate the size
                             updatedAirports.Add(existingAirport);
                         }
@@ -296,6 +303,8 @@ namespace OpenSky.API.Workers
                     Status.Add(dataImport.ID, dataImportStatus);
                     await this.ImportLittleNavmapMSFSPopulateImportStatus(connection, dataImportStatus, token);
 
+                    var rowsAffected = await db.ResetAirportsMSFS();
+                    this.logger.LogInformation($"Successfully reset the MSFS flag on {rowsAffected} airports.");
                     totalRecordsProcessed += await this.ImportLittleNavmapAirportsMSFS(db, dataImport, connection, token);
 
                     this.logger.LogInformation("Clearing down existing runways and runway ends before importing new ones...");
