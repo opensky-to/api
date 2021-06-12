@@ -21,7 +21,6 @@ namespace OpenSky.API.Workers
     using Microsoft.Extensions.Logging;
 
     using OpenSky.API.DbModel;
-    using OpenSky.API.Helpers;
     using OpenSky.API.Model;
 
     /// -------------------------------------------------------------------------------------------------
@@ -68,6 +67,9 @@ namespace OpenSky.API.Workers
                     "FROM airport",
                     connection);
 
+                // Load "static" dataset for A380 airports
+                var a380Airports = await File.ReadAllLinesAsync("Datasets/a380airports.txt", token);
+
                 var newAirports = new List<Airport>();
                 var updatedAirports = new List<Airport>();
                 var reader = await airportCommand.ExecuteReaderAsync(token);
@@ -83,8 +85,8 @@ namespace OpenSky.API.Workers
 
                         var ident = reader.GetString("ident");
                         lastIdent = ident;
-                        var existingAirportHash = await db.Airports.Select(a => new { a.ICAO, a.HashCode }).SingleOrDefaultAsync(a => a.ICAO == ident, token);
-                        if (existingAirportHash == null)
+                        var existingAirport = await db.Airports.SingleOrDefaultAsync(a => a.ICAO == ident, token);
+                        if (existingAirport == null)
                         {
                             Status[dataImport.ID].Elements["airport"].New++;
                             var newAirport = new Airport
@@ -106,39 +108,38 @@ namespace OpenSky.API.Workers
                                 LongestRunwaySurface = reader.GetString("longest_runway_surface"),
                                 Latitude = reader.GetDouble("laty"),
                                 Longitude = reader.GetDouble("lonx"),
-                                HashCode = reader.CalculateHashCode()
+                                Altitude = reader.GetInt32("altitude"),
+                                MSFS = true,
+                                SupportsSuper = a380Airports.Contains(ident),
+                                Size = null // This will be calculated later as this depends on runways and approaches that aren't imported yet
                             };
                             newAirports.Add(newAirport);
                         }
                         else
                         {
-                            if (existingAirportHash.HashCode != reader.CalculateHashCode())
-                            {
-                                Status[dataImport.ID].Elements["airport"].Updated++;
-                                var existingAirport = await db.Airports.SingleAsync(a => a.ICAO == ident, token);
-                                existingAirport.Name = !await reader.IsDBNullAsync("name", token) ? new string(reader.GetString("name").Take(50).ToArray()) : "???";
-                                existingAirport.City = !await reader.IsDBNullAsync("city", token) ? new string(reader.GetString("city").Take(50).ToArray()) : null;
-                                existingAirport.HasAvGas = reader.GetBoolean("has_avgas");
-                                existingAirport.HasJetFuel = reader.GetBoolean("has_jetfuel");
-                                existingAirport.TowerFrequency = !await reader.IsDBNullAsync("tower_frequency", token) ? (reader.GetInt32("tower_frequency") != 0 ? reader.GetInt32("tower_frequency") : null) : null;
-                                existingAirport.AtisFrequency = !await reader.IsDBNullAsync("atis_frequency", token) ? (reader.GetInt32("atis_frequency") != 0 ? reader.GetInt32("atis_frequency") : null) : null;
-                                existingAirport.UnicomFrequency = !await reader.IsDBNullAsync("unicom_frequency", token) ? (reader.GetInt32("unicom_frequency") != 0 ? reader.GetInt32("unicom_frequency") : null) : null;
-                                existingAirport.IsClosed = reader.GetBoolean("is_closed");
-                                existingAirport.IsMilitary = reader.GetBoolean("is_military");
-                                existingAirport.Gates = reader.GetInt32("num_parking_gate");
-                                existingAirport.GaRamps = reader.GetInt32("num_parking_ga_ramp");
-                                existingAirport.RunwayCount = reader.GetInt32("num_runways");
-                                existingAirport.LongestRunwayLength = reader.GetInt32("longest_runway_length");
-                                existingAirport.LongestRunwaySurface = reader.GetString("longest_runway_surface");
-                                existingAirport.Latitude = reader.GetDouble("laty");
-                                existingAirport.Longitude = reader.GetDouble("lonx");
-                                existingAirport.HashCode = reader.CalculateHashCode();
-                                updatedAirports.Add(existingAirport);
-                            }
-                            else
-                            {
-                                Status[dataImport.ID].Elements["airport"].Skipped++;
-                            }
+                            Status[dataImport.ID].Elements["airport"].Updated++;
+
+                            existingAirport.Name = !await reader.IsDBNullAsync("name", token) ? new string(reader.GetString("name").Take(50).ToArray()) : "???";
+                            existingAirport.City = !await reader.IsDBNullAsync("city", token) ? new string(reader.GetString("city").Take(50).ToArray()) : null;
+                            existingAirport.HasAvGas = reader.GetBoolean("has_avgas");
+                            existingAirport.HasJetFuel = reader.GetBoolean("has_jetfuel");
+                            existingAirport.TowerFrequency = !await reader.IsDBNullAsync("tower_frequency", token) ? (reader.GetInt32("tower_frequency") != 0 ? reader.GetInt32("tower_frequency") : null) : null;
+                            existingAirport.AtisFrequency = !await reader.IsDBNullAsync("atis_frequency", token) ? (reader.GetInt32("atis_frequency") != 0 ? reader.GetInt32("atis_frequency") : null) : null;
+                            existingAirport.UnicomFrequency = !await reader.IsDBNullAsync("unicom_frequency", token) ? (reader.GetInt32("unicom_frequency") != 0 ? reader.GetInt32("unicom_frequency") : null) : null;
+                            existingAirport.IsClosed = reader.GetBoolean("is_closed");
+                            existingAirport.IsMilitary = reader.GetBoolean("is_military");
+                            existingAirport.Gates = reader.GetInt32("num_parking_gate");
+                            existingAirport.GaRamps = reader.GetInt32("num_parking_ga_ramp");
+                            existingAirport.RunwayCount = reader.GetInt32("num_runways");
+                            existingAirport.LongestRunwayLength = reader.GetInt32("longest_runway_length");
+                            existingAirport.LongestRunwaySurface = reader.GetString("longest_runway_surface");
+                            existingAirport.Latitude = reader.GetDouble("laty");
+                            existingAirport.Longitude = reader.GetDouble("lonx");
+                            existingAirport.Altitude = reader.GetInt32("altitude");
+                            existingAirport.MSFS = true;
+                            existingAirport.SupportsSuper = a380Airports.Contains(ident);
+                            existingAirport.Size = null; // Re-calculate the size
+                            updatedAirports.Add(existingAirport);
                         }
 
                         Status[dataImport.ID].Processed++;
@@ -203,8 +204,8 @@ namespace OpenSky.API.Workers
                     connection);
 
                 var newApproaches = new List<Approach>();
-                var updatedApproaches = new List<Approach>();
                 var reader = await approachCommand.ExecuteReaderAsync(token);
+
                 await using (reader)
                 {
                     while (await reader.ReadAsync(token))
@@ -217,47 +218,26 @@ namespace OpenSky.API.Workers
 
                         var id = reader.GetInt32("approach_id");
                         lastID = id;
-                        var existingApproachHash = await db.Approaches.Select(a => new { a.ID, a.HashCode }).SingleOrDefaultAsync(a => a.ID == id, token);
-                        if (existingApproachHash == null)
+
+                        // Make sure the airport exists
+                        var airportICAO = reader.GetString("airport_ident");
+                        if (!string.IsNullOrEmpty(airportICAO) && await db.Airports.SingleOrDefaultAsync(a => a.ICAO == airportICAO, token) != null)
                         {
-                            // Make sure the airport exists
-                            var airportICAO = reader.GetString("airport_ident");
-                            if (!string.IsNullOrEmpty(airportICAO) && await db.Airports.SingleOrDefaultAsync(a => a.ICAO == airportICAO, token) != null)
+                            Status[dataImport.ID].Elements["approach"].New++;
+                            var newApproach = new Approach
                             {
-                                Status[dataImport.ID].Elements["approach"].New++;
-                                var newApproach = new Approach
-                                {
-                                    ID = id,
-                                    AirportICAO = airportICAO,
-                                    RunwayName = !await reader.IsDBNullAsync("runway_name", token) ? reader.GetString("runway_name") : null,
-                                    Type = reader.GetString("type"),
-                                    Suffix = !await reader.IsDBNullAsync("suffix", token) ? reader.GetString("suffix") : null,
-                                    HashCode = reader.CalculateHashCode()
-                                };
-                                newApproaches.Add(newApproach);
-                            }
-                            else
-                            {
-                                Status[dataImport.ID].Elements["approach"].Skipped++;
-                                this.logger.LogWarning($"Skipping approach with ID {id} due to missing airport ICAO {airportICAO}");
-                            }
+                                ID = id,
+                                AirportICAO = airportICAO,
+                                RunwayName = !await reader.IsDBNullAsync("runway_name", token) ? reader.GetString("runway_name") : null,
+                                Type = reader.GetString("type"),
+                                Suffix = !await reader.IsDBNullAsync("suffix", token) ? reader.GetString("suffix") : null
+                            };
+                            newApproaches.Add(newApproach);
                         }
                         else
                         {
-                            if (existingApproachHash.HashCode != reader.CalculateHashCode())
-                            {
-                                Status[dataImport.ID].Elements["approach"].Updated++;
-                                var existingApproach = await db.Approaches.SingleAsync(a => a.ID == id, token);
-                                existingApproach.RunwayName = !await reader.IsDBNullAsync("runway_name", token) ? reader.GetString("runway_name") : null;
-                                existingApproach.Type = reader.GetString("type");
-                                existingApproach.Suffix = !await reader.IsDBNullAsync("suffix", token) ? reader.GetString("suffix") : null;
-                                existingApproach.HashCode = reader.CalculateHashCode();
-                                updatedApproaches.Add(existingApproach);
-                            }
-                            else
-                            {
-                                Status[dataImport.ID].Elements["approach"].Skipped++;
-                            }
+                            Status[dataImport.ID].Elements["approach"].Skipped++;
+                            this.logger.LogWarning($"Skipping approach with ID {id} due to missing airport ICAO {airportICAO}");
                         }
 
                         Status[dataImport.ID].Processed++;
@@ -268,9 +248,8 @@ namespace OpenSky.API.Workers
                         }
                     }
 
-                    this.logger.LogInformation("Done processing approaches, performing bulk insert and update operations...");
+                    this.logger.LogInformation("Done processing approaches, performing bulk insert operation...");
                     await db.BulkInsertAsync(newApproaches, token);
-                    await db.BulkUpdateAsync(updatedApproaches, token);
                 }
             }
             catch (Exception ex)
@@ -324,14 +303,22 @@ namespace OpenSky.API.Workers
                     Status.Add(dataImport.ID, dataImportStatus);
                     await this.ImportLittleNavmapMSFSPopulateImportStatus(connection, dataImportStatus, token);
 
-                    // todo Since runways and approaches aren't part of the core game (only for displaying information to players),
-                    // should these be "updated", especially since the integer IDs could change from one sqlite database export to another.
-                    // So maybe just purge those tables, and display some notification to players that those details are currently being updated
-
+                    var rowsAffected = await db.ResetAirportsMSFS();
+                    this.logger.LogInformation($"Successfully reset the MSFS flag on {rowsAffected} airports.");
                     totalRecordsProcessed += await this.ImportLittleNavmapAirportsMSFS(db, dataImport, connection, token);
+
+                    this.logger.LogInformation("Clearing down existing runways and runway ends before importing new ones...");
+                    await db.BulkDeleteAsync(db.RunwayEnds, token);
+                    await db.BulkDeleteAsync(db.Runways, token);
                     totalRecordsProcessed += await this.ImportLittleNavmapRunwaysMSFS(db, dataImport, connection, token);
                     totalRecordsProcessed += await this.ImportLittleNavmapRunwayEndsMSFS(db, dataImport, connection, token);
+
+                    this.logger.LogInformation("Clearing down existing approaches before importing new ones...");
+                    await db.BulkDeleteAsync(db.Approaches, token);
                     totalRecordsProcessed += await this.ImportLittleNavmapApproachesMSFS(db, dataImport, connection, token);
+
+                    // Call the general airport size calculator as part of our import
+                    totalRecordsProcessed += await this.CalculateAirportSizes(db, dataImport, token);
                 }
                 finally
                 {
@@ -396,6 +383,8 @@ namespace OpenSky.API.Workers
 
             this.logger.LogInformation($"Uploaded sqlite database contains {airportCount} airports");
             dataImportStatus.Elements.Add("airport", new DataImportElement { Total = (int)airportCount });
+            dataImportStatus.Total += (int)airportCount;
+            dataImportStatus.Elements.Add("airportSize", new DataImportElement { Total = (int)airportCount });
             dataImportStatus.Total += (int)airportCount;
 
             // Runways
@@ -532,7 +521,6 @@ namespace OpenSky.API.Workers
             try
             {
                 var newRunwayEnds = new List<RunwayEnd>();
-                var updatedRunwayEnds = new List<RunwayEnd>();
                 while (await reader.ReadAsync(token))
                 {
                     if (token.IsCancellationRequested)
@@ -543,63 +531,34 @@ namespace OpenSky.API.Workers
 
                     var id = reader.GetInt32("runway_end_id");
                     lastID = id;
-                    var existingRunwayEndHash = await db.RunwayEnds.Select(r => new { r.ID, r.HashCode }).SingleOrDefaultAsync(e => e.ID == id, token);
-                    if (existingRunwayEndHash == null)
+
+                    // Make sure the runway exists
+                    var runwayID = reader.GetInt32("runway_id");
+                    if (await db.Runways.SingleOrDefaultAsync(r => r.ID == runwayID, token) != null)
                     {
-                        // Make sure the runway exists
-                        var runwayID = reader.GetInt32("runway_id");
-                        if (await db.Runways.SingleOrDefaultAsync(r => r.ID == runwayID, token) != null)
+                        Status[dataImport.ID].Elements["runwayEnd"].New++;
+                        var newRunwayEnd = new RunwayEnd
                         {
-                            Status[dataImport.ID].Elements["runwayEnd"].New++;
-                            var newRunwayEnd = new RunwayEnd
-                            {
-                                ID = id,
-                                RunwayID = runwayID,
-                                Name = reader.GetString("name"),
-                                OffsetThreshold = reader.GetInt32("offset_threshold"),
-                                HasClosedMarkings = reader.GetBoolean("has_closed_markings"),
-                                Heading = reader.GetDouble("heading"),
-                                LeftVasiType = !await reader.IsDBNullAsync("left_vasi_type", token) ? reader.GetString("left_vasi_type") : null,
-                                LeftVasiPitch = !await reader.IsDBNullAsync("left_vasi_pitch", token) ? reader.GetDouble("left_vasi_pitch") : null,
-                                RightVasiType = !await reader.IsDBNullAsync("right_vasi_type", token) ? reader.GetString("right_vasi_type") : null,
-                                RightVasiPitch = !await reader.IsDBNullAsync("right_vasi_pitch", token) ? reader.GetDouble("right_vasi_pitch") : null,
-                                ApproachLightSystem = !await reader.IsDBNullAsync("app_light_system_type", token) ? reader.GetString("app_light_system_type") : null,
-                                Longitude = reader.GetDouble("lonx"),
-                                Latitude = reader.GetDouble("laty"),
-                                HashCode = reader.CalculateHashCode()
-                            };
-                            newRunwayEnds.Add(newRunwayEnd);
-                        }
-                        else
-                        {
-                            Status[dataImport.ID].Elements["runwayEnd"].Skipped++;
-                            this.logger.LogWarning($"Skipping runway end with ID {id} due to missing runway with ID {runwayID}");
-                        }
+                            ID = id,
+                            RunwayID = runwayID,
+                            Name = reader.GetString("name"),
+                            OffsetThreshold = reader.GetInt32("offset_threshold"),
+                            HasClosedMarkings = reader.GetBoolean("has_closed_markings"),
+                            Heading = reader.GetDouble("heading"),
+                            LeftVasiType = !await reader.IsDBNullAsync("left_vasi_type", token) ? reader.GetString("left_vasi_type") : null,
+                            LeftVasiPitch = !await reader.IsDBNullAsync("left_vasi_pitch", token) ? reader.GetDouble("left_vasi_pitch") : null,
+                            RightVasiType = !await reader.IsDBNullAsync("right_vasi_type", token) ? reader.GetString("right_vasi_type") : null,
+                            RightVasiPitch = !await reader.IsDBNullAsync("right_vasi_pitch", token) ? reader.GetDouble("right_vasi_pitch") : null,
+                            ApproachLightSystem = !await reader.IsDBNullAsync("app_light_system_type", token) ? reader.GetString("app_light_system_type") : null,
+                            Longitude = reader.GetDouble("lonx"),
+                            Latitude = reader.GetDouble("laty")
+                        };
+                        newRunwayEnds.Add(newRunwayEnd);
                     }
                     else
                     {
-                        if (existingRunwayEndHash.HashCode != reader.CalculateHashCode())
-                        {
-                            Status[dataImport.ID].Elements["runwayEnd"].Updated++;
-                            var existingRunwayEnd = await db.RunwayEnds.SingleAsync(r => r.ID == id, token);
-                            existingRunwayEnd.Name = reader.GetString("name");
-                            existingRunwayEnd.OffsetThreshold = reader.GetInt32("offset_threshold");
-                            existingRunwayEnd.HasClosedMarkings = reader.GetBoolean("has_closed_markings");
-                            existingRunwayEnd.Heading = reader.GetDouble("heading");
-                            existingRunwayEnd.LeftVasiType = !await reader.IsDBNullAsync("left_vasi_type", token) ? reader.GetString("left_vasi_type") : null;
-                            existingRunwayEnd.LeftVasiPitch = !await reader.IsDBNullAsync("left_vasi_pitch", token) ? reader.GetDouble("left_vasi_pitch") : null;
-                            existingRunwayEnd.RightVasiType = !await reader.IsDBNullAsync("right_vasi_type", token) ? reader.GetString("right_vasi_type") : null;
-                            existingRunwayEnd.RightVasiPitch = !await reader.IsDBNullAsync("right_vasi_pitch", token) ? reader.GetDouble("right_vasi_pitch") : null;
-                            existingRunwayEnd.ApproachLightSystem = !await reader.IsDBNullAsync("app_light_system_type", token) ? reader.GetString("app_light_system_type") : null;
-                            existingRunwayEnd.Longitude = reader.GetDouble("lonx");
-                            existingRunwayEnd.Latitude = reader.GetDouble("laty");
-                            existingRunwayEnd.HashCode = reader.CalculateHashCode();
-                            updatedRunwayEnds.Add(existingRunwayEnd);
-                        }
-                        else
-                        {
-                            Status[dataImport.ID].Elements["runwayEnd"].Skipped++;
-                        }
+                        Status[dataImport.ID].Elements["runwayEnd"].Skipped++;
+                        this.logger.LogWarning($"Skipping runway end with ID {id} due to missing runway with ID {runwayID}");
                     }
 
                     Status[dataImport.ID].Processed++;
@@ -610,9 +569,8 @@ namespace OpenSky.API.Workers
                     }
                 }
 
-                this.logger.LogInformation("Done processing runway ends, performing bulk insert and update operations...");
+                this.logger.LogInformation("Done processing runway ends, performing bulk insert operation...");
                 await db.BulkInsertAsync(newRunwayEnds, token);
-                await db.BulkUpdateAsync(updatedRunwayEnds, token);
             }
             catch (Exception ex)
             {
@@ -662,7 +620,6 @@ namespace OpenSky.API.Workers
                     connection);
 
                 var newRunways = new List<Runway>();
-                var updatedRunways = new List<Runway>();
                 var reader = await runwaysCommand.ExecuteReaderAsync(token);
                 await using (reader)
                 {
@@ -676,53 +633,29 @@ namespace OpenSky.API.Workers
 
                         var id = reader.GetInt32("runway_id");
                         lastID = id;
-                        var existingRunwayHash = await db.Runways.Select(r => new { r.ID, r.HashCode }).SingleOrDefaultAsync(r => r.ID == id, token);
-                        if (existingRunwayHash == null)
+
+                        // Make sure the airport exists
+                        var airportICAO = reader.GetString("ident");
+                        if (!string.IsNullOrEmpty(airportICAO) && await db.Airports.SingleOrDefaultAsync(a => a.ICAO == airportICAO, token) != null)
                         {
-                            // Make sure the airport exists
-                            var airportICAO = reader.GetString("ident");
-                            if (!string.IsNullOrEmpty(airportICAO) && await db.Airports.SingleOrDefaultAsync(a => a.ICAO == airportICAO, token) != null)
+                            Status[dataImport.ID].Elements["runway"].New++;
+                            var newRunway = new Runway
                             {
-                                Status[dataImport.ID].Elements["runway"].New++;
-                                var newRunway = new Runway
-                                {
-                                    ID = id,
-                                    AirportICAO = airportICAO,
-                                    Surface = reader.GetString("surface"),
-                                    Length = reader.GetInt32("length"),
-                                    Width = reader.GetInt32("width"),
-                                    Altitude = reader.GetInt32("altitude"),
-                                    EdgeLight = !await reader.IsDBNullAsync("edge_light", token) ? reader.GetString("edge_light") : null,
-                                    CenterLight = !await reader.IsDBNullAsync("center_light", token) ? reader.GetString("center_light") : null,
-                                    HashCode = reader.CalculateHashCode()
-                                };
-                                newRunways.Add(newRunway);
-                            }
-                            else
-                            {
-                                Status[dataImport.ID].Elements["runway"].Skipped++;
-                                this.logger.LogWarning($"Skipping runway with ID {id} due to missing airport ICAO {airportICAO}");
-                            }
+                                ID = id,
+                                AirportICAO = airportICAO,
+                                Surface = reader.GetString("surface"),
+                                Length = reader.GetInt32("length"),
+                                Width = reader.GetInt32("width"),
+                                Altitude = reader.GetInt32("altitude"),
+                                EdgeLight = !await reader.IsDBNullAsync("edge_light", token) ? reader.GetString("edge_light") : null,
+                                CenterLight = !await reader.IsDBNullAsync("center_light", token) ? reader.GetString("center_light") : null
+                            };
+                            newRunways.Add(newRunway);
                         }
                         else
                         {
-                            if (existingRunwayHash.HashCode != reader.CalculateHashCode())
-                            {
-                                Status[dataImport.ID].Elements["runway"].Updated++;
-                                var existingRunway = await db.Runways.SingleAsync(r => r.ID == id, token);
-                                existingRunway.Surface = reader.GetString("surface");
-                                existingRunway.Length = reader.GetInt32("length");
-                                existingRunway.Width = reader.GetInt32("width");
-                                existingRunway.Altitude = reader.GetInt32("altitude");
-                                existingRunway.EdgeLight = !await reader.IsDBNullAsync("edge_light", token) ? reader.GetString("edge_light") : null;
-                                existingRunway.CenterLight = !await reader.IsDBNullAsync("center_light", token) ? reader.GetString("center_light") : null;
-                                existingRunway.HashCode = reader.CalculateHashCode();
-                                updatedRunways.Add(existingRunway);
-                            }
-                            else
-                            {
-                                Status[dataImport.ID].Elements["runway"].Skipped++;
-                            }
+                            Status[dataImport.ID].Elements["runway"].Skipped++;
+                            this.logger.LogWarning($"Skipping runway with ID {id} due to missing airport ICAO {airportICAO}");
                         }
 
                         Status[dataImport.ID].Processed++;
@@ -733,9 +666,8 @@ namespace OpenSky.API.Workers
                         }
                     }
 
-                    this.logger.LogInformation("Done processing runways, performing bulk insert and update operations...");
+                    this.logger.LogInformation("Done processing runways, performing bulk insert operation...");
                     await db.BulkInsertAsync(newRunways, token);
-                    await db.BulkUpdateAsync(updatedRunways, token);
                 }
             }
             catch (Exception ex)
