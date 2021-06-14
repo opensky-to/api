@@ -3,12 +3,15 @@
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-    <Authors>sushi.at</Authors>
+    <Authors>OpenSky project</Authors>
     <Company>OpenSky</Company>
     <Product>OpenSky</Product>
     <Description>Core API for OpenSky</Description>
-    <Copyright>sushi.at for OpenSky 2021</Copyright>
+    <Copyright>OpenSky project 2021</Copyright>
     <UserSecretsId>bd3c3b45-7e32-4368-838d-2fcf013bdb71</UserSecretsId>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/opensky-to/api</RepositoryUrl>
+    <PackageProjectUrl>https://www.opensky.to</PackageProjectUrl>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
