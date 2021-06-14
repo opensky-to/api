@@ -151,7 +151,7 @@ namespace OpenSky.API.Workers
                 var db = scope.ServiceProvider.GetRequiredService<OpenSkyDbContext>();
                 // Delete OpenSkyTokens that are expired
                 DateTime currentDate = DateTime.Now;
-                var tokens = await db.OpenSkyTokens.Where(token => token.Expiry.CompareTo(currentDate) < 0).ToListAsync();
+                var tokens = db.OpenSkyTokens.Where(token => token.Expiry > currentDate);
                 db.OpenSkyTokens.RemoveRange(tokens);
                 await db.SaveChangesAsync();
                 await Task.Delay(cleanupInterval, stoppingToken);
