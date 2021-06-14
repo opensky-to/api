@@ -12,7 +12,6 @@ namespace OpenSky.API.Workers
     using System.Threading.Tasks;
     using System.Linq;
 
-    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
@@ -36,6 +35,13 @@ namespace OpenSky.API.Workers
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private readonly ILogger<DBCleanupWorkerService> logger;
+
+
+        /// -------------------------------------------------------------------------------------------------        
+        /// <summary>
+        /// The clean up interval in milliseconds.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
         private int cleanupInterval = 30 * 60 * 1000;
 
         /// -------------------------------------------------------------------------------------------------
@@ -69,7 +75,7 @@ namespace OpenSky.API.Workers
             IServiceProvider services,
             ILogger<DBCleanupWorkerService> logger)
         {
-            this.Services = services;
+            Services = services;
             this.logger = logger;
         }
 
@@ -104,7 +110,7 @@ namespace OpenSky.API.Workers
         /// -------------------------------------------------------------------------------------------------
         public override async Task StopAsync(CancellationToken stoppingToken)
         {
-            this.logger.LogInformation("DB clenaup background service stopping...");
+            logger.LogInformation("DB cleanup background service stopping...");
             await base.StopAsync(stoppingToken);
         }
 
@@ -129,7 +135,7 @@ namespace OpenSky.API.Workers
         /// -------------------------------------------------------------------------------------------------
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            this.logger.LogInformation("DB cleanup background service starting...");
+            logger.LogInformation("DB cleanup background service starting...");
             await CleanupOpenSkyTokens(stoppingToken);
         }
         /// <summary>
@@ -148,13 +154,21 @@ namespace OpenSky.API.Workers
             using var scope = this.Services.CreateScope();
             while (!stoppingToken.IsCancellationRequested)
             {
-                var db = scope.ServiceProvider.GetRequiredService<OpenSkyDbContext>();
-                // Delete OpenSkyTokens that are expired
-                DateTime currentDate = DateTime.Now;
-                var tokens = db.OpenSkyTokens.Where(token => token.Expiry > currentDate);
-                db.OpenSkyTokens.RemoveRange(tokens);
-                await db.SaveChangesAsync();
-                await Task.Delay(cleanupInterval, stoppingToken);
+                try
+                {
+                    var db = scope.ServiceProvider.GetRequiredService<OpenSkyDbContext>();
+                    // Delete OpenSkyTokens that are expired
+                    DateTime currentDate = DateTime.Now;
+                    var tokens = db.OpenSkyTokens.Where(token => token.Expiry > currentDate);
+                    db.OpenSkyTokens.RemoveRange(tokens);
+                    await db.SaveChangesAsync();
+                    await Task.Delay(cleanupInterval, stoppingToken);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error cleaning up OpenSky tokens.");
+                    await Task.Delay(30 * 1000, stoppingToken);
+                }
             }
         }
     }
