@@ -236,6 +236,7 @@ namespace OpenSky.API
 
             // Set up hosted worker services
             services.AddHostedService<DataImportWorkerService>();
+            services.AddHostedService<DBCleanupWorkerService>();
 
             // API controllers
             services.AddControllers();
