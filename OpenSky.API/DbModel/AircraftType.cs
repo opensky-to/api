@@ -349,5 +349,10 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private Action<object, string> LazyLoader { get; }
+
+        /// <summary>
+        /// Minimum runway length in feet.
+        /// </summary>
+        public int MinimumRunwayLength { get; set; }
     }
 }
