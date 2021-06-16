@@ -8,9 +8,9 @@ namespace OpenSky.API.Workers
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using System.Linq;
 
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
@@ -27,15 +27,14 @@ namespace OpenSky.API.Workers
     /// </remarks>
     /// <seealso cref="T:Microsoft.Extensions.Hosting.BackgroundService"/>
     /// -------------------------------------------------------------------------------------------------
-    public partial class DBCleanupWorkerService : BackgroundService
+    public partial class DbCleanupWorkerService : BackgroundService
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
         /// The logger.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private readonly ILogger<DBCleanupWorkerService> logger;
-
+        private readonly ILogger<DbCleanupWorkerService> logger;
 
         /// -------------------------------------------------------------------------------------------------        
         /// <summary>
@@ -46,20 +45,20 @@ namespace OpenSky.API.Workers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes static members of the <see cref="DBCleanupWorkerService"/> class.
+        /// Initializes static members of the <see cref="DbCleanupWorkerService"/> class.
         /// </summary>
         /// <remarks>
         /// flusinerd, 13/06/2021.
         /// </remarks>
         /// -------------------------------------------------------------------------------------------------
-        static DBCleanupWorkerService()
+        static DbCleanupWorkerService()
         {
             Status = new Dictionary<Guid, DataImportStatus>();
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="DBCleanupWorkerService"/> class.
+        /// Initializes a new instance of the <see cref="DbCleanupWorkerService"/> class.
         /// </summary>
         /// <remarks>
         /// flusinerd, 13/06/2021.
@@ -71,11 +70,11 @@ namespace OpenSky.API.Workers
         /// The logger.
         /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public DBCleanupWorkerService(
+        public DbCleanupWorkerService(
             IServiceProvider services,
-            ILogger<DBCleanupWorkerService> logger)
+            ILogger<DbCleanupWorkerService> logger)
         {
-            Services = services;
+            this.Services = services;
             this.logger = logger;
         }
 
@@ -110,7 +109,7 @@ namespace OpenSky.API.Workers
         /// -------------------------------------------------------------------------------------------------
         public override async Task StopAsync(CancellationToken stoppingToken)
         {
-            logger.LogInformation("DB cleanup background service stopping...");
+            this.logger.LogInformation("DB cleanup background service stopping...");
             await base.StopAsync(stoppingToken);
         }
 
@@ -135,9 +134,10 @@ namespace OpenSky.API.Workers
         /// -------------------------------------------------------------------------------------------------
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            logger.LogInformation("DB cleanup background service starting...");
-            await CleanupOpenSkyTokens(stoppingToken);
+            this.logger.LogInformation("DB cleanup background service starting...");
+            await this.CleanupOpenSkyTokens(stoppingToken);
         }
+
         /// <summary>
         /// Cleans up expired OpenSkyTokens from the Database. Cleanup interval can be configured via the workers cleanupInterval   
         /// </summary>
@@ -157,16 +157,17 @@ namespace OpenSky.API.Workers
                 try
                 {
                     var db = scope.ServiceProvider.GetRequiredService<OpenSkyDbContext>();
+
                     // Delete OpenSkyTokens that are expired
-                    DateTime currentDate = DateTime.Now;
+                    var currentDate = DateTime.Now;
                     var tokens = db.OpenSkyTokens.Where(token => token.Expiry > currentDate);
                     db.OpenSkyTokens.RemoveRange(tokens);
-                    await db.SaveChangesAsync();
-                    await Task.Delay(cleanupInterval, stoppingToken);
+                    await db.SaveChangesAsync(stoppingToken);
+                    await Task.Delay(this.cleanupInterval, stoppingToken);
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Error cleaning up OpenSky tokens.");
+                    this.logger.LogError(ex, "Error cleaning up OpenSky tokens.");
                     await Task.Delay(30 * 1000, stoppingToken);
                 }
             }

@@ -49,6 +49,11 @@ namespace OpenSky.API.DbModel.Enums
         /// <summary>
         /// Wide-Body Airliner.
         /// </summary>
-        WBAirliner = 6
+        WBAirliner = 6,
+
+        /// <summary>
+        /// Regional Jets
+        /// </summary>
+        Regional = 7,
     }
 }
