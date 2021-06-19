@@ -293,6 +293,9 @@ namespace OpenSky.API.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
+                    b.Property<int>("Country")
+                        .HasColumnType("int");
+
                     b.Property<int>("GaRamps")
                         .HasColumnType("int");
 
