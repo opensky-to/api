@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="DataImportWorkerService.LittleNavmapMSFS.cs" company="OpenSky">
-// sushi.at for OpenSky 2021
+// Flusinerd for OpenSky 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -11,16 +11,21 @@ namespace OpenSky.API.Workers
     using System.Data;
     using System.Data.Common;
     using System.Data.SQLite;
+    using System.Globalization;
     using System.IO;
     using System.Linq;
     using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
 
+    using CsvHelper;
+
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
 
+    using OpenSky.API.Datasets;
     using OpenSky.API.DbModel;
+    using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Model;
 
     /// -------------------------------------------------------------------------------------------------
@@ -35,7 +40,7 @@ namespace OpenSky.API.Workers
         /// Import the airports from an uploaded LittleNavmap database for MSFS.
         /// </summary>
         /// <remarks>
-        /// sushi.at, 10/05/2021.
+        /// sushi.at & Flusinerd, 19/06/2021.
         /// </remarks>
         /// <param name="db">
         /// The OpenSky database context.
@@ -70,6 +75,11 @@ namespace OpenSky.API.Workers
                 // Load "static" dataset for A380 airports
                 var a380Airports = await File.ReadAllLinesAsync("Datasets/a380airports.txt", token);
 
+                // Read airports CSV file
+                var airportReader = new StreamReader("Datasets/airports.csv");
+                var csv = new CsvReader(airportReader, CultureInfo.InvariantCulture);
+                var airportRecords = csv.GetRecords<AirportData>().ToList();
+
                 var newAirports = new List<Airport>();
                 var updatedAirports = new List<Airport>();
                 var reader = await airportCommand.ExecuteReaderAsync(token);
@@ -85,6 +95,18 @@ namespace OpenSky.API.Workers
 
                         var ident = reader.GetString("ident");
                         lastIdent = ident;
+
+                        // Fetch country data from ourairports CSV
+                        // Default to US
+                        var airportCountry = Countries.US;
+
+                        // Lookup the airport in the CSV file contents
+                        var airportRecord = airportRecords.FirstOrDefault(airport => airport.ident == ident);
+                        if (airportRecord != null)
+                        {
+                            airportCountry = Enum.Parse<Countries>(airportRecord.iso_country);
+                        }
+
                         var existingAirport = await db.Airports.SingleOrDefaultAsync(a => a.ICAO == ident, token);
                         if (existingAirport == null)
                         {
@@ -111,7 +133,8 @@ namespace OpenSky.API.Workers
                                 Altitude = reader.GetInt32("altitude"),
                                 MSFS = true,
                                 SupportsSuper = a380Airports.Contains(ident),
-                                Size = null // This will be calculated later as this depends on runways and approaches that aren't imported yet
+                                Size = null,  // This will be calculated later as this depends on runways and approaches that aren't imported yet
+                                Country = airportCountry
                             };
                             newAirports.Add(newAirport);
                         }
@@ -139,6 +162,7 @@ namespace OpenSky.API.Workers
                             existingAirport.MSFS = true;
                             existingAirport.SupportsSuper = a380Airports.Contains(ident);
                             existingAirport.Size = null; // Re-calculate the size
+                            existingAirport.Country = airportCountry;
                             updatedAirports.Add(existingAirport);
                         }
 

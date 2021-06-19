@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="Airport.cs" company="OpenSky">
-// sushi.at for OpenSky 2021
+// Flusinerd for OpenSky 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -11,6 +11,7 @@ namespace OpenSky.API.DbModel
     using System.ComponentModel.DataAnnotations;
     using System.Text.Json.Serialization;
 
+    using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Helpers;
 
     /*
@@ -108,6 +109,11 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [StringLength(50)]
         public string City { get; set; }
+
+        /// <summary>
+        /// Gets or sets the country.
+        /// </summary>
+        public Countries Country { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
