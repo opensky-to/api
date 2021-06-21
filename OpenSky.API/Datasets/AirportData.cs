@@ -6,14 +6,29 @@
 
 namespace OpenSky.API.Datasets
 {
+    using CsvHelper.Configuration.Attributes;
+
     /// <summary>
     /// Basic structure of airports.csv from ourairports.
     /// Does not include all fields, only the relevant ones.
-    /// </summary>
+    /// </summary>,
     public class AirportData
     {
-        public int id { get; set; }
-        public string ident { get; set; }
-        public string iso_country { get; set; }
+        /// <summary>
+        /// ID of the airport.
+        /// </summary>
+        [Name("id")]
+        public int ID { get; set; }
+
+        /// <summary>
+        /// icao ident of the airport
+        /// </summary>
+        [Name("ident")]
+        public string Ident { get; set; }
+        /// <summary>
+        /// Alpha 2 country code of the airport.
+        /// </summary>
+        [Name("iso_country")]
+        public string IsoCountry { get; set; }
     }
 }

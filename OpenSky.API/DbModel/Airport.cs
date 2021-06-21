@@ -8,6 +8,7 @@ namespace OpenSky.API.DbModel
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
     using System.ComponentModel.DataAnnotations;
     using System.Text.Json.Serialization;
 
@@ -113,6 +114,7 @@ namespace OpenSky.API.DbModel
         /// <summary>
         /// Gets or sets the country.
         /// </summary>
+        [DefaultValue(Countries.US)]
         public Countries Country { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -259,6 +261,11 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public int? UnicomFrequency { get; set; }
+
+        /// <summary>
+        /// Gets or sets the HasBeenPopulated Flag
+        /// </summary>
+        public Statuses HasBeenPopulated { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

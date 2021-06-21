@@ -40,7 +40,7 @@ namespace OpenSky.API.Workers
         /// Import the airports from an uploaded LittleNavmap database for MSFS.
         /// </summary>
         /// <remarks>
-        /// sushi.at & Flusinerd, 19/06/2021.
+        /// sushi.at and Flusinerd, 19/06/2021.
         /// </remarks>
         /// <param name="db">
         /// The OpenSky database context.
@@ -101,10 +101,10 @@ namespace OpenSky.API.Workers
                         var airportCountry = Countries.US;
 
                         // Lookup the airport in the CSV file contents
-                        var airportRecord = airportRecords.FirstOrDefault(airport => airport.ident == ident);
+                        var airportRecord = airportRecords.FirstOrDefault(airport => airport.Ident == ident);
                         if (airportRecord != null)
                         {
-                            airportCountry = Enum.Parse<Countries>(airportRecord.iso_country);
+                            airportCountry = Enum.Parse<Countries>(airportRecord.IsoCountry);
                         }
 
                         var existingAirport = await db.Airports.SingleOrDefaultAsync(a => a.ICAO == ident, token);
@@ -133,7 +133,7 @@ namespace OpenSky.API.Workers
                                 Altitude = reader.GetInt32("altitude"),
                                 MSFS = true,
                                 SupportsSuper = a380Airports.Contains(ident),
-                                Size = null,  // This will be calculated later as this depends on runways and approaches that aren't imported yet
+                                Size = null, // This will be calculated later as this depends on runways and approaches that aren't imported yet
                                 Country = airportCountry
                             };
                             newAirports.Add(newAirport);
