@@ -234,12 +234,17 @@ namespace OpenSky.API
             services.AddHttpClient<GeoLocateIPService>();
             services.AddSingleton<GeoLocateIPService>();
 
+            // Setup singletons
+            services.AddSingleton<WorldPopulatorService>();
+            
             // Set up hosted worker services
             services.AddHostedService<DataImportWorkerService>();
             services.AddHostedService<DbCleanupWorkerService>();
+            services.AddHostedService<WorldPopulatorWorkerService>();
 
             // API controllers
             services.AddControllers();
+
         }
     }
 }

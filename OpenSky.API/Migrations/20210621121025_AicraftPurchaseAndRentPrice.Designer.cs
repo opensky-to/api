@@ -2,15 +2,17 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OpenSky.API;
 
 namespace OpenSky.API.Migrations
 {
     [DbContext(typeof(OpenSkyDbContext))]
-    partial class OpenSkyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20210621121025_AicraftPurchaseAndRentPrice")]
+    partial class AicraftPurchaseAndRentPrice
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -310,9 +312,6 @@ namespace OpenSky.API.Migrations
 
                     b.Property<bool>("HasAvGas")
                         .HasColumnType("tinyint(1)");
-
-                    b.Property<int>("HasBeenPopulated")
-                        .HasColumnType("int");
 
                     b.Property<bool>("HasJetFuel")
                         .HasColumnType("tinyint(1)");
