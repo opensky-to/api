@@ -121,14 +121,15 @@ namespace OpenSky.API.Services
                         var wbAirliners = availableForPurchaseOrRent.Where(aircraft => aircraft.Type.Category == AircraftTypeCategory.WBAirliner);
 
                         // Look up the target ratios for the current airport size (0-indexed, therefor Airport Size + 1)
-                        var sepTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, 0];
-                        var mepTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, 1];
-                        var setTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, 2];
-                        var metTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, 3];
-                        var jetTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, 4];
-                        var regionalTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, 5];
-                        var nbTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, 6];
-                        var wbTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, 7];
+                        // @todo refactor to enum
+                        var sepTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, (int)AircraftTypeCategory.SEP];
+                        var mepTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, (int)AircraftTypeCategory.MEP];
+                        var setTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, (int)AircraftTypeCategory.SET];
+                        var metTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, (int)AircraftTypeCategory.MET];
+                        var jetTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, (int)AircraftTypeCategory.Jet];
+                        var regionalTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, (int)AircraftTypeCategory.Regional];
+                        var nbTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, (int)AircraftTypeCategory.NBAirliner];
+                        var wbTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, (int)AircraftTypeCategory.WBAirliner];
 
                         var generatedAircraft = new List<Aircraft>();
 
@@ -136,14 +137,14 @@ namespace OpenSky.API.Services
 
                         while (newAircraftCount < requiredAircraft)
                         {
-                            var sepQuota = (double)(await seps.CountAsync() + generatedTypesCount[0]) / requiredAircraft;
-                            var mepQuota = (double)(await meps.CountAsync() + generatedTypesCount[1]) / requiredAircraft;
-                            var setQuota = (double)(await sets.CountAsync() + generatedTypesCount[2]) / requiredAircraft;
-                            var metQuota = (double)(await mets.CountAsync() + generatedTypesCount[3]) / requiredAircraft;
-                            var jetQuota = (double)(await jets.CountAsync() + generatedTypesCount[4]) / requiredAircraft;
-                            var nbQuota = (double)(await nbAirliners.CountAsync() + generatedTypesCount[5]) / requiredAircraft;
-                            var wbQuota = (double)(await wbAirliners.CountAsync() + generatedTypesCount[6]) / requiredAircraft;
-                            var regionalQuota = (double)(await regionals.CountAsync() + generatedTypesCount[7]) / requiredAircraft;
+                            var sepQuota = (double)(await seps.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.SEP]) / requiredAircraft;
+                            var mepQuota = (double)(await meps.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.MEP]) / requiredAircraft;
+                            var setQuota = (double)(await sets.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.SET]) / requiredAircraft;
+                            var metQuota = (double)(await mets.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.MET]) / requiredAircraft;
+                            var jetQuota = (double)(await jets.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.Jet]) / requiredAircraft;
+                            var nbQuota = (double)(await nbAirliners.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.NBAirliner]) / requiredAircraft;
+                            var wbQuota = (double)(await wbAirliners.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.WBAirliner]) / requiredAircraft;
+                            var regionalQuota = (double)(await regionals.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.Regional]) / requiredAircraft;
 
                             // Determine the highest delta
                             var sepDelta = sepQuota - sepTarget;
@@ -171,12 +172,17 @@ namespace OpenSky.API.Services
 
                                 while (!await typeCandidates.AnyAsync() && alternateIndex > 0)
                                 {
-                                    // Used to handle regional switching
+                                    // Go down a category, if no suitable plane could be found
                                     alternateIndex = minIndex switch
                                     {
-                                        5 => 7,
-                                        7 => 4,
-                                        _ => alternateIndex - 1
+                                        (int)AircraftTypeCategory.MEP => (int)AircraftTypeCategory.SEP,
+                                        (int)AircraftTypeCategory.SET => (int)AircraftTypeCategory.MEP,
+                                        (int)AircraftTypeCategory.MET => (int)AircraftTypeCategory.SET,
+                                        (int)AircraftTypeCategory.Jet => (int)AircraftTypeCategory.MET,
+                                        (int)AircraftTypeCategory.Regional => (int)AircraftTypeCategory.Jet,
+                                        (int)AircraftTypeCategory.NBAirliner => (int)AircraftTypeCategory.Regional,
+                                        (int)AircraftTypeCategory.WBAirliner => (int)AircraftTypeCategory.NBAirliner,
+                                        _ => (int)AircraftTypeCategory.NBAirliner,
                                     };
                                     typeCandidates = this.dbContext.AircraftTypes.Where(type => type.Category == (AircraftTypeCategory)alternateIndex && type.Enabled && type.IsVanilla && type.MinimumRunwayLength <= airport.LongestRunwayLength);
                                 }
