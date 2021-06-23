@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="DataImportWorker.cs" company="OpenSky">
-// sushi.at for OpenSky 2021
+// OpenSky project 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -150,22 +150,30 @@ namespace OpenSky.API.Workers
         private async Task ProcessDataImports(CancellationToken stoppingToken)
         {
             using var scope = this.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<OpenSkyDbContext>();
             while (!stoppingToken.IsCancellationRequested)
             {
-                var db = scope.ServiceProvider.GetRequiredService<OpenSkyDbContext>();
-                var unfinishedImport = await db.DataImports.FirstOrDefaultAsync(i => !i.Finished.HasValue, stoppingToken);
-                if (unfinishedImport != null)
+                try
                 {
-                    switch (unfinishedImport.Type)
+                    var unfinishedImport = await db.DataImports.FirstOrDefaultAsync(i => !i.Finished.HasValue, stoppingToken);
+                    if (unfinishedImport != null)
                     {
-                        case "LittleNavmapMSFS":
-                            await this.ImportLittleNavmapMSFS(db, unfinishedImport, stoppingToken);
-                            break;
+                        switch (unfinishedImport.Type)
+                        {
+                            case "LittleNavmapMSFS":
+                                await this.ImportLittleNavmapMSFS(db, unfinishedImport, stoppingToken);
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        await Task.Delay(5 * 1000, stoppingToken);
                     }
                 }
-                else
+                catch (Exception ex)
                 {
-                    await Task.Delay(5000, stoppingToken);
+                    this.logger.LogError(ex, "Error processing data imports.");
+                    await Task.Delay(30 * 1000, stoppingToken);
                 }
             }
         }

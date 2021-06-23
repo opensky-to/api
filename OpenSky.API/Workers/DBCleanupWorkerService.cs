@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="DBCleanupWorkerService.cs" company="OpenSky">
-// flusinerd for OpenSky 2021
+// OpenSky project 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -41,7 +41,7 @@ namespace OpenSky.API.Workers
         /// The clean up interval in milliseconds.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private int cleanupInterval = 30 * 60 * 1000;
+        private const int CleanupInterval = 30 * 60 * 1000;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -138,9 +138,14 @@ namespace OpenSky.API.Workers
             await this.CleanupOpenSkyTokens(stoppingToken);
         }
 
+        /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Cleans up expired OpenSkyTokens from the Database. Cleanup interval can be configured via the workers cleanupInterval   
+        /// Cleans up expired OpenSkyTokens from the Database. Cleanup interval can be configured via the
+        /// workers cleanupInterval.
         /// </summary>
+        /// <remarks>
+        /// flusinerd, 14/06/2021.
+        /// </remarks>
         /// <param name="stoppingToken">
         /// Triggered when
         /// <see cref="M:Microsoft.Extensions.Hosting.IHostedService.StopAsync(System.Threading.CancellationToken)" />
@@ -149,21 +154,21 @@ namespace OpenSky.API.Workers
         /// <returns>
         /// An asynchronous result.
         /// </returns>
+        /// -------------------------------------------------------------------------------------------------
         private async Task CleanupOpenSkyTokens(CancellationToken stoppingToken)
         {
             using var scope = this.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<OpenSkyDbContext>();
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
-                    var db = scope.ServiceProvider.GetRequiredService<OpenSkyDbContext>();
-
                     // Delete OpenSkyTokens that are expired
-                    var currentDate = DateTime.Now;
-                    var tokens = db.OpenSkyTokens.Where(token => token.Expiry > currentDate);
+                    var tokens = db.OpenSkyTokens.Where(token => token.Expiry > DateTime.Now);
                     db.OpenSkyTokens.RemoveRange(tokens);
                     await db.SaveChangesAsync(stoppingToken);
-                    await Task.Delay(this.cleanupInterval, stoppingToken);
+                    
+                    await Task.Delay(CleanupInterval, stoppingToken);
                 }
                 catch (Exception ex)
                 {
