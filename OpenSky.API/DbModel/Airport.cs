@@ -114,8 +114,7 @@ namespace OpenSky.API.DbModel
         /// <summary>
         /// Gets or sets the country.
         /// </summary>
-        [DefaultValue(Countries.US)]
-        public Countries Country { get; set; }
+        public Countries? Country { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

@@ -9,8 +9,8 @@ using OpenSky.API;
 namespace OpenSky.API.Migrations
 {
     [DbContext(typeof(OpenSkyDbContext))]
-    [Migration("20210619132408_AirportAddCountry")]
-    partial class AirportAddCountry
+    [Migration("20210623103916_WorldPopulator")]
+    partial class WorldPopulator
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -162,6 +162,12 @@ namespace OpenSky.API.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
+                    b.Property<int?>("PurchasePrice")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RentPrice")
+                        .HasColumnType("int");
+
                     b.Property<Guid>("TypeID")
                         .HasColumnType("char(36)");
 
@@ -295,7 +301,7 @@ namespace OpenSky.API.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
-                    b.Property<int>("Country")
+                    b.Property<int?>("Country")
                         .HasColumnType("int");
 
                     b.Property<int>("GaRamps")
@@ -306,6 +312,9 @@ namespace OpenSky.API.Migrations
 
                     b.Property<bool>("HasAvGas")
                         .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("HasBeenPopulated")
+                        .HasColumnType("int");
 
                     b.Property<bool>("HasJetFuel")
                         .HasColumnType("tinyint(1)");

@@ -14,6 +14,7 @@ namespace OpenSky.API.Services
     using System.Threading.Tasks;
 
     using CsvHelper;
+    using CsvHelper.Configuration;
 
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.DependencyInjection;
@@ -28,9 +29,9 @@ namespace OpenSky.API.Services
     /// </summary>
     public class WorldPopulatorService
     {
-        private readonly CountryRegistration[] countryRegistrations;
-
         private readonly OpenSkyDbContext dbContext;
+
+        private readonly IcaoRegistration[] icaoRegistrations;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -73,14 +74,14 @@ namespace OpenSky.API.Services
         {
             this.logger = logger;
             this.dbContext = services.CreateScope().ServiceProvider.GetRequiredService<OpenSkyDbContext>();
-            var reader = new StreamReader("Datasets/country_registration.csv");
+            var reader = new StreamReader("Datasets/ICAO.csv");
 
-            var config = new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
             {
                 MissingFieldFound = null
             };
             var csv = new CsvReader(reader, config);
-            this.countryRegistrations = csv.GetRecords<CountryRegistration>().ToArray();
+            this.icaoRegistrations = csv.GetRecords<IcaoRegistration>().ToArray();
             this.logger.LogInformation("Populator Service running");
         }
 
@@ -137,14 +138,14 @@ namespace OpenSky.API.Services
 
                         while (newAircraftCount < requiredAircraft)
                         {
-                            var sepQuota = (double)(await seps.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.SEP]) / requiredAircraft;
-                            var mepQuota = (double)(await meps.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.MEP]) / requiredAircraft;
-                            var setQuota = (double)(await sets.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.SET]) / requiredAircraft;
-                            var metQuota = (double)(await mets.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.MET]) / requiredAircraft;
-                            var jetQuota = (double)(await jets.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.Jet]) / requiredAircraft;
-                            var nbQuota = (double)(await nbAirliners.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.NBAirliner]) / requiredAircraft;
-                            var wbQuota = (double)(await wbAirliners.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.WBAirliner]) / requiredAircraft;
-                            var regionalQuota = (double)(await regionals.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.Regional]) / requiredAircraft;
+                            var sepQuota = (await seps.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.SEP]) / requiredAircraft;
+                            var mepQuota = (await meps.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.MEP]) / requiredAircraft;
+                            var setQuota = (await sets.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.SET]) / requiredAircraft;
+                            var metQuota = (await mets.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.MET]) / requiredAircraft;
+                            var jetQuota = (await jets.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.Jet]) / requiredAircraft;
+                            var nbQuota = (await nbAirliners.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.NBAirliner]) / requiredAircraft;
+                            var wbQuota = (await wbAirliners.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.WBAirliner]) / requiredAircraft;
+                            var regionalQuota = (await regionals.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.Regional]) / requiredAircraft;
 
                             // Determine the highest delta
                             var sepDelta = sepQuota - sepTarget;
@@ -163,7 +164,7 @@ namespace OpenSky.API.Services
                             try
                             {
                                 // Generate Registration for country
-                                var registration = this.GenerateRegistration(airport.Country);
+                                var registration = this.GenerateRegistration(airport);
 
                                 // Get random enabled vanilla type of needed category
                                 var typeCandidates = this.dbContext.AircraftTypes.Where(type => type.Category == (AircraftTypeCategory)minIndex && type.Enabled && type.IsVanilla && type.MinimumRunwayLength <= airport.LongestRunwayLength);
@@ -194,7 +195,7 @@ namespace OpenSky.API.Services
                                 var rentPrice = purchasePrice / 100;
 
                                 // Create aircraft with picked type
-                                var aircraft = new Aircraft()
+                                var aircraft = new Aircraft
                                 {
                                     AirportICAO = airport.ICAO,
                                     PurchasePrice = purchasePrice,
@@ -269,32 +270,41 @@ namespace OpenSky.API.Services
         /// <remarks>
         /// Flusinerd, 16/06/2021.
         /// </remarks>
-        /// <param name="country">
-        /// Country this registration should be generated for.
+        /// <param name="airport">
+        /// Airport this registration should be generated for.
         /// </param>
         /// <returns>
         /// Unique Registration as string.
         /// </returns>
-        private string GenerateRegistration(Countries country)
+        private string GenerateRegistration(Airport airport)
         {
+            var airportRegistrationsEntry = this.icaoRegistrations.FirstOrDefault(icaoRegistration => airport.ICAO.ToLower()[..2].StartsWith(icaoRegistration.AirportPrefix.ToLower()));
             const int maxAttempts = 10;
             var registration = "";
+
+            // Default to US Registration
+            airportRegistrationsEntry ??= new IcaoRegistration
+            {
+                AircraftPrefix = "N",
+                AirportPrefix = "K",
+                Country = "United States of America"
+            };
             for (var i = 0; i < maxAttempts; i++)
             {
-                registration = country switch
+                registration = airportRegistrationsEntry.AircraftPrefixes[0] switch
                 {
-                    Countries.CO => this.GenerateColombiaRegistration(),
-                    Countries.CU => this.GenerateRegularRegistration(country, 7),
-                    Countries.ER => this.GenerateRegularRegistration(country, 7),
-                    Countries.SZ => this.GenerateRegularRegistration(country, 7),
-                    Countries.JP => this.GenerateRegularRegistration(country, 6, false),
-                    Countries.KZ => this.GenerateRegularRegistration(country, 8),
-                    Countries.KP => GenerateNorthKoreaRegistration(),
-                    Countries.KR => this.GenerateRegularRegistration(country, 6, false),
-                    Countries.LA => GenerateLaosRegistration(),
-                    Countries.US => this.GenerateUsRegistration(),
-                    Countries.TW => GenerateTaiwanRegistration(),
-                    _ => this.GenerateRegularRegistration(country, 6)
+                    "HJ" => this.GenerateColombiaRegistration(),
+                    "CU" => this.GenerateRegularRegistration(airportRegistrationsEntry.AircraftPrefixes, 7),
+                    "E3" => this.GenerateRegularRegistration(airportRegistrationsEntry.AircraftPrefixes, 7),
+                    "3DC" => this.GenerateRegularRegistration(airportRegistrationsEntry.AircraftPrefixes, 7),
+                    "JA" => this.GenerateRegularRegistration(airportRegistrationsEntry.AircraftPrefixes, 6, false),
+                    "UP" => this.GenerateRegularRegistration(airportRegistrationsEntry.AircraftPrefixes, 8),
+                    "P" => GenerateNorthKoreaRegistration(),
+                    "HL" => this.GenerateRegularRegistration(airportRegistrationsEntry.AircraftPrefixes, 6, false),
+                    "RDPL" => GenerateLaosRegistration(),
+                    "N" => this.GenerateUsRegistration(),
+                    "B" => GenerateTaiwanRegistration(),
+                    _ => this.GenerateRegularRegistration(airportRegistrationsEntry.AircraftPrefixes, 6)
                 };
 
                 // Lookup DB for registration
@@ -317,8 +327,8 @@ namespace OpenSky.API.Services
         /// <summary>
         /// Generates a Pseudo-Random aircraft registration for the provided country, with the provided length
         /// </summary>
-        /// <param name="country">
-        /// Country of the registration.
+        /// <param name="prefixes">
+        /// String array of possible prefixes of the country, with element 0 being the mainly used one.
         /// </param>
         /// <param name="length">
         /// Length of the registration.
@@ -329,19 +339,19 @@ namespace OpenSky.API.Services
         /// <returns>
         /// Registration as string
         /// </returns>
-        private string GenerateRegularRegistration(Countries country, int length, bool withDash = true)
+        private string GenerateRegularRegistration(IReadOnlyList<string> prefixes, int length, bool withDash = true)
         {
-            var registrationEntry = this.GetPrefixForCountry(country);
-            var prefix = registrationEntry.prefix;
+            var prefix = prefixes[0];
+
             var random = new Random();
 
             // Check if it has an alt prefix
-            if (string.IsNullOrEmpty(registrationEntry.AltPrefix))
+            if (prefixes.Count > 1)
             {
                 // 30% Chance for alt prefix
                 if (random.Next(0, 100) < 30)
                 {
-                    prefix = registrationEntry.AltPrefix;
+                    prefix = prefixes[random.Next(0, prefixes.Count - 1)];
                 }
             }
 
@@ -367,16 +377,10 @@ namespace OpenSky.API.Services
             var randomNum = random.Next(0, 100);
             return randomNum switch
             {
-                < 33 => "N" + random.Next(1, 999999), // Generate 1-999999
+                < 33 => "N" + random.Next(1, 99999), // Generate 1-999999
                 < 66 => "N" + random.Next(1, 9999) + this.RandomString(1), // Generate 1A-9999Z
                 _ => "N" + random.Next(1, 999) + this.RandomString(2), // Generate 1AA-999ZZ
             };
-        }
-
-        private CountryRegistration GetPrefixForCountry(Countries country)
-        {
-            var registrationEntry = this.countryRegistrations.FirstOrDefault(candidate => candidate.IsoCountry == country.ToString());
-            return registrationEntry ?? new CountryRegistration { IsoCountry = "US", prefix = "N" };
         }
 
         /// <summary>
