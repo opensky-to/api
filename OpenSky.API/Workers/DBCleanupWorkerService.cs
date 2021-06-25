@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="DBCleanupWorkerService.cs" company="OpenSky">
+// <copyright file="DbCleanupWorkerService.cs" company="OpenSky">
 // OpenSky project 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
@@ -23,19 +23,12 @@ namespace OpenSky.API.Workers
     /// DB cleanup background worker service.
     /// </summary>
     /// <remarks>
-    /// flusinerd, 13/06/2021.
+    /// Flusinerd, 13/06/2021.
     /// </remarks>
     /// <seealso cref="T:Microsoft.Extensions.Hosting.BackgroundService"/>
     /// -------------------------------------------------------------------------------------------------
     public partial class DbCleanupWorkerService : BackgroundService
     {
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// The logger.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private readonly ILogger<DbCleanupWorkerService> logger;
-
         /// -------------------------------------------------------------------------------------------------        
         /// <summary>
         /// The clean up interval in milliseconds.
@@ -45,10 +38,24 @@ namespace OpenSky.API.Workers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The logger.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly ILogger<DbCleanupWorkerService> logger;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The services.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly IServiceProvider services;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Initializes static members of the <see cref="DbCleanupWorkerService"/> class.
         /// </summary>
         /// <remarks>
-        /// flusinerd, 13/06/2021.
+        /// Flusinerd, 13/06/2021.
         /// </remarks>
         /// -------------------------------------------------------------------------------------------------
         static DbCleanupWorkerService()
@@ -61,7 +68,7 @@ namespace OpenSky.API.Workers
         /// Initializes a new instance of the <see cref="DbCleanupWorkerService"/> class.
         /// </summary>
         /// <remarks>
-        /// flusinerd, 13/06/2021.
+        /// Flusinerd, 13/06/2021.
         /// </remarks>
         /// <param name="services">
         /// The services.
@@ -74,7 +81,7 @@ namespace OpenSky.API.Workers
             IServiceProvider services,
             ILogger<DbCleanupWorkerService> logger)
         {
-            this.Services = services;
+            this.services = services;
             this.logger = logger;
         }
 
@@ -87,17 +94,10 @@ namespace OpenSky.API.Workers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets the services.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public IServiceProvider Services { get; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// Triggered when the application host is performing a graceful shutdown.
         /// </summary>
         /// <remarks>
-        /// flusinerd, 13/06/2021.
+        /// Flusinerd, 13/06/2021.
         /// </remarks>
         /// <param name="stoppingToken">
         /// Indicates that the shutdown process should no longer be graceful.
@@ -120,7 +120,7 @@ namespace OpenSky.API.Workers
         /// running operation(s) being performed.
         /// </summary>
         /// <remarks>
-        /// flusinerd, 13/06/2021.
+        /// Flusinerd, 13/06/2021.
         /// </remarks>
         /// <param name="stoppingToken">
         /// Triggered when
@@ -144,7 +144,7 @@ namespace OpenSky.API.Workers
         /// workers cleanupInterval.
         /// </summary>
         /// <remarks>
-        /// flusinerd, 14/06/2021.
+        /// Flusinerd, 14/06/2021.
         /// </remarks>
         /// <param name="stoppingToken">
         /// Triggered when
@@ -157,7 +157,7 @@ namespace OpenSky.API.Workers
         /// -------------------------------------------------------------------------------------------------
         private async Task CleanupOpenSkyTokens(CancellationToken stoppingToken)
         {
-            using var scope = this.Services.CreateScope();
+            using var scope = this.services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<OpenSkyDbContext>();
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -167,7 +167,7 @@ namespace OpenSky.API.Workers
                     var tokens = db.OpenSkyTokens.Where(token => token.Expiry > DateTime.Now);
                     db.OpenSkyTokens.RemoveRange(tokens);
                     await db.SaveChangesAsync(stoppingToken);
-                    
+
                     await Task.Delay(CleanupInterval, stoppingToken);
                 }
                 catch (Exception ex)

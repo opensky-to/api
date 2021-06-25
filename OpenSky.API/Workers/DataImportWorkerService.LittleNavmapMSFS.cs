@@ -96,15 +96,12 @@ namespace OpenSky.API.Workers
                         var ident = reader.GetString("ident");
                         lastIdent = ident;
 
-                        // Fetch country data from ourairports CSV
-                        // Default to US
-                        var airportCountry = Countries.US;
-
-                        // Lookup the airport in the CSV file contents
+                        // Fetch country data from OurAirports CSV
+                        Country? airportCountry = null;
                         var airportRecord = airportRecords.FirstOrDefault(airport => airport.Ident == ident);
                         if (airportRecord != null)
                         {
-                            airportCountry = Enum.Parse<Countries>(airportRecord.IsoCountry);
+                            airportCountry = Enum.Parse<Country>(airportRecord.IsoCountry);
                         }
 
                         var existingAirport = await db.Airports.SingleOrDefaultAsync(a => a.ICAO == ident, token);

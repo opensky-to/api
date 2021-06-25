@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Countries.cs" company="OpenSky">
-// Flusinerd for OpenSky 2021
+// <copyright file="Country.cs" company="OpenSky">
+// OpenSky project 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -11,10 +11,15 @@ namespace OpenSky.API.DbModel.Enums
 {
     using System.ComponentModel;
 
+    /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Enum of two letter country codes according to ISO-3166
+    /// Enum of two letter country codes according to ISO-3166.
     /// </summary>
-    public enum Countries
+    /// <remarks>
+    /// Flusinerd, 25/06/2021.
+    /// </remarks>
+    /// -------------------------------------------------------------------------------------------------
+    public enum Country
     {
         [Description("Afghanistan")]
         AF = 1,
