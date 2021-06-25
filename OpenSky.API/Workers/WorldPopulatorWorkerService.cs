@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="WorldPopulatorWorkerService.cs" company="OpenSky">
-// Flusinerd for OpenSky 2021
+// OpenSky project 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -19,19 +19,18 @@ namespace OpenSky.API.Workers
     using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Services;
 
+    /// -------------------------------------------------------------------------------------------------
     /// <summary>
     /// Worker that checks all airports for missing population (Flag set to false)
-    /// Then invokes the WorldPopulator for that airport
+    /// Then invokes the WorldPopulator for that airport.
     /// </summary>
+    /// <remarks>
+    /// Flusinerd, 25/06/2021.
+    /// </remarks>
+    /// <seealso cref="T:Microsoft.Extensions.Hosting.BackgroundService"/>
+    /// -------------------------------------------------------------------------------------------------
     public class WorldPopulatorWorkerService : BackgroundService
     {
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// The logger.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private readonly ILogger<WorldPopulatorWorkerService> logger;
-
         /// -------------------------------------------------------------------------------------------------        
         /// <summary>
         /// The clean up interval in milliseconds.
@@ -42,22 +41,31 @@ namespace OpenSky.API.Workers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets the services.
+        /// The logger.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public IServiceProvider Services { get; }
+        private readonly ILogger<WorldPopulatorWorkerService> logger;
 
+        /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The world populator service instance
+        /// The services.
         /// </summary>
-        private WorldPopulatorService worldPopulator { get; }
+        /// -------------------------------------------------------------------------------------------------
+        private readonly IServiceProvider services;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The world populator service instance.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly WorldPopulatorService worldPopulator;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
         /// Initializes a new instance of the <see cref="WorldPopulatorWorkerService"/> class.
         /// </summary>
         /// <remarks>
-        /// flusinerd, 13/06/2021.
+        /// Flusinerd, 13/06/2021.
         /// </remarks>
         /// <param name="services">
         /// The services.
@@ -73,9 +81,9 @@ namespace OpenSky.API.Workers
             IServiceProvider services,
             ILogger<WorldPopulatorWorkerService> logger,
             WorldPopulatorService worldPopulator
-            )
+        )
         {
-            this.Services = services;
+            this.services = services;
             this.logger = logger;
             this.worldPopulator = worldPopulator;
         }
@@ -85,7 +93,7 @@ namespace OpenSky.API.Workers
         /// Triggered when the application host is performing a graceful shutdown.
         /// </summary>
         /// <remarks>
-        /// flusinerd, 13/06/2021.
+        /// Flusinerd, 13/06/2021.
         /// </remarks>
         /// <param name="stoppingToken">
         /// Indicates that the shutdown process should no longer be graceful.
@@ -97,7 +105,7 @@ namespace OpenSky.API.Workers
         /// -------------------------------------------------------------------------------------------------
         public override async Task StopAsync(CancellationToken stoppingToken)
         {
-            this.logger.LogInformation("World populator Worker stopping...");
+            this.logger.LogInformation("World populator background service stopping...");
             await base.StopAsync(stoppingToken);
         }
 
@@ -108,7 +116,7 @@ namespace OpenSky.API.Workers
         /// running operation(s) being performed.
         /// </summary>
         /// <remarks>
-        /// flusinerd, 13/06/2021.
+        /// Flusinerd, 13/06/2021.
         /// </remarks>
         /// <param name="stoppingToken">
         /// Triggered when
@@ -126,10 +134,13 @@ namespace OpenSky.API.Workers
             await this.CheckAirports(stoppingToken);
         }
 
+        /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Checks all airports for the HasBeenPopulated flag
-        /// If its false, adds to the queue
+        /// Search for airports that need populating with aircraft and process them.
         /// </summary>
+        /// <remarks>
+        /// sushi.at, 25/06/2021.
+        /// </remarks>
         /// <param name="stoppingToken">
         /// Triggered when
         /// <see cref="M:Microsoft.Extensions.Hosting.IHostedService.StopAsync(System.Threading.CancellationToken)" />
@@ -138,36 +149,38 @@ namespace OpenSky.API.Workers
         /// <returns>
         /// An asynchronous result.
         /// </returns>
+        /// -------------------------------------------------------------------------------------------------
         private async Task CheckAirports(CancellationToken stoppingToken)
         {
-            using var scope = this.Services.CreateScope();
+            using var scope = this.services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<OpenSkyDbContext>();
+			
+			// todo when starting up, reset airports that still have "Queued" status back to "NeedsHandling", in case the server stopped while processing an airport
+			
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
                     // Get the first 10 airports that need populating
-                    var airports = await db.Airports.Where(airport => airport.HasBeenPopulated == Statuses.NeedsHandling).Take(10).ToListAsync(stoppingToken);
+                    var airports = await db.Airports.Where(airport => airport.HasBeenPopulated == ProcessingStatus.NeedsHandling).Take(10).ToListAsync(stoppingToken);
                     foreach (var airport in airports)
                     {
                         try
                         {
                             await this.worldPopulator.CheckAndGenerateAircraftForAirport(airport);
                         }
-                        catch (Exception e)
+                        catch (Exception ex)
                         {
-                            airport.HasBeenPopulated = Statuses.Failed;
-                            this.logger.LogError("Error during airport handling for airport" + airport.ICAO + e);
+                            airport.HasBeenPopulated = ProcessingStatus.Failed;
+                            this.logger.LogError(ex, $"Error populating airport {airport.ICAO} with aircraft.");
                         }
                         finally
                         {
-                            await db.SaveChangesAsync(stoppingToken);
+                            await db.SaveDatabaseChangesAsync(this.logger, $"Error populating airport {airport.ICAO} with aircraft.");
                         }
-                        
                     }
 
-                    // If it was less then 10 airports last run
-                    // Wait for CheckInterval
+                    // If it was less then 10 airports last run wait for CheckInterval
                     if (airports.Count < 10)
                     {
                         await Task.Delay(CheckInterval, stoppingToken);
@@ -175,7 +188,7 @@ namespace OpenSky.API.Workers
                 }
                 catch (Exception ex)
                 {
-                    this.logger.LogError(ex, "Error cleaning up OpenSky tokens.");
+                    this.logger.LogError(ex, "Error processing airports to populate.");
                     await Task.Delay(30 * 1000, stoppingToken);
                 }
             }

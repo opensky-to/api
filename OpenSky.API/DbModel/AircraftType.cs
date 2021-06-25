@@ -241,6 +241,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Minimum runway length in feet.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int MinimumRunwayLength { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the minimum selling price.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -349,10 +356,5 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private Action<object, string> LazyLoader { get; }
-
-        /// <summary>
-        /// Minimum runway length in feet.
-        /// </summary>
-        public int MinimumRunwayLength { get; set; }
     }
 }

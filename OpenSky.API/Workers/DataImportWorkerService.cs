@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="DataImportWorker.cs" company="OpenSky">
+// <copyright file="DataImportWorkerService.cs" company="OpenSky">
 // OpenSky project 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
@@ -38,6 +38,13 @@ namespace OpenSky.API.Workers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The services.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly IServiceProvider services;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Initializes static members of the <see cref="DataImportWorkerService"/> class.
         /// </summary>
         /// <remarks>
@@ -67,7 +74,7 @@ namespace OpenSky.API.Workers
             IServiceProvider services,
             ILogger<DataImportWorkerService> logger)
         {
-            this.Services = services;
+            this.services = services;
             this.logger = logger;
         }
 
@@ -77,13 +84,6 @@ namespace OpenSky.API.Workers
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public static Dictionary<Guid, DataImportStatus> Status { get; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets the services.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public IServiceProvider Services { get; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -149,7 +149,7 @@ namespace OpenSky.API.Workers
         /// -------------------------------------------------------------------------------------------------
         private async Task ProcessDataImports(CancellationToken stoppingToken)
         {
-            using var scope = this.Services.CreateScope();
+            using var scope = this.services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<OpenSkyDbContext>();
             while (!stoppingToken.IsCancellationRequested)
             {

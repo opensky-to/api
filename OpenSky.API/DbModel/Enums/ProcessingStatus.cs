@@ -1,22 +1,26 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Statuses.cs" company="OpenSky">
-// Flusinerd for OpenSky 2021
+// <copyright file="ProcessingStatus.cs" company="OpenSky">
+// OpenSky project 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
 namespace OpenSky.API.DbModel.Enums
 {
+    /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// General purpose enum for handling different states of an entity
-    /// Import, queued tasks etc...
+    /// General purpose enum for handling different states of an entity Import, queued tasks etc...
     /// </summary>
-    public enum Statuses
+    /// <remarks>
+    /// Flusinerd, 25/06/2021.
+    /// </remarks>
+    /// -------------------------------------------------------------------------------------------------
+    public enum ProcessingStatus
     {
         /// <summary>
         /// Needs handling by a worker.
         /// </summary>
         NeedsHandling = 0,
-        
+
         /// <summary>
         /// Has been queued by a worker.
         /// </summary>

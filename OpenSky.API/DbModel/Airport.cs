@@ -8,7 +8,6 @@ namespace OpenSky.API.DbModel
 {
     using System;
     using System.Collections.Generic;
-    using System.ComponentModel;
     using System.ComponentModel.DataAnnotations;
     using System.Text.Json.Serialization;
 
@@ -19,10 +18,11 @@ namespace OpenSky.API.DbModel
      * AIRPORT EXAMPLE RECORD FROM DB (LOWW - Vienna International)
      *
      * INSERT INTO `Airports` (`ICAO`, `Altitude`, `AtisFrequency`, `City`, `GaRamps`, `Gates`, `HasAvGas`, `HasJetFuel`, `IsClosed`, `IsMilitary`, `Latitude`,
-     * `LongestRunwayLength`, `LongestRunwaySurface`, `Longitude`, `Name`, `RunwayCount`, `TowerFrequency`, `UnicomFrequency`, `Size`, `MSFS`, `SupportsSuper`)
+     * `LongestRunwayLength`, `LongestRunwaySurface`, `Longitude`, `Name`, `RunwayCount`, `TowerFrequency`, `UnicomFrequency`, `Size`, `MSFS`, `SupportsSuper`,
+     * `Country`, `HasBeenPopulated`)
      *
      * VALUES ('LOWW', '0', '121730', 'Schwechat', '29', '31', '1', '1', '0', '0', '48.11007308959961',
-     * '11811', 'A', '16.569616317749023', 'Flughafen Wien-Schwechat', '2', '119400', '118525', '5', '1', '1')
+     * '11811', 'A', '16.569616317749023', 'Flughafen Wien-Schwechat', '2', '119400', '118525', '5', '1', '1', 'AT' ,'0')
      */
 
     /// -------------------------------------------------------------------------------------------------
@@ -111,10 +111,12 @@ namespace OpenSky.API.DbModel
         [StringLength(50)]
         public string City { get; set; }
 
+        /// -------------------------------------------------------------------------------------------------
         /// <summary>
         /// Gets or sets the country.
         /// </summary>
-        public Countries? Country { get; set; }
+        /// -------------------------------------------------------------------------------------------------
+        public Country? Country { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -136,6 +138,13 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public bool HasAvGas { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the HasBeenPopulated flag.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public ProcessingStatus HasBeenPopulated { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -260,11 +269,6 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public int? UnicomFrequency { get; set; }
-
-        /// <summary>
-        /// Gets or sets the HasBeenPopulated Flag
-        /// </summary>
-        public Statuses HasBeenPopulated { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

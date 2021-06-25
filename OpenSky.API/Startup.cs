@@ -234,7 +234,7 @@ namespace OpenSky.API
             services.AddHttpClient<GeoLocateIPService>();
             services.AddSingleton<GeoLocateIPService>();
 
-            // Setup singletons
+            // Setup world populator service
             services.AddSingleton<WorldPopulatorService>();
             
             // Set up hosted worker services
