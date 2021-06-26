@@ -127,7 +127,8 @@ namespace OpenSky.API.Services
         public async Task CheckAndGenerateAircraftForAirport(Airport airport)
         {
             airport.HasBeenPopulated = ProcessingStatus.Queued;
-            await this.db.SaveChangesAsync();
+            await this.db.SaveDatabaseChangesAsync(this.logger, $"Error setting Queued status on airport {airport.ICAO}");
+
             var aircraftAtAirport = this.db.Aircraft.Where(aircraft => aircraft.AirportICAO == airport.ICAO);
             var availableForPurchaseOrRent = aircraftAtAirport.Where(aircraft => aircraft.RentPrice.HasValue || aircraft.PurchasePrice.HasValue);
             var totalRamps = airport.GaRamps;
@@ -188,7 +189,6 @@ namespace OpenSky.API.Services
                 var wbTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, (int)AircraftTypeCategory.WBAirliner];
 
                 var generatedAircraft = new List<Aircraft>();
-
                 var wasSuccessfull = true;
 
                 while (newAircraftCount < requiredAircraft)
@@ -219,7 +219,7 @@ namespace OpenSky.API.Services
                     try
                     {
                         // Generate Registration for country
-                        var registration = this.GenerateRegistration(airport);
+                        var registration = this.GenerateRegistration(airport, generatedAircraft);
 
                         // Get random enabled vanilla type of needed category
                         var typeCandidates = await this.db.AircraftTypes.Where(type => type.Category == (AircraftTypeCategory)minIndex && type.Enabled && type.IsVanilla && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToListAsync();
@@ -275,9 +275,11 @@ namespace OpenSky.API.Services
                 }
 
                 airport.HasBeenPopulated = wasSuccessfull ? ProcessingStatus.Finished : ProcessingStatus.Failed;
-                this.db.Aircraft.AddRange(generatedAircraft);
-                await this.db.SaveChangesAsync();
-                this.logger.LogInformation($"Generated {newAircraftCount} aircraft for airport {airport.ICAO}");
+                await this.db.Aircraft.AddRangeAsync(generatedAircraft);
+                if (await this.db.SaveDatabaseChangesAsync(this.logger, $"Error saving generated aircraft for airport {airport.ICAO}.") == null)
+                {
+                    this.logger.LogDebug($"Generated {newAircraftCount} aircraft for airport {airport.ICAO}");
+                }
             }
         }
 
@@ -480,11 +482,14 @@ namespace OpenSky.API.Services
         /// <param name="airport">
         /// Airport this registration should be generated for.
         /// </param>
+        /// <param name="generatedAircraft">
+        /// The already generated aircraft to avoid duplicates.
+        /// </param>
         /// <returns>
         /// Unique Registration as string.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        private string GenerateRegistration(Airport airport)
+        private string GenerateRegistration(Airport airport, IReadOnlyCollection<Aircraft> generatedAircraft)
         {
             var airportRegistrationsEntry = this.icaoRegistrations.FirstOrDefault(icaoRegistration => airport.ICAO.ToLower()[..2].StartsWith(icaoRegistration.AirportPrefix.ToLower()));
             const int maxAttempts = 10;
@@ -517,7 +522,7 @@ namespace OpenSky.API.Services
                 };
 
                 // Lookup DB for registration
-                var registrationExists = this.db.Aircraft.Any(aircraft => aircraft.Registry == registration);
+                var registrationExists = this.db.Aircraft.Any(aircraft => aircraft.Registry == registration) || generatedAircraft.Any(aircraft => aircraft.Registry == registration);
                 if (!registrationExists)
                 {
                     // Found a non existing registration
