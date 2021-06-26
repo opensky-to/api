@@ -154,9 +154,23 @@ namespace OpenSky.API.Workers
         {
             using var scope = this.services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<OpenSkyDbContext>();
-			
-			// todo when starting up, reset airports that still have "Queued" status back to "NeedsHandling", in case the server stopped while processing an airport
-			
+
+            // When starting up, reset airports that still have "Queued" status back to "NeedsHandling", in case the server stopped while processing an airport
+            try
+            {
+                var leftOverQueuedAirports = db.Airports.Where(a => a.HasBeenPopulated == ProcessingStatus.Queued);
+                foreach (var airport in leftOverQueuedAirports)
+                {
+                    airport.HasBeenPopulated = ProcessingStatus.NeedsHandling;
+                }
+
+                await db.SaveDatabaseChangesAsync(this.logger, "Error saving airport HasBeenPopulated resets.");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Error resetting leftover queued airports during world populator background worker startup.");
+            }			
+
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
