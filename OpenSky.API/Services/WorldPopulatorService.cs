@@ -395,6 +395,12 @@ namespace OpenSky.API.Services
                 }
             }
 
+            // Some prefixes (especially British oversea territories) already have a dash followed by a letter
+            if (prefix.Contains("-"))
+            {
+                withDash = false;
+            }
+
             // Length of prefix plus 1 to accomodate for the dash
             var prefixLength = prefix.Length;
             if (withDash)
@@ -403,12 +409,7 @@ namespace OpenSky.API.Services
             }
 
             var randomString = RandomString(length - prefixLength);
-            if (withDash)
-            {
-                return $"{prefix}-{randomString}";
-            }
-
-            return prefix + randomString;
+            return withDash ? $"{prefix}-{randomString}" : $"{prefix}{randomString}";
         }
 
         /// -------------------------------------------------------------------------------------------------
