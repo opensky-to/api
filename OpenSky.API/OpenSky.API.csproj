@@ -47,6 +47,12 @@
     <None Update="Datasets\a380airports.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Datasets\airports.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Datasets\ICAO.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Datasets\top50airports.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
