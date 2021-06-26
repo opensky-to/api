@@ -222,11 +222,11 @@ namespace OpenSky.API.Services
                         var registration = this.GenerateRegistration(airport);
 
                         // Get random enabled vanilla type of needed category
-                        var typeCandidates = this.db.AircraftTypes.Where(type => type.Category == (AircraftTypeCategory)minIndex && type.Enabled && type.IsVanilla && type.MinimumRunwayLength <= airport.LongestRunwayLength);
+                        var typeCandidates = await this.db.AircraftTypes.Where(type => type.Category == (AircraftTypeCategory)minIndex && type.Enabled && type.IsVanilla && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToListAsync();
 
                         var alternateIndex = minIndex;
 
-                        while (!await typeCandidates.AnyAsync() && alternateIndex > 0)
+                        while (!typeCandidates.Any() && alternateIndex > 0)
                         {
                             // Go down a category, if no suitable plane could be found
                             alternateIndex = minIndex switch
@@ -242,11 +242,11 @@ namespace OpenSky.API.Services
                             };
 
                             var localIndex = alternateIndex;
-                            typeCandidates = this.db.AircraftTypes.Where(type => type.Category == (AircraftTypeCategory)localIndex && type.Enabled && type.IsVanilla && type.MinimumRunwayLength <= airport.LongestRunwayLength);
+                            typeCandidates = await this.db.AircraftTypes.Where(type => type.Category == (AircraftTypeCategory)localIndex && type.Enabled && type.IsVanilla && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToListAsync();
                         }
 
-                        // todo replace this with random? technically works but seems to generate certain plane types over and over again and not distributing evenly
-                        var randomType = await typeCandidates.OrderBy(x => Guid.NewGuid()).FirstAsync();
+                        // todo test if this works better
+                        var randomType = typeCandidates[Random.Next(0, typeCandidates.Count - 1)];
 
                         // @todo update when economics are implemented
                         var purchasePrice = (randomType.MaxPrice + randomType.MinPrice) / 2;
