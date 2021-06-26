@@ -175,8 +175,10 @@ namespace OpenSky.API.Workers
             {
                 try
                 {
-                    // Get the first 10 airports that need populating
-                    var airports = await db.Airports.Where(airport => airport.HasBeenPopulated == ProcessingStatus.NeedsHandling).Take(10).ToListAsync(stoppingToken);
+                    // Get the first 100 airports that need populating
+                    var airportTodoCount = await db.Airports.CountAsync(airport => airport.HasBeenPopulated == ProcessingStatus.NeedsHandling, stoppingToken);
+                    this.logger.LogInformation($"World populator still needs to process {airportTodoCount} airports...");
+                    var airports = await db.Airports.Where(airport => airport.HasBeenPopulated == ProcessingStatus.NeedsHandling).Take(100).ToListAsync(stoppingToken);
                     foreach (var airport in airports)
                     {
                         try
@@ -194,8 +196,8 @@ namespace OpenSky.API.Workers
                         }
                     }
 
-                    // If it was less then 10 airports last run wait for CheckInterval
-                    if (airports.Count < 10)
+                    // If it was less then 100 airports last run wait for CheckInterval
+                    if (airports.Count < 100)
                     {
                         await Task.Delay(CheckInterval, stoppingToken);
                     }
