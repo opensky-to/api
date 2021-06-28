@@ -106,7 +106,7 @@ namespace OpenSky.API.Services
             };
 
             var csv = new CsvReader(reader, config);
-            this.icaoRegistrations = csv.GetRecords<IcaoRegistration>().ToArray();
+            this.icaoRegistrations = csv.GetRecords<IcaoRegistration>().OrderByDescending(i => i.AirportPrefix).ToArray();
             this.logger.LogInformation("Populator Service running");
         }
 
@@ -245,7 +245,6 @@ namespace OpenSky.API.Services
                             typeCandidates = await this.db.AircraftTypes.Where(type => type.Category == (AircraftTypeCategory)localIndex && type.Enabled && type.IsVanilla && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToListAsync();
                         }
 
-                        // todo test if this works better
                         var randomType = typeCandidates[Random.Next(0, typeCandidates.Count - 1)];
 
                         // @todo update when economics are implemented
@@ -280,6 +279,11 @@ namespace OpenSky.API.Services
                 {
                     this.logger.LogDebug($"Generated {newAircraftCount} aircraft for airport {airport.ICAO}");
                 }
+            }
+            else
+            {
+                airport.HasBeenPopulated = ProcessingStatus.Finished;
+                await this.db.SaveDatabaseChangesAsync(this.logger, $"Error setting Finished status on airport {airport.ICAO}");
             }
         }
 
@@ -356,7 +360,8 @@ namespace OpenSky.API.Services
         /// -------------------------------------------------------------------------------------------------
         private static string GenerateNorthKoreaRegistration()
         {
-            return $"P{Random.Next(500, 999)}";
+            // Correct would be 500-999, but we try for 80% occupancy which isn't possible with only 500 numbers
+            return $"P{Random.Next(500, 9999)}";
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -417,7 +422,7 @@ namespace OpenSky.API.Services
         /// Generates a Taiwanese registration.
         /// </summary>
         /// <remarks>
-        /// sushi.at, 25/06/2021.
+        /// Flusinerd, 25/06/2021.
         /// </remarks>
         /// <returns>
         /// The Taiwanese registration.
@@ -426,6 +431,54 @@ namespace OpenSky.API.Services
         private static string GenerateTaiwanRegistration()
         {
             return $"B-{Random.Next(0, 99999):D6}";
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Generates a Russian registration.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 27/06/2021.
+        /// </remarks>
+        /// <returns>
+        /// The Russian registration.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        private static string GenerateRussiaRegistration()
+        {
+            return $"RA-{Random.Next(0, 99999):D6}";
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Generates an Armenian registration.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 27/06/2021.
+        /// </remarks>
+        /// <returns>
+        /// The Armenian registration.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        private static string GenerateArmeniaRegistration()
+        {
+            return $"EK-{Random.Next(0, 99999):D6}";
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Generates a South Korean registration.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 27/06/2021.
+        /// </remarks>
+        /// <returns>
+        /// The South Korean registration.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        private static string GenerateSouthKoreaRegistration()
+        {
+            return $"HL{Random.Next(1000, 9699):D4}";
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -493,7 +546,7 @@ namespace OpenSky.API.Services
         private string GenerateRegistration(Airport airport, IReadOnlyCollection<Aircraft> generatedAircraft)
         {
             var airportRegistrationsEntry = this.icaoRegistrations.FirstOrDefault(icaoRegistration => airport.ICAO.ToLower()[..2].StartsWith(icaoRegistration.AirportPrefix.ToLower()));
-            const int maxAttempts = 10;
+            const int maxAttempts = 20;
             var registration = "";
 
             // Default to US Registration
@@ -508,17 +561,19 @@ namespace OpenSky.API.Services
             {
                 registration = airportRegistrationsEntry.AircraftPrefixes[0] switch
                 {
-                    "HJ" => GenerateColombiaRegistration(),
+                    "HK" => GenerateColombiaRegistration(),
                     "CU" => GenerateRegularRegistration(airportRegistrationsEntry.AircraftPrefixes, 7),
                     "E3" => GenerateRegularRegistration(airportRegistrationsEntry.AircraftPrefixes, 7),
                     "3DC" => GenerateRegularRegistration(airportRegistrationsEntry.AircraftPrefixes, 7),
-                    "JA" => GenerateRegularRegistration(airportRegistrationsEntry.AircraftPrefixes, 6, false),
+                    "JA" => GenerateRegularRegistration(airportRegistrationsEntry.AircraftPrefixes, 6, false), 
                     "UP" => GenerateRegularRegistration(airportRegistrationsEntry.AircraftPrefixes, 8),
                     "P" => GenerateNorthKoreaRegistration(),
-                    "HL" => GenerateRegularRegistration(airportRegistrationsEntry.AircraftPrefixes, 6, false),
+                    "HL" => GenerateSouthKoreaRegistration(),
                     "RDPL" => GenerateLaosRegistration(),
                     "N" => GenerateUsRegistration(),
                     "B" => GenerateTaiwanRegistration(),
+                    "EK" => GenerateArmeniaRegistration(),
+                    "RA" => GenerateRussiaRegistration(),
                     _ => GenerateRegularRegistration(airportRegistrationsEntry.AircraftPrefixes, 6)
                 };
 
@@ -530,7 +585,7 @@ namespace OpenSky.API.Services
                     break;
                 }
 
-                if (i == 9)
+                if (i == maxAttempts - 1)
                 {
                     throw new Exception("Could not find a non-duplicate registration for aircraft");
                 }

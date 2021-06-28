@@ -12,6 +12,8 @@
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/opensky-to/api</RepositoryUrl>
     <PackageProjectUrl>https://www.opensky.to</PackageProjectUrl>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
