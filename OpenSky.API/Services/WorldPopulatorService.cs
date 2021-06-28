@@ -126,11 +126,23 @@ namespace OpenSky.API.Services
         /// -------------------------------------------------------------------------------------------------
         public async Task CheckAndGenerateAircraftForAirport(Airport airport)
         {
+            // The airport doesn't have a size yet, so don't populate it
+            if (!airport.Size.HasValue)
+            {
+                return;
+            }
+
+            // The airport is currently being imported (no sim), so don't populate it
+            if (!airport.MSFS)
+            {
+                return;
+            }
+
             airport.HasBeenPopulated = ProcessingStatus.Queued;
             await this.db.SaveDatabaseChangesAsync(this.logger, $"Error setting Queued status on airport {airport.ICAO}");
 
             var aircraftAtAirport = this.db.Aircraft.Where(aircraft => aircraft.AirportICAO == airport.ICAO);
-            var availableForPurchaseOrRent = aircraftAtAirport.Where(aircraft => aircraft.RentPrice.HasValue || aircraft.PurchasePrice.HasValue);
+            var availableForPurchaseOrRent = await aircraftAtAirport.Where(aircraft => aircraft.RentPrice.HasValue || aircraft.PurchasePrice.HasValue).ToListAsync();
             var totalRamps = airport.GaRamps;
             var totalGates = airport.Gates;
             double totalSlots = totalGates + totalRamps;
@@ -161,46 +173,46 @@ namespace OpenSky.API.Services
             // 80% Utilization
             var requiredAircraft = Math.Ceiling(totalSlots * 0.8);
 
-            var newAircraftCount = availableForPurchaseOrRent.Count();
+            var newAircraftCount = availableForPurchaseOrRent.Count;
             int[] generatedTypesCount = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
             // Check if less then 80% are available
             if (newAircraftCount < requiredAircraft)
             {
                 // Check the currently available aircraft types distribution
-                var seps = availableForPurchaseOrRent.Where(aircraft => aircraft.Type.Category == AircraftTypeCategory.SEP);
-                var meps = availableForPurchaseOrRent.Where(aircraft => aircraft.Type.Category == AircraftTypeCategory.MEP);
-                var sets = availableForPurchaseOrRent.Where(aircraft => aircraft.Type.Category == AircraftTypeCategory.SET);
-                var mets = availableForPurchaseOrRent.Where(aircraft => aircraft.Type.Category == AircraftTypeCategory.MET);
-                var jets = availableForPurchaseOrRent.Where(aircraft => aircraft.Type.Category == AircraftTypeCategory.Jet);
-                var regionals = availableForPurchaseOrRent.Where(aircraft => aircraft.Type.Category == AircraftTypeCategory.Regional);
-                var nbAirliners = availableForPurchaseOrRent.Where(aircraft => aircraft.Type.Category == AircraftTypeCategory.NBAirliner);
-                var wbAirliners = availableForPurchaseOrRent.Where(aircraft => aircraft.Type.Category == AircraftTypeCategory.WBAirliner);
+                var seps = availableForPurchaseOrRent.Count(aircraft => aircraft.Type.Category == AircraftTypeCategory.SEP);
+                var meps = availableForPurchaseOrRent.Count(aircraft => aircraft.Type.Category == AircraftTypeCategory.MEP);
+                var sets = availableForPurchaseOrRent.Count(aircraft => aircraft.Type.Category == AircraftTypeCategory.SET);
+                var mets = availableForPurchaseOrRent.Count(aircraft => aircraft.Type.Category == AircraftTypeCategory.MET);
+                var jets = availableForPurchaseOrRent.Count(aircraft => aircraft.Type.Category == AircraftTypeCategory.Jet);
+                var regionals = availableForPurchaseOrRent.Count(aircraft => aircraft.Type.Category == AircraftTypeCategory.Regional);
+                var nbAirliners = availableForPurchaseOrRent.Count(aircraft => aircraft.Type.Category == AircraftTypeCategory.NBAirliner);
+                var wbAirliners = availableForPurchaseOrRent.Count(aircraft => aircraft.Type.Category == AircraftTypeCategory.WBAirliner);
 
                 // Look up the target ratios for the current airport size (0-indexed, therefor Airport Size + 1)
                 // @todo refactor to enum
-                var sepTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, (int)AircraftTypeCategory.SEP];
-                var mepTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, (int)AircraftTypeCategory.MEP];
-                var setTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, (int)AircraftTypeCategory.SET];
-                var metTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, (int)AircraftTypeCategory.MET];
-                var jetTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, (int)AircraftTypeCategory.Jet];
-                var regionalTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, (int)AircraftTypeCategory.Regional];
-                var nbTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, (int)AircraftTypeCategory.NBAirliner];
-                var wbTarget = this.ratios[airport.Size.GetValueOrDefault() + 1, (int)AircraftTypeCategory.WBAirliner];
+                var sepTarget = this.ratios[airport.Size.Value + 1, (int)AircraftTypeCategory.SEP];
+                var mepTarget = this.ratios[airport.Size.Value + 1, (int)AircraftTypeCategory.MEP];
+                var setTarget = this.ratios[airport.Size.Value + 1, (int)AircraftTypeCategory.SET];
+                var metTarget = this.ratios[airport.Size.Value + 1, (int)AircraftTypeCategory.MET];
+                var jetTarget = this.ratios[airport.Size.Value + 1, (int)AircraftTypeCategory.Jet];
+                var regTarget = this.ratios[airport.Size.Value + 1, (int)AircraftTypeCategory.Regional];
+                var nbTarget = this.ratios[airport.Size.Value + 1, (int)AircraftTypeCategory.NBAirliner];
+                var wbTarget = this.ratios[airport.Size.Value + 1, (int)AircraftTypeCategory.WBAirliner];
 
                 var generatedAircraft = new List<Aircraft>();
                 var wasSuccessfull = true;
 
                 while (newAircraftCount < requiredAircraft)
                 {
-                    var sepQuota = (await seps.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.SEP]) / requiredAircraft;
-                    var mepQuota = (await meps.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.MEP]) / requiredAircraft;
-                    var setQuota = (await sets.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.SET]) / requiredAircraft;
-                    var metQuota = (await mets.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.MET]) / requiredAircraft;
-                    var jetQuota = (await jets.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.Jet]) / requiredAircraft;
-                    var regionalQuota = (await regionals.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.Regional]) / requiredAircraft;
-                    var nbQuota = (await nbAirliners.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.NBAirliner]) / requiredAircraft;
-                    var wbQuota = (await wbAirliners.CountAsync() + generatedTypesCount[(int)AircraftTypeCategory.WBAirliner]) / requiredAircraft;
+                    var sepQuota = (seps + generatedTypesCount[(int)AircraftTypeCategory.SEP]) / requiredAircraft;
+                    var mepQuota = (meps + generatedTypesCount[(int)AircraftTypeCategory.MEP]) / requiredAircraft;
+                    var setQuota = (sets + generatedTypesCount[(int)AircraftTypeCategory.SET]) / requiredAircraft;
+                    var metQuota = (mets + generatedTypesCount[(int)AircraftTypeCategory.MET]) / requiredAircraft;
+                    var jetQuota = (jets + generatedTypesCount[(int)AircraftTypeCategory.Jet]) / requiredAircraft;
+                    var regQuota = (regionals + generatedTypesCount[(int)AircraftTypeCategory.Regional]) / requiredAircraft;
+                    var nbQuota = (nbAirliners + generatedTypesCount[(int)AircraftTypeCategory.NBAirliner]) / requiredAircraft;
+                    var wbQuota = (wbAirliners + generatedTypesCount[(int)AircraftTypeCategory.WBAirliner]) / requiredAircraft;
 
                     // Determine the highest delta
                     var sepDelta = sepQuota - sepTarget;
@@ -208,12 +220,12 @@ namespace OpenSky.API.Services
                     var setDelta = setQuota - setTarget;
                     var metDelta = metQuota - metTarget;
                     var jetDelta = jetQuota - jetTarget;
-                    var regionalDelta = regionalQuota - regionalTarget;
+                    var regDelta = regQuota - regTarget;
                     var nbDelta = nbQuota - nbTarget;
                     var wbDelta = wbQuota - wbTarget;
 
                     // IMPORTANT: HAS TO BE IN ORDER OF AircraftTypeCategory enum
-                    double[] deltas = { sepDelta, mepDelta, setDelta, metDelta, jetDelta, regionalDelta, nbDelta, wbDelta };
+                    double[] deltas = { sepDelta, mepDelta, setDelta, metDelta, jetDelta, regDelta, nbDelta, wbDelta };
                     var minIndex = FindMinInArray(deltas);
 
                     try
@@ -225,11 +237,10 @@ namespace OpenSky.API.Services
                         var typeCandidates = await this.db.AircraftTypes.Where(type => type.Category == (AircraftTypeCategory)minIndex && type.Enabled && (type.IsVanilla || type.IncludeInWorldPopulation) && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToListAsync();
 
                         var alternateIndex = minIndex;
-
-                        while (!typeCandidates.Any() && alternateIndex > 0)
+                        while (typeCandidates.Count == 0 && alternateIndex > 0)
                         {
-                            // Go down a category, if no suitable plane could be found
-                            alternateIndex = minIndex switch
+                            // Go down a category, if no suitable aircraft type could be found
+                            alternateIndex = alternateIndex switch
                             {
                                 (int)AircraftTypeCategory.MEP => (int)AircraftTypeCategory.SEP,
                                 (int)AircraftTypeCategory.SET => (int)AircraftTypeCategory.MEP,
