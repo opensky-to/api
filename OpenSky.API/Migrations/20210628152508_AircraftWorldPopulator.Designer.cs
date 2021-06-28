@@ -9,8 +9,8 @@ using OpenSky.API;
 namespace OpenSky.API.Migrations
 {
     [DbContext(typeof(OpenSkyDbContext))]
-    [Migration("20210623103916_WorldPopulator")]
-    partial class WorldPopulator
+    [Migration("20210628152508_AircraftWorldPopulator")]
+    partial class AircraftWorldPopulator
     {
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -227,6 +227,9 @@ namespace OpenSky.API.Migrations
                     b.Property<double>("FuelTotalCapacity")
                         .HasColumnType("double");
 
+                    b.Property<bool>("IncludeInWorldPopulation")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<bool>("IsGearRetractable")
                         .HasColumnType("tinyint(1)");
 
@@ -348,6 +351,9 @@ namespace OpenSky.API.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
+
+                    b.Property<int?>("PreviousSize")
+                        .HasColumnType("int");
 
                     b.Property<int>("RunwayCount")
                         .HasColumnType("int");

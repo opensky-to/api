@@ -164,7 +164,7 @@ namespace OpenSky.API.Workers
                 try
                 {
                     // Delete OpenSkyTokens that are expired
-                    var tokens = db.OpenSkyTokens.Where(token => token.Expiry > DateTime.Now);
+                    var tokens = db.OpenSkyTokens.Where(token => DateTime.Now > token.Expiry);
                     db.OpenSkyTokens.RemoveRange(tokens);
                     await db.SaveChangesAsync(stoppingToken);
 

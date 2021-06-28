@@ -131,13 +131,15 @@ namespace OpenSky.API.Workers
                                 MSFS = true,
                                 SupportsSuper = a380Airports.Contains(ident),
                                 Size = null, // This will be calculated later as this depends on runways and approaches that aren't imported yet
-                                Country = airportCountry
+                                Country = airportCountry,
+                                HasBeenPopulated = ProcessingStatus.NeedsHandling
                             };
                             newAirports.Add(newAirport);
                         }
                         else
                         {
                             Status[dataImport.ID].Elements["airport"].Updated++;
+                            var triggerWorldPopulator = existingAirport.Gates != reader.GetInt32("num_parking_gate") || existingAirport.GaRamps != reader.GetInt32("num_parking_ga_ramp") || existingAirport.LongestRunwayLength != reader.GetInt32("longest_runway_length");
 
                             existingAirport.Name = !await reader.IsDBNullAsync("name", token) ? new string(reader.GetString("name").Take(50).ToArray()) : "???";
                             existingAirport.City = !await reader.IsDBNullAsync("city", token) ? new string(reader.GetString("city").Take(50).ToArray()) : null;
@@ -158,8 +160,14 @@ namespace OpenSky.API.Workers
                             existingAirport.Altitude = reader.GetInt32("altitude");
                             existingAirport.MSFS = true;
                             existingAirport.SupportsSuper = a380Airports.Contains(ident);
+                            existingAirport.PreviousSize = existingAirport.Size; // Save that away to detect size changes
                             existingAirport.Size = null; // Re-calculate the size
                             existingAirport.Country = airportCountry;
+                            if (triggerWorldPopulator)
+                            {
+                                existingAirport.HasBeenPopulated = ProcessingStatus.NeedsHandling;
+                            }
+
                             updatedAirports.Add(existingAirport);
                         }
 

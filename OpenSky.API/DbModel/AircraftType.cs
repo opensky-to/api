@@ -174,6 +174,14 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets a value indicating whether this aircraft type should be included in the world
+        /// population, or only when a player buys one (use for popular mods only!).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public bool IncludeInWorldPopulation { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets a value indicating whether this aircraft has retractable landing gear.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------

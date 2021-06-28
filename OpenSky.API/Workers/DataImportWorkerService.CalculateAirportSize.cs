@@ -168,6 +168,13 @@ namespace OpenSky.API.Workers
                     lastIdent = icao;
                     var airport = await db.Airports.SingleOrDefaultAsync(a => a.ICAO == icao, token);
                     airport.Size = this.CalculateAirportSize(airport, top50Airports);
+                    if (airport.PreviousSize.HasValue && airport.Size.Value != airport.PreviousSize.Value)
+                    {
+                        // Size has changed, run the world populator again
+                        airport.HasBeenPopulated = ProcessingStatus.NeedsHandling;
+                        airport.PreviousSize = null;
+                    }
+
                     updatedAirports.Add(airport);
 
                     Status[dataImport.ID].Processed++;

@@ -225,6 +225,14 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the previous size of the airport (if available, used to detect size changes and
+        /// trigger other services like the plane world populator).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int? PreviousSize { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the number of runways.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -244,7 +252,7 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the size of the airport (from -1 to 6).
+        /// Gets or sets the size of the airport (from -1 to 6, NULL means size isn't calculated yet).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public int? Size { get; set; }

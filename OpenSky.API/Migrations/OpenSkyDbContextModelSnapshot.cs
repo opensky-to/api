@@ -223,6 +223,9 @@ namespace OpenSky.API.Migrations
                     b.Property<double>("FuelTotalCapacity")
                         .HasColumnType("double");
 
+                    b.Property<bool>("IncludeInWorldPopulation")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<bool>("IsGearRetractable")
                         .HasColumnType("tinyint(1)");
 
@@ -344,6 +347,9 @@ namespace OpenSky.API.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
+
+                    b.Property<int?>("PreviousSize")
+                        .HasColumnType("int");
 
                     b.Property<int>("RunwayCount")
                         .HasColumnType("int");
