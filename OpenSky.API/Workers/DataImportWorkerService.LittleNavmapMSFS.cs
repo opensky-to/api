@@ -79,6 +79,9 @@ namespace OpenSky.API.Workers
                 var airportReader = new StreamReader("Datasets/airports.csv");
                 var csv = new CsvReader(airportReader, CultureInfo.InvariantCulture);
                 var airportRecords = csv.GetRecords<AirportData>().ToList();
+                csv.Dispose();
+                airportReader.Close();
+                airportReader.Dispose();
 
                 var newAirports = new List<Airport>();
                 var updatedAirports = new List<Airport>();
