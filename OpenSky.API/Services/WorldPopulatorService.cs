@@ -222,7 +222,7 @@ namespace OpenSky.API.Services
                         var registration = this.GenerateRegistration(airport, generatedAircraft);
 
                         // Get random enabled vanilla type of needed category
-                        var typeCandidates = await this.db.AircraftTypes.Where(type => type.Category == (AircraftTypeCategory)minIndex && type.Enabled && type.IsVanilla && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToListAsync();
+                        var typeCandidates = await this.db.AircraftTypes.Where(type => type.Category == (AircraftTypeCategory)minIndex && type.Enabled && (type.IsVanilla || type.IncludeInWorldPopulation) && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToListAsync();
 
                         var alternateIndex = minIndex;
 
@@ -242,7 +242,7 @@ namespace OpenSky.API.Services
                             };
 
                             var localIndex = alternateIndex;
-                            typeCandidates = await this.db.AircraftTypes.Where(type => type.Category == (AircraftTypeCategory)localIndex && type.Enabled && type.IsVanilla && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToListAsync();
+                            typeCandidates = await this.db.AircraftTypes.Where(type => type.Category == (AircraftTypeCategory)localIndex && type.Enabled && (type.IsVanilla || type.IncludeInWorldPopulation) && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToListAsync();
                         }
 
                         var randomType = typeCandidates[Random.Next(0, typeCandidates.Count - 1)];
@@ -313,6 +313,22 @@ namespace OpenSky.API.Services
             }
 
             return pos;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Generates an Armenian registration.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 27/06/2021.
+        /// </remarks>
+        /// <returns>
+        /// The Armenian registration.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        private static string GenerateArmeniaRegistration()
+        {
+            return $"EK-{Random.Next(0, 99999):D6}";
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -419,22 +435,6 @@ namespace OpenSky.API.Services
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Generates a Taiwanese registration.
-        /// </summary>
-        /// <remarks>
-        /// Flusinerd, 25/06/2021.
-        /// </remarks>
-        /// <returns>
-        /// The Taiwanese registration.
-        /// </returns>
-        /// -------------------------------------------------------------------------------------------------
-        private static string GenerateTaiwanRegistration()
-        {
-            return $"B-{Random.Next(0, 99999):D6}";
-        }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// Generates a Russian registration.
         /// </summary>
         /// <remarks>
@@ -451,22 +451,6 @@ namespace OpenSky.API.Services
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Generates an Armenian registration.
-        /// </summary>
-        /// <remarks>
-        /// sushi.at, 27/06/2021.
-        /// </remarks>
-        /// <returns>
-        /// The Armenian registration.
-        /// </returns>
-        /// -------------------------------------------------------------------------------------------------
-        private static string GenerateArmeniaRegistration()
-        {
-            return $"EK-{Random.Next(0, 99999):D6}";
-        }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// Generates a South Korean registration.
         /// </summary>
         /// <remarks>
@@ -479,6 +463,22 @@ namespace OpenSky.API.Services
         private static string GenerateSouthKoreaRegistration()
         {
             return $"HL{Random.Next(1000, 9699):D4}";
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Generates a Taiwanese registration.
+        /// </summary>
+        /// <remarks>
+        /// Flusinerd, 25/06/2021.
+        /// </remarks>
+        /// <returns>
+        /// The Taiwanese registration.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        private static string GenerateTaiwanRegistration()
+        {
+            return $"B-{Random.Next(0, 99999):D6}";
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -565,7 +565,7 @@ namespace OpenSky.API.Services
                     "CU" => GenerateRegularRegistration(airportRegistrationsEntry.AircraftPrefixes, 7),
                     "E3" => GenerateRegularRegistration(airportRegistrationsEntry.AircraftPrefixes, 7),
                     "3DC" => GenerateRegularRegistration(airportRegistrationsEntry.AircraftPrefixes, 7),
-                    "JA" => GenerateRegularRegistration(airportRegistrationsEntry.AircraftPrefixes, 6, false), 
+                    "JA" => GenerateRegularRegistration(airportRegistrationsEntry.AircraftPrefixes, 6, false),
                     "UP" => GenerateRegularRegistration(airportRegistrationsEntry.AircraftPrefixes, 8),
                     "P" => GenerateNorthKoreaRegistration(),
                     "HL" => GenerateSouthKoreaRegistration(),

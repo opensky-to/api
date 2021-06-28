@@ -4,10 +4,10 @@ namespace OpenSky.API.Migrations
 {
     /// -------------------------------------------------------------------------------------------------
     /// <content>
-    /// World aircraft populator migration.
+    /// Aircraft world populator migration.
     /// </content>
     /// -------------------------------------------------------------------------------------------------
-    public partial class WorldPopulator : Migration
+    public partial class AircraftWorldPopulator : Migration
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -25,7 +25,7 @@ namespace OpenSky.API.Migrations
         ///             </para>
         /// </summary>
         /// <remarks>
-        /// sushi.at, 26/06/2021.
+        /// sushi.at, 28/06/2021.
         /// </remarks>
         /// <param name="migrationBuilder">
         /// The <see cref="T:Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder" /> that will
@@ -44,6 +44,26 @@ namespace OpenSky.API.Migrations
             migrationBuilder.AddColumn<int>(
                 name: "HasBeenPopulated",
                 table: "Airports",
+                type: "int",
+                nullable: false,
+                defaultValue: 0);
+
+            migrationBuilder.AddColumn<int>(
+                name: "PreviousSize",
+                table: "Airports",
+                type: "int",
+                nullable: true);
+
+            migrationBuilder.AddColumn<bool>(
+                name: "IncludeInWorldPopulation",
+                table: "AircraftTypes",
+                type: "tinyint(1)",
+                nullable: false,
+                defaultValue: false);
+
+            migrationBuilder.AddColumn<int>(
+                name: "MinimumRunwayLength",
+                table: "AircraftTypes",
                 type: "int",
                 nullable: false,
                 defaultValue: 0);
@@ -80,7 +100,7 @@ namespace OpenSky.API.Migrations
         ///             </para>
         /// </summary>
         /// <remarks>
-        /// sushi.at, 26/06/2021.
+        /// sushi.at, 28/06/2021.
         /// </remarks>
         /// <param name="migrationBuilder">
         /// The <see cref="T:Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder" /> that will
@@ -97,6 +117,18 @@ namespace OpenSky.API.Migrations
             migrationBuilder.DropColumn(
                 name: "HasBeenPopulated",
                 table: "Airports");
+
+            migrationBuilder.DropColumn(
+                name: "PreviousSize",
+                table: "Airports");
+
+            migrationBuilder.DropColumn(
+                name: "IncludeInWorldPopulation",
+                table: "AircraftTypes");
+
+            migrationBuilder.DropColumn(
+                name: "MinimumRunwayLength",
+                table: "AircraftTypes");
 
             migrationBuilder.DropColumn(
                 name: "PurchasePrice",
