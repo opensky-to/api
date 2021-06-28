@@ -11,6 +11,7 @@ namespace OpenSky.API.Services
     using System.Globalization;
     using System.IO;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
 
     using CsvHelper;
@@ -107,7 +108,143 @@ namespace OpenSky.API.Services
 
             var csv = new CsvReader(reader, config);
             this.icaoRegistrations = csv.GetRecords<IcaoRegistration>().OrderByDescending(i => i.AirportPrefix).ToArray();
+            csv.Dispose();
+            reader.Close();
+            reader.Dispose();
             this.logger.LogInformation("Populator Service running");
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Checks the airports for missing quotas and generates new aircraft.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 28/06/2021.
+        /// </remarks>
+        /// <param name="airports">
+        /// The list of airports to bulk-process.
+        /// </param>
+        /// <param name="cancellationToken">
+        /// A token that allows processing to be cancelled.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        public async Task CheckAndGenerateAircaftForAirports(IEnumerable<Airport> airports, CancellationToken cancellationToken)
+        {
+            // Comments on how this works have been removed for the bulk-operation method, to understand what this code does look at the single airport method
+            var generatedAircraft = new List<Aircraft>();
+            var updatedAirports = new List<Airport>();
+            var aircraftTypes = await this.db.AircraftTypes.ToListAsync(cancellationToken);
+            foreach (var airport in airports)
+            {
+                try
+                {
+                    if (!airport.Size.HasValue || !airport.MSFS)
+                    {
+                        continue;
+                    }
+
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        return;
+                    }
+
+                    var availableForPurchaseOrRent = await this.db.Aircraft.Where(aircraft => aircraft.AirportICAO == airport.ICAO && (aircraft.RentPrice.HasValue || aircraft.PurchasePrice.HasValue)).ToListAsync(cancellationToken);
+                    var totalSlots = CalculateTotalSlots(airport);
+                    var requiredAircraft = Math.Ceiling(totalSlots * 0.8);
+                    var newAircraftCount = availableForPurchaseOrRent.Count;
+                    if (newAircraftCount < requiredAircraft)
+                    {
+                        var categoryCount = Enum.GetValues<AircraftTypeCategory>().Length;
+                        var generatedTypesCount = new int[categoryCount];
+                        var counts = new int[categoryCount];
+                        var targets = new double[categoryCount];
+                        foreach (var category in Enum.GetValues<AircraftTypeCategory>())
+                        {
+                            counts[(int)category] = availableForPurchaseOrRent.Count(a => a.Type.Category == category);
+                            targets[(int)category] = this.ratios[airport.Size.Value + 1, (int)category];
+                        }
+
+                        var wasSuccessfull = true;
+                        while (newAircraftCount < requiredAircraft)
+                        {
+                            var quotas = new double[categoryCount];
+                            var deltas = new double[categoryCount];
+                            foreach (var category in Enum.GetValues<AircraftTypeCategory>())
+                            {
+                                quotas[(int)category] = (counts[(int)category] + generatedTypesCount[(int)category]) / requiredAircraft;
+                                deltas[(int)category] = quotas[(int)category] - targets[(int)category];
+                            }
+
+                            var minIndex = FindMinInArray(deltas);
+                            try
+                            {
+                                var registration = this.GenerateRegistration(airport, generatedAircraft);
+                                var typeCandidates = aircraftTypes.Where(
+                                    type => type.Category == (AircraftTypeCategory)minIndex && type.Enabled && (type.IsVanilla || type.IncludeInWorldPopulation) && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToList();
+
+                                var alternateIndex = minIndex;
+                                while (typeCandidates.Count == 0 && alternateIndex > 0)
+                                {
+                                    alternateIndex--;
+                                    var queryIndex = alternateIndex;
+                                    typeCandidates = aircraftTypes.Where(
+                                        type => type.Category == (AircraftTypeCategory)queryIndex && type.Enabled && (type.IsVanilla || type.IncludeInWorldPopulation) && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToList();
+                                }
+
+                                var randomType = typeCandidates[Random.Next(0, typeCandidates.Count - 1)];
+                                var purchasePrice = (randomType.MaxPrice + randomType.MinPrice) / 2; // @todo update when economics are implemented
+                                var rentPrice = purchasePrice / 100;
+
+                                var aircraft = new Aircraft
+                                {
+                                    AirportICAO = airport.ICAO,
+                                    PurchasePrice = purchasePrice,
+                                    RentPrice = rentPrice,
+                                    Registry = registration,
+                                    TypeID = randomType.ID
+                                };
+
+                                generatedAircraft.Add(aircraft);
+                                generatedTypesCount[minIndex]++;
+                                newAircraftCount++;
+                            }
+                            catch (Exception ex)
+                            {
+                                this.logger.LogError(ex, $"Error during aircraft generation for {airport.ICAO}");
+                                wasSuccessfull = false;
+                                break;
+                            }
+                        }
+
+                        airport.HasBeenPopulated = wasSuccessfull ? ProcessingStatus.Finished : ProcessingStatus.Failed;
+                        updatedAirports.Add(airport);
+                    }
+                    else
+                    {
+                        airport.HasBeenPopulated = ProcessingStatus.Finished;
+                        updatedAirports.Add(airport);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    this.logger.LogError(ex, $"Error populating airport {airport.ICAO} with aircraft.");
+                    airport.HasBeenPopulated = ProcessingStatus.Failed;
+                    updatedAirports.Add(airport);
+                }
+            }
+
+            try
+            {
+                await this.db.BulkInsertAsync(generatedAircraft, cancellationToken);
+                await this.db.BulkUpdateAsync(updatedAirports, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Error bulk-saving generated aircraft and updated airports.");
+            }
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -138,128 +275,67 @@ namespace OpenSky.API.Services
                 return;
             }
 
-            airport.HasBeenPopulated = ProcessingStatus.Queued;
-            await this.db.SaveDatabaseChangesAsync(this.logger, $"Error setting Queued status on airport {airport.ICAO}");
+            var availableForPurchaseOrRent = await this.db.Aircraft.Where(aircraft => aircraft.AirportICAO == airport.ICAO && (aircraft.RentPrice.HasValue || aircraft.PurchasePrice.HasValue)).ToListAsync();
+            var aircraftTypes = await this.db.AircraftTypes.ToListAsync();
+            var totalSlots = CalculateTotalSlots(airport);
 
-            var aircraftAtAirport = this.db.Aircraft.Where(aircraft => aircraft.AirportICAO == airport.ICAO);
-            var availableForPurchaseOrRent = await aircraftAtAirport.Where(aircraft => aircraft.RentPrice.HasValue || aircraft.PurchasePrice.HasValue).ToListAsync();
-            var totalRamps = airport.GaRamps;
-            var totalGates = airport.Gates;
-            double totalSlots = totalGates + totalRamps;
-
-            // Set total slots if 0 (>18k airports don't have this information set)
-            if (totalSlots == 0)
-            {
-                totalSlots = airport.Size switch
-                {
-                    -1 => 0,
-                    0 => 4.07,
-                    1 => 6.42,
-                    2 => 12.66,
-                    3 => 21.94 + 0.35,
-                    4 => 37.14 + 2.75,
-                    5 => 71.45 + 22.16,
-                    6 => 115.59 + 87.27,
-                    _ => totalSlots
-                };
-
-                if (totalSlots > 0)
-                {
-                    var tenPercent = (int)Math.Round(totalSlots * 0.1);
-                    totalSlots += Random.Next(-tenPercent, tenPercent);
-                }
-            }
-
-            // 80% Utilization
+            // 80% Utilization ?
             var requiredAircraft = Math.Ceiling(totalSlots * 0.8);
-
             var newAircraftCount = availableForPurchaseOrRent.Count;
-            int[] generatedTypesCount = { 0, 0, 0, 0, 0, 0, 0, 0 };
-
-            // Check if less then 80% are available
             if (newAircraftCount < requiredAircraft)
             {
-                // Check the currently available aircraft types distribution
-                var seps = availableForPurchaseOrRent.Count(aircraft => aircraft.Type.Category == AircraftTypeCategory.SEP);
-                var meps = availableForPurchaseOrRent.Count(aircraft => aircraft.Type.Category == AircraftTypeCategory.MEP);
-                var sets = availableForPurchaseOrRent.Count(aircraft => aircraft.Type.Category == AircraftTypeCategory.SET);
-                var mets = availableForPurchaseOrRent.Count(aircraft => aircraft.Type.Category == AircraftTypeCategory.MET);
-                var jets = availableForPurchaseOrRent.Count(aircraft => aircraft.Type.Category == AircraftTypeCategory.Jet);
-                var regionals = availableForPurchaseOrRent.Count(aircraft => aircraft.Type.Category == AircraftTypeCategory.Regional);
-                var nbAirliners = availableForPurchaseOrRent.Count(aircraft => aircraft.Type.Category == AircraftTypeCategory.NBAirliner);
-                var wbAirliners = availableForPurchaseOrRent.Count(aircraft => aircraft.Type.Category == AircraftTypeCategory.WBAirliner);
+                var categoryCount = Enum.GetValues<AircraftTypeCategory>().Length;
+                var generatedTypesCount = new int[categoryCount];
+                var counts = new int[categoryCount];
+                var targets = new double[categoryCount];
+                foreach (var category in Enum.GetValues<AircraftTypeCategory>())
+                {
+                    // Check the currently available aircraft types distribution
+                    counts[(int)category] = availableForPurchaseOrRent.Count(a => a.Type.Category == category);
 
-                // Look up the target ratios for the current airport size (0-indexed, therefor Airport Size + 1)
-                // @todo refactor to enum
-                var sepTarget = this.ratios[airport.Size.Value + 1, (int)AircraftTypeCategory.SEP];
-                var mepTarget = this.ratios[airport.Size.Value + 1, (int)AircraftTypeCategory.MEP];
-                var setTarget = this.ratios[airport.Size.Value + 1, (int)AircraftTypeCategory.SET];
-                var metTarget = this.ratios[airport.Size.Value + 1, (int)AircraftTypeCategory.MET];
-                var jetTarget = this.ratios[airport.Size.Value + 1, (int)AircraftTypeCategory.Jet];
-                var regTarget = this.ratios[airport.Size.Value + 1, (int)AircraftTypeCategory.Regional];
-                var nbTarget = this.ratios[airport.Size.Value + 1, (int)AircraftTypeCategory.NBAirliner];
-                var wbTarget = this.ratios[airport.Size.Value + 1, (int)AircraftTypeCategory.WBAirliner];
+                    // Look up the target ratios for the current airport size (0-indexed, therefore Airport Size + 1)
+                    targets[(int)category] = this.ratios[airport.Size.Value + 1, (int)category];
+                }
 
                 var generatedAircraft = new List<Aircraft>();
                 var wasSuccessfull = true;
-
                 while (newAircraftCount < requiredAircraft)
                 {
-                    var sepQuota = (seps + generatedTypesCount[(int)AircraftTypeCategory.SEP]) / requiredAircraft;
-                    var mepQuota = (meps + generatedTypesCount[(int)AircraftTypeCategory.MEP]) / requiredAircraft;
-                    var setQuota = (sets + generatedTypesCount[(int)AircraftTypeCategory.SET]) / requiredAircraft;
-                    var metQuota = (mets + generatedTypesCount[(int)AircraftTypeCategory.MET]) / requiredAircraft;
-                    var jetQuota = (jets + generatedTypesCount[(int)AircraftTypeCategory.Jet]) / requiredAircraft;
-                    var regQuota = (regionals + generatedTypesCount[(int)AircraftTypeCategory.Regional]) / requiredAircraft;
-                    var nbQuota = (nbAirliners + generatedTypesCount[(int)AircraftTypeCategory.NBAirliner]) / requiredAircraft;
-                    var wbQuota = (wbAirliners + generatedTypesCount[(int)AircraftTypeCategory.WBAirliner]) / requiredAircraft;
+                    var quotas = new double[categoryCount];
+                    var deltas = new double[categoryCount];
+                    foreach (var category in Enum.GetValues<AircraftTypeCategory>())
+                    {
+                        quotas[(int)category] = (counts[(int)category] + generatedTypesCount[(int)category]) / requiredAircraft;
 
-                    // Determine the highest delta
-                    var sepDelta = sepQuota - sepTarget;
-                    var mepDelta = mepQuota - mepTarget;
-                    var setDelta = setQuota - setTarget;
-                    var metDelta = metQuota - metTarget;
-                    var jetDelta = jetQuota - jetTarget;
-                    var regDelta = regQuota - regTarget;
-                    var nbDelta = nbQuota - nbTarget;
-                    var wbDelta = wbQuota - wbTarget;
+                        // Determine the highest delta
+                        // IMPORTANT: HAS TO BE IN ORDER OF AircraftTypeCategory enum
+                        deltas[(int)category] = quotas[(int)category] - targets[(int)category];
+                    }
 
-                    // IMPORTANT: HAS TO BE IN ORDER OF AircraftTypeCategory enum
-                    double[] deltas = { sepDelta, mepDelta, setDelta, metDelta, jetDelta, regDelta, nbDelta, wbDelta };
                     var minIndex = FindMinInArray(deltas);
-
                     try
                     {
-                        // Generate Registration for country
+                        // Generate registration for the aircraft (based on airport country)
                         var registration = this.GenerateRegistration(airport, generatedAircraft);
 
-                        // Get random enabled vanilla type of needed category
-                        var typeCandidates = await this.db.AircraftTypes.Where(type => type.Category == (AircraftTypeCategory)minIndex && type.Enabled && (type.IsVanilla || type.IncludeInWorldPopulation) && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToListAsync();
+                        // Get enabled vanilla/popular types of needed category and matching minimum runway length
+                        var typeCandidates = aircraftTypes.Where(
+                            type => type.Category == (AircraftTypeCategory)minIndex && type.Enabled && (type.IsVanilla || type.IncludeInWorldPopulation) && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToList();
 
                         var alternateIndex = minIndex;
                         while (typeCandidates.Count == 0 && alternateIndex > 0)
                         {
                             // Go down a category, if no suitable aircraft type could be found
-                            alternateIndex = alternateIndex switch
-                            {
-                                (int)AircraftTypeCategory.MEP => (int)AircraftTypeCategory.SEP,
-                                (int)AircraftTypeCategory.SET => (int)AircraftTypeCategory.MEP,
-                                (int)AircraftTypeCategory.MET => (int)AircraftTypeCategory.SET,
-                                (int)AircraftTypeCategory.Jet => (int)AircraftTypeCategory.MET,
-                                (int)AircraftTypeCategory.Regional => (int)AircraftTypeCategory.Jet,
-                                (int)AircraftTypeCategory.NBAirliner => (int)AircraftTypeCategory.Regional,
-                                (int)AircraftTypeCategory.WBAirliner => (int)AircraftTypeCategory.NBAirliner,
-                                _ => (int)AircraftTypeCategory.NBAirliner,
-                            };
+                            alternateIndex--;
 
-                            var localIndex = alternateIndex;
-                            typeCandidates = await this.db.AircraftTypes.Where(type => type.Category == (AircraftTypeCategory)localIndex && type.Enabled && (type.IsVanilla || type.IncludeInWorldPopulation) && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToListAsync();
+                            var queryIndex = alternateIndex;
+                            typeCandidates = aircraftTypes.Where(
+                                type => type.Category == (AircraftTypeCategory)queryIndex && type.Enabled && (type.IsVanilla || type.IncludeInWorldPopulation) && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToList();
                         }
 
+                        // Pick a random type and set purchase and rent price
                         var randomType = typeCandidates[Random.Next(0, typeCandidates.Count - 1)];
-
-                        // @todo update when economics are implemented
-                        var purchasePrice = (randomType.MaxPrice + randomType.MinPrice) / 2;
+                        var purchasePrice = (randomType.MaxPrice + randomType.MinPrice) / 2; // @todo update when economics are implemented
                         var rentPrice = purchasePrice / 100;
 
                         // Create aircraft with picked type
@@ -293,9 +369,54 @@ namespace OpenSky.API.Services
             }
             else
             {
+                // Airport had enough aircraft already
                 airport.HasBeenPopulated = ProcessingStatus.Finished;
                 await this.db.SaveDatabaseChangesAsync(this.logger, $"Error setting Finished status on airport {airport.ICAO}");
             }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Calculate total slots for the specified airport.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 28/06/2021.
+        /// </remarks>
+        /// <param name="airport">
+        /// The airport to process.
+        /// </param>
+        /// <returns>
+        /// The calculated total slots.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        private static double CalculateTotalSlots(Airport airport)
+        {
+            var totalSlots = (double)(airport.Gates + airport.GaRamps);
+
+            // Set total slots if 0 (>18k airports don't have this information set)
+            if (totalSlots == 0)
+            {
+                totalSlots = airport.Size switch
+                {
+                    -1 => 0,
+                    0 => 4.07,
+                    1 => 6.42,
+                    2 => 12.66,
+                    3 => 21.94 + 0.35,
+                    4 => 37.14 + 2.75,
+                    5 => 71.45 + 22.16,
+                    6 => 115.59 + 87.27,
+                    _ => totalSlots
+                };
+
+                if (totalSlots > 0)
+                {
+                    var tenPercent = (int)Math.Round(totalSlots * 0.1);
+                    totalSlots += Random.Next(-tenPercent, tenPercent);
+                }
+            }
+
+            return totalSlots;
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -558,7 +679,7 @@ namespace OpenSky.API.Services
         {
             var airportRegistrationsEntry = this.icaoRegistrations.FirstOrDefault(icaoRegistration => airport.ICAO.ToLower()[..2].StartsWith(icaoRegistration.AirportPrefix.ToLower()));
             const int maxAttempts = 20;
-            var registration = "";
+            var registration = string.Empty;
 
             // Default to US Registration
             airportRegistrationsEntry ??= new IcaoRegistration

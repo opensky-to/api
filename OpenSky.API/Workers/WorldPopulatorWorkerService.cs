@@ -169,8 +169,11 @@ namespace OpenSky.API.Workers
             catch (Exception ex)
             {
                 this.logger.LogError(ex, "Error resetting leftover queued airports during world populator background worker startup.");
-            }			
+            }
 
+            var todoCount = 0;
+            int? processed = null;
+            var runStarted = DateTime.UtcNow;
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
@@ -178,31 +181,30 @@ namespace OpenSky.API.Workers
                     var airportTodoCount = await db.Airports.CountAsync(airport => airport.HasBeenPopulated == ProcessingStatus.NeedsHandling && airport.Size.HasValue && airport.MSFS, stoppingToken);
                     if (airportTodoCount > 0)
                     {
-                        this.logger.LogInformation($"World populator still needs to process {airportTodoCount} airports...");
-                    }
+                        if (!processed.HasValue)
+                        {
+                            processed = 0;
+                            todoCount = airportTodoCount;
+                            runStarted = DateTime.UtcNow;
+                            this.logger.LogInformation($"World populator starting new run, found {airportTodoCount} airports to process...");
+                        }
 
-                    // Get the first 100 airports that need populating
-                    var airports = await db.Airports.Where(airport => airport.HasBeenPopulated == ProcessingStatus.NeedsHandling && airport.Size.HasValue && airport.MSFS).Take(100).ToListAsync(stoppingToken);
-                    foreach (var airport in airports)
-                    {
-                        try
-                        {
-                            await this.worldPopulator.CheckAndGenerateAircraftForAirport(airport);
-                        }
-                        catch (Exception ex)
-                        {
-                            airport.HasBeenPopulated = ProcessingStatus.Failed;
-                            this.logger.LogError(ex, $"Error populating airport {airport.ICAO} with aircraft.");
-                        }
-                        finally
-                        {
-                            await db.SaveDatabaseChangesAsync(this.logger, $"Error populating airport {airport.ICAO} with aircraft.");
-                        }
+                        // Get the first 100 airports that need populating
+                        var airports = await db.Airports.Where(airport => airport.HasBeenPopulated == ProcessingStatus.NeedsHandling && airport.Size.HasValue && airport.MSFS).Take(100).ToListAsync(stoppingToken);
+                        await this.worldPopulator.CheckAndGenerateAircaftForAirports(airports, stoppingToken);
+                        processed += airports.Count;
+                        this.logger.LogInformation($"World populator processed {processed} of {todoCount} airports [{(int)((processed / (double)todoCount) * 100)} %]");
                     }
-
-                    // If it was less then 100 airports last run wait for CheckInterval
-                    if (airports.Count < 100)
+                    else
                     {
+                        if (processed.HasValue)
+                        {
+                            this.logger.LogInformation($"World populator processed {processed} airports in {(DateTime.UtcNow - runStarted).TotalMinutes:F1} minutes.");
+                            todoCount = 0;
+                            processed = null;
+                        }
+
+                        // Nothing to do right now, wait for CheckInterval
                         await Task.Delay(CheckInterval, stoppingToken);
                     }
                 }
