@@ -11,16 +11,18 @@ namespace OpenSky.API.DbModel
     using System.ComponentModel.DataAnnotations;
     using System.Text.Json.Serialization;
 
+    using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Helpers;
 
     /*
      * AIRPORT EXAMPLE RECORD FROM DB (LOWW - Vienna International)
      *
      * INSERT INTO `Airports` (`ICAO`, `Altitude`, `AtisFrequency`, `City`, `GaRamps`, `Gates`, `HasAvGas`, `HasJetFuel`, `IsClosed`, `IsMilitary`, `Latitude`,
-     * `LongestRunwayLength`, `LongestRunwaySurface`, `Longitude`, `Name`, `RunwayCount`, `TowerFrequency`, `UnicomFrequency`, `Size`, `MSFS`, `SupportsSuper`)
+     * `LongestRunwayLength`, `LongestRunwaySurface`, `Longitude`, `Name`, `RunwayCount`, `TowerFrequency`, `UnicomFrequency`, `Size`, `MSFS`, `SupportsSuper`,
+     * `Country`, `HasBeenPopulated`)
      *
      * VALUES ('LOWW', '0', '121730', 'Schwechat', '29', '31', '1', '1', '0', '0', '48.11007308959961',
-     * '11811', 'A', '16.569616317749023', 'Flughafen Wien-Schwechat', '2', '119400', '118525', '5', '1', '1')
+     * '11811', 'A', '16.569616317749023', 'Flughafen Wien-Schwechat', '2', '119400', '118525', '5', '1', '1', 'AT' ,'0')
      */
 
     /// -------------------------------------------------------------------------------------------------
@@ -111,6 +113,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the country.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public Country? Country { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the number of GA ramps.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -129,6 +138,13 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public bool HasAvGas { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the HasBeenPopulated flag.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public ProcessingStatus HasBeenPopulated { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -209,6 +225,14 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the previous size of the airport (if available, used to detect size changes and
+        /// trigger other services like the plane world populator).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int? PreviousSize { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the number of runways.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -228,7 +252,7 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the size of the airport (from -1 to 6).
+        /// Gets or sets the size of the airport (from -1 to 6, NULL means size isn't calculated yet).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public int? Size { get; set; }
