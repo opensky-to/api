@@ -51,6 +51,14 @@ namespace OpenSky.API.Services
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The chances that an airport of a given size will spawn a random foreign registration instead
+        /// of a local one - indexed by airport size, excluding -1 ;).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly int[] foreignRegChances = { 2, 5, 7, 10, 15, 20, 25 };
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The icao registrations from the CSV file.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -393,6 +401,12 @@ namespace OpenSky.API.Services
         {
             var totalSlots = (double)(airport.Gates + airport.GaRamps);
 
+            // If the airport is closed, don't generate any aircraft
+            if (airport.Size == -1)
+            {
+                totalSlots = 0;
+            }
+
             // Set total slots if 0 (>18k airports don't have this information set)
             if (totalSlots == 0)
             {
@@ -508,8 +522,11 @@ namespace OpenSky.API.Services
         /// -------------------------------------------------------------------------------------------------
         private static string GenerateNorthKoreaRegistration()
         {
-            // Correct would be 500-999, but we try for 80% occupancy which isn't possible with only 500 numbers
-            return $"P{Random.Next(500, 9999)}";
+            return Random.Next(0, 100) switch
+            {
+                < 20 => $"P{Random.Next(500, 9999)}", // 20% chance to spawn a longer number, we need more numbers to populate North Korea correctly to 80%
+                _ => $"P{Random.Next(500, 999)}"
+            };
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -626,12 +643,11 @@ namespace OpenSky.API.Services
         /// -------------------------------------------------------------------------------------------------
         private static string GenerateUsRegistration()
         {
-            var randomNum = Random.Next(0, 100);
-            return randomNum switch
+            return Random.Next(0, 100) switch
             {
-                < 33 => "N" + Random.Next(1, 99999), // Generate 1-999999
-                < 66 => "N" + Random.Next(1, 9999) + RandomString(1), // Generate 1A-9999Z
-                _ => "N" + Random.Next(1, 999) + RandomString(2), // Generate 1AA-999ZZ
+                < 33 => $"N{Random.Next(1, 99999)}", // Generate 1-999999
+                < 66 => $"N{Random.Next(1, 9999)}{RandomString(1)}", // Generate 1A-9999Z
+                _ => $"N{Random.Next(1, 999)}{RandomString(2)}", // Generate 1AA-999ZZ
             };
         }
 
@@ -681,7 +697,14 @@ namespace OpenSky.API.Services
             const int maxAttempts = 20;
             var registration = string.Empty;
 
-            // Default to US Registration
+            // Pick a random foreign registration?
+            var randomReg = Random.Next(1, 100);
+            if (randomReg <= this.foreignRegChances[airport.Size ?? 0])
+            {
+                airportRegistrationsEntry = this.icaoRegistrations[Random.Next(0, this.icaoRegistrations.Length - 1)];
+            }
+
+            // Default to US Registration if there is no entry for a given country
             airportRegistrationsEntry ??= new IcaoRegistration
             {
                 AircraftPrefix = "N",
@@ -719,7 +742,21 @@ namespace OpenSky.API.Services
 
                 if (i == maxAttempts - 1)
                 {
-                    throw new Exception("Could not find a non-duplicate registration for aircraft");
+                    // The US numbers have space for >1 million planes, pick a random US one if we can't find a local one
+                    if (airportRegistrationsEntry.AircraftPrefix != "N")
+                    {
+                        i = 0;
+                        airportRegistrationsEntry = new IcaoRegistration
+                        {
+                            AircraftPrefix = "N",
+                            AirportPrefix = "K",
+                            Country = "United States of America"
+                        };
+                    }
+                    else
+                    {
+                        throw new Exception("Could not find a non-duplicate registration for aircraft");
+                    }
                 }
             }
 
