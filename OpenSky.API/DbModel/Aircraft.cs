@@ -102,12 +102,26 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the purchase price for the aircraft. Null if not available for purchase.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int? PurchasePrice { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the aircraft registration.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [Key]
         [StringLength(10, MinimumLength = 5)]
         public string Registry { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the rent price per flight hour for the aircraft. Null if not available for rent.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int? RentPrice { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

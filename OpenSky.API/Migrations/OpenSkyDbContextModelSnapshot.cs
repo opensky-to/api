@@ -15,7 +15,7 @@ namespace OpenSky.API.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("Relational:MaxIdentifierLength", 64)
-                .HasAnnotation("ProductVersion", "5.0.6");
+                .HasAnnotation("ProductVersion", "5.0.7");
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -160,6 +160,12 @@ namespace OpenSky.API.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
+                    b.Property<int?>("PurchasePrice")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RentPrice")
+                        .HasColumnType("int");
+
                     b.Property<Guid>("TypeID")
                         .HasColumnType("char(36)");
 
@@ -217,6 +223,9 @@ namespace OpenSky.API.Migrations
                     b.Property<double>("FuelTotalCapacity")
                         .HasColumnType("double");
 
+                    b.Property<bool>("IncludeInWorldPopulation")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<bool>("IsGearRetractable")
                         .HasColumnType("tinyint(1)");
 
@@ -237,6 +246,9 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("MinPrice")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MinimumRunwayLength")
                         .HasColumnType("int");
 
                     b.Property<string>("Name")
@@ -290,6 +302,9 @@ namespace OpenSky.API.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
+                    b.Property<int?>("Country")
+                        .HasColumnType("int");
+
                     b.Property<int>("GaRamps")
                         .HasColumnType("int");
 
@@ -298,6 +313,9 @@ namespace OpenSky.API.Migrations
 
                     b.Property<bool>("HasAvGas")
                         .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("HasBeenPopulated")
+                        .HasColumnType("int");
 
                     b.Property<bool>("HasJetFuel")
                         .HasColumnType("tinyint(1)");
@@ -329,6 +347,9 @@ namespace OpenSky.API.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
+
+                    b.Property<int?>("PreviousSize")
+                        .HasColumnType("int");
 
                     b.Property<int>("RunwayCount")
                         .HasColumnType("int");

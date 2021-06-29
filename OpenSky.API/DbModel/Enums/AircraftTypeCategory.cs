@@ -42,13 +42,18 @@ namespace OpenSky.API.DbModel.Enums
         Jet = 4,
 
         /// <summary>
+        /// Regional Airliner Jets.
+        /// </summary>
+        Regional = 5,
+
+        /// <summary>
         /// Narrow-Body Airliner.
         /// </summary>
-        NBAirliner = 5,
+        NBAirliner = 6,
 
         /// <summary>
         /// Wide-Body Airliner.
         /// </summary>
-        WBAirliner = 6
+        WBAirliner = 7,
     }
 }
