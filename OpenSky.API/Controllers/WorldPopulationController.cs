@@ -6,6 +6,7 @@
 
 namespace OpenSky.API.Controllers
 {
+    using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
 
@@ -14,6 +15,7 @@ namespace OpenSky.API.Controllers
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
 
+    using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Model;
     using OpenSky.API.Model.Authentication;
 
@@ -80,10 +82,33 @@ namespace OpenSky.API.Controllers
         public async Task<ActionResult<ApiResponse<WorldPopulationOverview>>> GetWorldPopulationOverview()
         {
             this.logger.LogInformation($"{this.User.Identity?.Name} | GET WorldPopulationOverview");
+
+            var fuelAvailability = new List<PieChartValue>
+            {
+                new() { Key = "None", Value = await this.db.Airports.CountAsync(a => !a.HasAvGas && !a.HasJetFuel) },
+                new() { Key = "AvGas", Value = await this.db.Airports.CountAsync(a => a.HasAvGas && !a.HasJetFuel) },
+                new() { Key = "Jetfuel", Value = await this.db.Airports.CountAsync(a => !a.HasAvGas && a.HasJetFuel)},
+                new() { Key = "Both", Value = await this.db.Airports.CountAsync(a => a.HasAvGas && a.HasJetFuel)}
+            };
+
+            var runwayLights = new List<PieChartValue>
+            {
+                new() {Key = "Lit", Value = await this.db.Runways.CountAsync(r =>  !string.IsNullOrEmpty(r.CenterLight) || !string.IsNullOrEmpty(r.EdgeLight))},
+                new() {Key = "Unlit", Value = await this.db.Runways.CountAsync(r =>  string.IsNullOrEmpty(r.CenterLight) && string.IsNullOrEmpty(r.EdgeLight))}
+            };
+
             var overview = new WorldPopulationOverview
             {
                 TotalAirports = await this.db.Airports.CountAsync(),
-                AirportSizes = await this.db.Airports.GroupBy(a => a.Size, a => a, (key, airports) => new AirportSize { Size = $"{key}", Airports = airports.Count() }).ToListAsync()
+                AirportSizes = await this.db.Airports.GroupBy(a => a.Size, a => a, (size, airports) => new PieChartValue { Key = $"{size}", Value = airports.Count() }).ToListAsync(),
+                FuelAvailability = fuelAvailability,
+                TotalRunways = await this.db.Runways.CountAsync(),
+                RunwaySurfaces = await this.db.Runways.GroupBy(r => r.Surface, r => r, (surface, runways) => new PieChartValue { Key = $"{surface.ParseRunwaySurface()}", Value = runways.Count() }).ToListAsync(),
+                RunwayLights = runwayLights,
+                TotalApproaches = await this.db.Approaches.CountAsync(),
+                ApproachTypes = await this.db.Approaches.GroupBy(a => a.Type, a => a, (type, approaches) => new PieChartValue { Key = type, Value = approaches.Count() }).ToListAsync(),
+                TotalAircraft = await this.db.Aircraft.CountAsync(),
+                AircraftCategories = await this.db.Aircraft.GroupBy(a => a.Type.Category, a => a, (category, aircraft) => new PieChartValue { Key = $"{category}", Value = aircraft.Count() }).ToListAsync()
             };
 
             return new ApiResponse<WorldPopulationOverview>(overview);

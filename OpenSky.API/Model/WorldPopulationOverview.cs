@@ -20,6 +20,55 @@ namespace OpenSky.API.Model
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets a pie chart series for aircraft categories.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public IEnumerable<PieChartValue> AircraftCategories { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets a pie chart series for airport sizes.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public IEnumerable<PieChartValue> AirportSizes { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets a pie chart series for approach types.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public IEnumerable<PieChartValue> ApproachTypes { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets a pie chart series for fuel availability at airports.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public IEnumerable<PieChartValue> FuelAvailability { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets a pie chart series for runway lights.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public IEnumerable<PieChartValue> RunwayLights { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets a pie chart series for runway surfaces.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public IEnumerable<PieChartValue> RunwaySurfaces { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the total number of aircraft.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int TotalAircraft { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the total number of airports.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -27,34 +76,41 @@ namespace OpenSky.API.Model
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets a list grouping airports by size.
+        /// Gets or sets the total number of approaches.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public IEnumerable<AirportSize> AirportSizes { get; set; }
+        public int TotalApproaches { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the total number of runways.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int TotalRunways { get; set; }
     }
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Airport counts by size.
+    /// Pie chart value.
     /// </summary>
     /// <remarks>
     /// sushi.at, 02/07/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class AirportSize
+    public class PieChartValue
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the size.
+        /// Gets or sets the key.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public string Size { get; set; }
+        public string Key { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the number of airports.
+        /// Gets or sets the value.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public int Airports { get; set; }
+        public int Value { get; set; }
     }
 }
