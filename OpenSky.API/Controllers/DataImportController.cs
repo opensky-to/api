@@ -7,6 +7,7 @@
 namespace OpenSky.API.Controllers
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Text.Json;
     using System.Threading.Tasks;
@@ -87,6 +88,7 @@ namespace OpenSky.API.Controllers
         [HttpGet("status/{importID:guid}", Name = "GetImportStatus")]
         public async Task<ActionResult<ApiResponse<DataImportStatus>>> GetImportStatus(Guid importID)
         {
+            this.logger.LogInformation($"{this.User.Identity?.Name} | GET DataImport/status/{importID}");
             if (DataImportWorkerService.Status.ContainsKey(importID))
             {
                 return new ApiResponse<DataImportStatus> { Data = DataImportWorkerService.Status[importID] };
@@ -95,16 +97,60 @@ namespace OpenSky.API.Controllers
             var dataImport = await this.db.DataImports.SingleOrDefaultAsync(i => i.ID == importID);
             if (dataImport != null)
             {
-                if (!string.IsNullOrEmpty(dataImport.LogText))
+                if (dataImport.Finished.HasValue)
                 {
-                    var dataImportStatus = JsonSerializer.Deserialize<DataImportStatus>(dataImport.LogText);
-                    return new ApiResponse<DataImportStatus> { Data = dataImportStatus };
+                    return new ApiResponse<DataImportStatus>($"Data import completed in {(dataImport.Finished - dataImport.Started).Value.TotalMinutes:F1} minutes, total number of records processed is {dataImport.TotalRecordsProcessed}.") { IsError = false, Status = "COMPLETE", Data = new DataImportStatus() };
+                }
+
+                if (!string.IsNullOrEmpty(dataImport.ImportStatusJson))
+                {
+                    var dataImportStatus = JsonSerializer.Deserialize<DataImportStatus>(dataImport.ImportStatusJson);
+                    return new ApiResponse<DataImportStatus> { Data = dataImportStatus, Status = "PROCESSING" };
                 }
 
                 return new ApiResponse<DataImportStatus>("Specified import has no status saved.") { IsError = true, Data = new DataImportStatus() };
             }
 
             return new ApiResponse<DataImportStatus>("No import with specified ID was found.") { IsError = true, Data = new DataImportStatus() };
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Get data imports.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 02/07/2021.
+        /// </remarks>
+        /// <returns>
+        /// An asynchronous result that yields the data imports.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet("", Name = "GetDataImports")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<DataImport>>>> GetDataImports()
+        {
+            this.logger.LogInformation($"{this.User.Identity?.Name} | GET DataImport");
+            var dataImports = await this.db.DataImports.ToListAsync();
+            foreach (var dataImport in dataImports)
+            {
+                if (!string.IsNullOrEmpty(dataImport.ImportStatusJson))
+                {
+                    try
+                    {
+                        dataImport.ImportStatus = JsonSerializer.Deserialize<DataImportStatus>(dataImport.ImportStatusJson);
+                    }
+                    catch (Exception ex)
+                    {
+                        this.logger.LogError(ex, $"Error deserializing JSON import status for data import {dataImport.ID}");
+                        dataImport.ImportStatus = new DataImportStatus();
+                    }
+                }
+                else
+                {
+                    dataImport.ImportStatus = new DataImportStatus();
+                }
+            }
+
+            return new ApiResponse<IEnumerable<DataImport>>(dataImports);
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -134,7 +180,7 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<Guid?>("Unable to determine current user name, aborting.") { IsError = true };
                 }
 
-                this.logger.LogInformation($"PostLittleNavmapMSFS received file with length {fileUpload.Length} bytes, saving to temporary file {filePath}");
+                this.logger.LogInformation($"{this.User.Identity?.Name} | PostLittleNavmapMSFS received file with length {fileUpload.Length} bytes, saving to temporary file {filePath}");
                 await using (var stream = System.IO.File.Create(filePath))
                 {
                     await fileUpload.CopyToAsync(stream);

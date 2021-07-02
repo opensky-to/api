@@ -8,6 +8,9 @@ namespace OpenSky.API.DbModel
 {
     using System;
     using System.ComponentModel.DataAnnotations;
+    using System.ComponentModel.DataAnnotations.Schema;
+
+    using OpenSky.API.Model;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -43,10 +46,18 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the optional log text (details about the import).
+        /// Gets or sets the import status (only when returned in API call).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public string LogText { get; set; }
+        [NotMapped]
+        public DataImportStatus ImportStatus { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the optional import status JSON text.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string ImportStatusJson { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

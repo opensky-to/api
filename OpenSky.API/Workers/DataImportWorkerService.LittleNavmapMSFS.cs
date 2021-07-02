@@ -360,14 +360,14 @@ namespace OpenSky.API.Workers
             catch (Exception ex)
             {
                 this.logger.LogError(ex, $"Error processing LittleNavmap MSFS data import {dataImport.ID} for file {dataImport.ImportDataSource}");
-                dataImport.LogText = $"ERROR processing: {ex.Message}";
+                dataImport.ImportStatusJson = $"ERROR processing: {ex.Message}";
             }
             finally
             {
                 // Save the outcome of the data import to the database (we are not cancelling this if the server wants to shut down)
                 dataImport.Finished = DateTime.UtcNow;
                 dataImport.TotalRecordsProcessed = totalRecordsProcessed;
-                dataImport.LogText = JsonSerializer.Serialize(Status[dataImport.ID]);
+                dataImport.ImportStatusJson = JsonSerializer.Serialize(Status[dataImport.ID]);
                 await db.SaveDatabaseChangesAsync(this.logger, $"Error saving data import result to database for {dataImport.ID}");
 
                 this.logger.LogInformation($"Finished processing LittleNavmap MSFS data import {dataImport.ID}, {totalRecordsProcessed} total records processed in {(DateTime.UtcNow - dataImport.Started).TotalMinutes:F1} minutes.");
