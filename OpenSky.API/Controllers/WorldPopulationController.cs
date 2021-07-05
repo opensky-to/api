@@ -18,6 +18,7 @@ namespace OpenSky.API.Controllers
     using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Model;
     using OpenSky.API.Model.Authentication;
+    using OpenSky.API.Services;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -49,6 +50,13 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The world populator service.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly WorldPopulatorService worldPopulator;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Initializes a new instance of the <see cref="WorldPopulationController"/> class.
         /// </summary>
         /// <remarks>
@@ -60,11 +68,15 @@ namespace OpenSky.API.Controllers
         /// <param name="db">
         /// The OpenSky database context.
         /// </param>
+        /// <param name="worldPopulator">
+        /// The world populator service.
+        /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public WorldPopulationController(ILogger<WorldPopulationController> logger, OpenSkyDbContext db)
+        public WorldPopulationController(ILogger<WorldPopulationController> logger, OpenSkyDbContext db, WorldPopulatorService worldPopulator)
         {
             this.logger = logger;
             this.db = db;
+            this.worldPopulator = worldPopulator;
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -87,14 +99,20 @@ namespace OpenSky.API.Controllers
             {
                 new() { Key = "None", Value = await this.db.Airports.CountAsync(a => !a.HasAvGas && !a.HasJetFuel) },
                 new() { Key = "AvGas", Value = await this.db.Airports.CountAsync(a => a.HasAvGas && !a.HasJetFuel) },
-                new() { Key = "Jetfuel", Value = await this.db.Airports.CountAsync(a => !a.HasAvGas && a.HasJetFuel)},
-                new() { Key = "Both", Value = await this.db.Airports.CountAsync(a => a.HasAvGas && a.HasJetFuel)}
+                new() { Key = "Jetfuel", Value = await this.db.Airports.CountAsync(a => !a.HasAvGas && a.HasJetFuel) },
+                new() { Key = "Both", Value = await this.db.Airports.CountAsync(a => a.HasAvGas && a.HasJetFuel) }
             };
 
             var runwayLights = new List<PieChartValue>
             {
-                new() {Key = "Lit", Value = await this.db.Runways.CountAsync(r =>  !string.IsNullOrEmpty(r.CenterLight) || !string.IsNullOrEmpty(r.EdgeLight))},
-                new() {Key = "Unlit", Value = await this.db.Runways.CountAsync(r =>  string.IsNullOrEmpty(r.CenterLight) && string.IsNullOrEmpty(r.EdgeLight))}
+                new() { Key = "Lit", Value = await this.db.Runways.CountAsync(r => !string.IsNullOrEmpty(r.CenterLight) || !string.IsNullOrEmpty(r.EdgeLight)) },
+                new() { Key = "Unlit", Value = await this.db.Runways.CountAsync(r => string.IsNullOrEmpty(r.CenterLight) && string.IsNullOrEmpty(r.EdgeLight)) }
+            };
+
+            var aircraftOwner = new List<PieChartValue>
+            {
+                new() { Key = "System", Value = await this.db.Aircraft.CountAsync(a => a.OwnerID == null) },
+                new() { Key = "Player", Value = await this.db.Aircraft.CountAsync(a => a.OwnerID != null) }
             };
 
             var overview = new WorldPopulationOverview
@@ -108,10 +126,40 @@ namespace OpenSky.API.Controllers
                 TotalApproaches = await this.db.Approaches.CountAsync(),
                 ApproachTypes = await this.db.Approaches.GroupBy(a => a.Type, a => a, (type, approaches) => new PieChartValue { Key = type, Value = approaches.Count() }).ToListAsync(),
                 TotalAircraft = await this.db.Aircraft.CountAsync(),
-                AircraftCategories = await this.db.Aircraft.GroupBy(a => a.Type.Category, a => a, (category, aircraft) => new PieChartValue { Key = $"{category}", Value = aircraft.Count() }).ToListAsync()
+                AircraftCategories = await this.db.Aircraft.GroupBy(a => a.Type.Category, a => a, (category, aircraft) => new PieChartValue { Key = $"{category}", Value = aircraft.Count() }).ToListAsync(),
+                AircraftOwner = aircraftOwner
             };
 
             return new ApiResponse<WorldPopulationOverview>(overview);
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Manually request to populate an airport and return info text results.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 05/07/2021.
+        /// </remarks>
+        /// <param name="icao">
+        /// The icao of the airport to populate.
+        /// </param>
+        /// <returns>
+        /// An information string reporting what operations/errors where performed/encountered.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPost("populate/{icao}", Name = "PopulateAirport")]
+        public async Task<ActionResult<ApiResponse<string>>> PopulateAirport(string icao)
+        {
+            this.logger.LogInformation($"{this.User.Identity?.Name} | POST PopulateAirport/{icao}");
+
+            var airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == icao);
+            if (airport == null)
+            {
+                return new ApiResponse<string>($"No airport record found for ICAO {icao}.") { IsError = true };
+            }
+
+            var infoText = await this.worldPopulator.CheckAndGenerateAircraftForAirport(airport, false);
+            return new ApiResponse<string>($"Finished populating airport {icao}") { Data = infoText };
         }
     }
 }
