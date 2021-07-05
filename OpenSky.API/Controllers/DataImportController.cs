@@ -196,7 +196,11 @@ namespace OpenSky.API.Controllers
                     ImportDataSource = filePath
                 };
                 await this.db.DataImports.AddAsync(dataImport);
-                await this.db.SaveDatabaseChangesAsync(this.logger, "Error adding data import record to database.");
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error adding data import record to database.");
+                if (saveEx != null)
+                {
+                    return new ApiResponse<Guid?>("Error adding data import record to database.", saveEx);
+                }
 
                 return new ApiResponse<Guid?>("Successfully added data import to queue.") { Data = dataImport.ID };
             }
