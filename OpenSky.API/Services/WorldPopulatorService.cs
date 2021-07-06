@@ -289,6 +289,7 @@ namespace OpenSky.API.Services
             // The info text that describes what we did, for manual calls by admins
             string infoText;
 
+            // ReSharper disable once AccessToModifiedClosure
             var availableForPurchaseOrRent = await this.db.Aircraft.Where(aircraft => aircraft.AirportICAO == airport.ICAO && (aircraft.RentPrice.HasValue || aircraft.PurchasePrice.HasValue)).ToListAsync();
             var aircraftTypes = await this.db.AircraftTypes.ToListAsync();
             var totalSlots = CalculateTotalSlots(airport);
@@ -379,6 +380,11 @@ namespace OpenSky.API.Services
                     }
                 }
 
+                if (!this.db.IsAttached(airport))
+                {
+                    airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == airport.ICAO);
+                }
+
                 airport.HasBeenPopulated = errors.Count == 0 ? ProcessingStatus.Finished : ProcessingStatus.Failed;
                 await this.db.Aircraft.AddRangeAsync(generatedAircraft);
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, $"Error saving generated aircraft for airport {airport.ICAO}.");
@@ -411,6 +417,11 @@ namespace OpenSky.API.Services
             {
                 // Airport had enough aircraft already
                 infoText = $"Airport {airport.ICAO} has enough aircraft already ({requiredAircraft} required, {newAircraftCount} available), skipping.";
+                if (!this.db.IsAttached(airport))
+                {
+                    airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == airport.ICAO);
+                }
+
                 airport.HasBeenPopulated = ProcessingStatus.Finished;
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, $"Error setting Finished status on airport {airport.ICAO}");
                 if (saveEx != null)
