@@ -141,7 +141,7 @@ namespace OpenSky.API
             {
                 options.UseMySql(this.Configuration.GetConnectionString("OpenSkyConnectionString"), ServerVersion.Parse("10.4.18", ServerType.MariaDb));
             });
-            
+
             // Add swagger
             services.AddSwaggerGen(
                 c =>
@@ -244,7 +244,6 @@ namespace OpenSky.API
 
             // API controllers
             services.AddControllers();
-
         }
     }
 }

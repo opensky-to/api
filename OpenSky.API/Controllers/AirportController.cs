@@ -17,6 +17,7 @@ namespace OpenSky.API.Controllers
     using Microsoft.Extensions.Logging;
 
     using OpenSky.API.DbModel;
+    using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Model;
     using OpenSky.API.Model.Authentication;
 
@@ -70,33 +71,6 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets all available airports (ICAO code only).
-        /// </summary>
-        /// <remarks>
-        /// sushi.at, 02/05/2021.
-        /// </remarks>
-        /// <returns>
-        /// All available airports.
-        /// </returns>
-        /// -------------------------------------------------------------------------------------------------
-        [HttpGet(Name = "GetAirports")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<string>>>> GetAirports()
-        {
-            try
-            {
-                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Airport");
-            var icaos = await this.db.Airports.Select(a => a.ICAO).ToListAsync();
-            return new ApiResponse<IEnumerable<string>>(icaos);
-            }
-            catch (Exception ex)
-            {
-                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Airport");
-                return new ApiResponse<IEnumerable<string>>(ex);
-            }
-        }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// Gets one specific airport.
         /// </summary>
         /// <remarks>
@@ -115,13 +89,73 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET Airport/{icao}");
-            var airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO.Equals(icao));
-            return new ApiResponse<Airport>(airport);
+                var airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO.Equals(icao));
+                return new ApiResponse<Airport>(airport);
             }
             catch (Exception ex)
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Airport/{icao}");
                 return new ApiResponse<Airport>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets all available airports (ICAO code only).
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 02/05/2021.
+        /// </remarks>
+        /// <returns>
+        /// All available airports.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet(Name = "GetAirports")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<string>>>> GetAirports()
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Airport");
+                var icaos = await this.db.Airports.Select(a => a.ICAO).ToListAsync();
+                return new ApiResponse<IEnumerable<string>>(icaos);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Airport");
+                return new ApiResponse<IEnumerable<string>>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets airports with the specified population status up to the specified max result count.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 05/07/2021.
+        /// </remarks>
+        /// <param name="status">
+        /// The status.
+        /// </param>
+        /// <param name="maxResults">
+        /// (Optional) The maximum results (default 50).
+        /// </param>
+        /// <returns>
+        /// The matching airports.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet("{status}/{maxResults:int}", Name = "GetAirportsWithPopulationStatus")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<Airport>>>> GetAirportsWithPopulationStatus(ProcessingStatus status, int maxResults = 50)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET AirportsWithPopulationStatus/{status}/{maxResults}");
+                var airport = await this.db.Airports.Where(a => a.HasBeenPopulated == status).Take(maxResults).ToListAsync();
+                return new ApiResponse<IEnumerable<Airport>>(airport);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET AirportsWithPopulationStatus/{status}/{maxResults}");
+                return new ApiResponse<IEnumerable<Airport>>(ex);
             }
         }
     }
