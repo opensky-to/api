@@ -172,6 +172,7 @@ namespace OpenSky.API.Workers
                     {
                         // Size has changed, run the world populator again
                         airport.HasBeenPopulated = ProcessingStatus.NeedsHandling;
+                        Status[dataImport.ID].Elements["airportSize"].New++;
                     }
 
                     airport.PreviousSize = null;

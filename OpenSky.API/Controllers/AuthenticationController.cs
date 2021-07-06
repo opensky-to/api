@@ -966,7 +966,12 @@ namespace OpenSky.API.Controllers
             if (token != null)
             {
                 this.db.OpenSkyTokens.Remove(token);
-                await this.db.SaveDatabaseChangesAsync(this.logger, $"Error deleting OpenSky token {revokeToken.Token}");
+                var deleteEx = await this.db.SaveDatabaseChangesAsync(this.logger, $"Error deleting OpenSky token {revokeToken.Token}");
+                if (deleteEx != null)
+                {
+                    return new ApiResponse<string>("Error deleting OpenSky token {revokeToken.Token}", deleteEx);
+                }
+
                 return new ApiResponse<string>("Success");
             }
 

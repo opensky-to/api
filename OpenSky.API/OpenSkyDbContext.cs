@@ -7,6 +7,7 @@
 namespace OpenSky.API
 {
     using System;
+    using System.Linq;
     using System.Threading.Tasks;
 
     using Microsoft.AspNetCore.Identity;
@@ -174,4 +175,46 @@ namespace OpenSky.API
             builder.Entity<OpenSkyUser>().ToTable("Users");
         }
     }
+
+    /// -------------------------------------------------------------------------------------------------
+    /// <summary>
+    /// DB context extensions.
+    /// </summary>
+    /// <remarks>
+    /// sushi.at, 06/07/2021.
+    /// </remarks>
+    /// -------------------------------------------------------------------------------------------------
+    public static class DbContextExtensions
+    {
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// A TContext extension method that queries if an entity is attached.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 06/07/2021.
+        /// </remarks>
+        /// <typeparam name="TContext">
+        /// Type of the context.
+        /// </typeparam>
+        /// <typeparam name="TEntity">
+        /// Type of the entity.
+        /// </typeparam>
+        /// <param name="context">
+        /// The context to act on.
+        /// </param>
+        /// <param name="entity">
+        /// The entity to check is attached or not.
+        /// </param>
+        /// <returns>
+        /// True if the entity is attached, false if not.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        public static bool IsAttached<TContext, TEntity>(this TContext context, TEntity entity)
+            where TContext : DbContext
+            where TEntity : class
+        {
+            return context.Set<TEntity>().Local.Any(e => e == entity);
+        }
+    }
+
 }

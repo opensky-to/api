@@ -265,24 +265,31 @@ namespace OpenSky.API.Services
         /// <param name="airport">
         /// The airport to process.
         /// </param>
+        /// <param name="throwAllExceptions">
+        /// (Optional) True to throw all exceptions (false to just log them and set error status on airport).
+        /// </param>
         /// <returns>
         /// An asynchronous result.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        public async Task CheckAndGenerateAircraftForAirport(Airport airport)
+        public async Task<string> CheckAndGenerateAircraftForAirport(Airport airport, bool throwAllExceptions = true)
         {
             // The airport doesn't have a size yet, so don't populate it
             if (!airport.Size.HasValue)
             {
-                return;
+                return $"Airport {airport.ICAO} has no size, not processing.";
             }
 
             // The airport is currently being imported (no sim), so don't populate it
             if (!airport.MSFS)
             {
-                return;
+                return $"Airport {airport.ICAO} has no active simulator, not processing.";
             }
 
+            // The info text that describes what we did, for manual calls by admins
+            string infoText;
+
+            // ReSharper disable once AccessToModifiedClosure
             var availableForPurchaseOrRent = await this.db.Aircraft.Where(aircraft => aircraft.AirportICAO == airport.ICAO && (aircraft.RentPrice.HasValue || aircraft.PurchasePrice.HasValue)).ToListAsync();
             var aircraftTypes = await this.db.AircraftTypes.ToListAsync();
             var totalSlots = CalculateTotalSlots(airport);
@@ -292,6 +299,8 @@ namespace OpenSky.API.Services
             var newAircraftCount = availableForPurchaseOrRent.Count;
             if (newAircraftCount < requiredAircraft)
             {
+                infoText = $"Airport {airport.ICAO} has {newAircraftCount} aircraft available, but {requiredAircraft} are required, populating...\r\n";
+
                 var categoryCount = Enum.GetValues<AircraftTypeCategory>().Length;
                 var generatedTypesCount = new int[categoryCount];
                 var counts = new int[categoryCount];
@@ -306,7 +315,7 @@ namespace OpenSky.API.Services
                 }
 
                 var generatedAircraft = new List<Aircraft>();
-                var wasSuccessfull = true;
+                var errors = new List<Exception>();
                 while (newAircraftCount < requiredAircraft)
                 {
                     var quotas = new double[categoryCount];
@@ -356,31 +365,82 @@ namespace OpenSky.API.Services
                             TypeID = randomType.ID
                         };
 
+                        infoText += $"{airport.ICAO}: Generated new aircraft with registration {registration}, category {randomType.Category} and type {randomType.Name} ({randomType.ID})\r\n";
+
                         generatedAircraft.Add(aircraft);
                         generatedTypesCount[minIndex]++;
                         newAircraftCount++;
                     }
                     catch (Exception ex)
                     {
+                        infoText += $"Error during aircraft generation for {airport.ICAO}\r\n{ex}";
                         this.logger.LogError(ex, $"Error during aircraft generation for {airport.ICAO}");
-                        wasSuccessfull = false;
+                        errors.Add(ex);
                         break;
                     }
                 }
 
-                airport.HasBeenPopulated = wasSuccessfull ? ProcessingStatus.Finished : ProcessingStatus.Failed;
+                if (!this.db.IsAttached(airport))
+                {
+                    airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == airport.ICAO);
+                }
+
+                airport.HasBeenPopulated = errors.Count == 0 ? ProcessingStatus.Finished : ProcessingStatus.Failed;
                 await this.db.Aircraft.AddRangeAsync(generatedAircraft);
-                if (await this.db.SaveDatabaseChangesAsync(this.logger, $"Error saving generated aircraft for airport {airport.ICAO}.") == null)
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, $"Error saving generated aircraft for airport {airport.ICAO}.");
+                if (saveEx == null)
                 {
                     this.logger.LogDebug($"Generated {newAircraftCount} aircraft for airport {airport.ICAO}");
+                    infoText += $"Generated {newAircraftCount} aircraft for airport {airport.ICAO}";
+
+                    if (errors.Count > 0 && throwAllExceptions)
+                    {
+                        throw errors[0];
+                    }
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(infoText))
+                    {
+                        infoText += "\r\n";
+                    }
+
+                    infoText += $"Error saving generated aircraft for airport {airport.ICAO}.\r\n{saveEx}";
+
+                    if (throwAllExceptions)
+                    {
+                        throw saveEx;
+                    }
                 }
             }
             else
             {
                 // Airport had enough aircraft already
+                infoText = $"Airport {airport.ICAO} has enough aircraft already ({requiredAircraft} required, {newAircraftCount} available), skipping.";
+                if (!this.db.IsAttached(airport))
+                {
+                    airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == airport.ICAO);
+                }
+
                 airport.HasBeenPopulated = ProcessingStatus.Finished;
-                await this.db.SaveDatabaseChangesAsync(this.logger, $"Error setting Finished status on airport {airport.ICAO}");
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, $"Error setting Finished status on airport {airport.ICAO}");
+                if (saveEx != null)
+                {
+                    if (!string.IsNullOrEmpty(infoText))
+                    {
+                        infoText += "\r\n";
+                    }
+
+                    infoText += $"Error setting Finished status on airport {airport.ICAO}.\r\n{saveEx}";
+
+                    if (throwAllExceptions)
+                    {
+                        throw saveEx;
+                    }
+                }
             }
+
+            return infoText;
         }
 
         /// -------------------------------------------------------------------------------------------------
