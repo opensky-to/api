@@ -526,7 +526,7 @@ namespace OpenSky.API.Controllers
                 var openSkyToken = new OpenSkyToken
                 {
                     ID = Guid.NewGuid(),
-                    Name = "website",
+                    Name = this.configuration["OpenSky:LoginTokenName"],
                     Created = DateTime.UtcNow,
                     Expiry = login.RememberMe ? DateTime.UtcNow.AddDays(30) : DateTime.UtcNow.AddMinutes(30),
                     UserID = user.Id,
@@ -1076,7 +1076,7 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>($"Error deleting OpenSky token {revokeTokenByName.Name}", deleteEx);
                 }
 
-                return new ApiResponse<string>("Success");
+                return new ApiResponse<string>($"Successfully revoked token {revokeTokenByName.Name}");
             }
 
             return new ApiResponse<string>("Success, token already revoked or expired");
