@@ -203,9 +203,11 @@ namespace OpenSky.API.Services
                                 }
 
                                 var randomType = typeCandidates[Random.Next(0, typeCandidates.Count - 1)];
-                                var purchasePrice = (randomType.MaxPrice + randomType.MinPrice) / 2; // todo @todo update when economics/aircraft age/wear/tear are implemented
-                                var rentPrice = purchasePrice / 100;
-                                var fuel = randomType.FuelTotalCapacity * (Random.Next(30, 100) / 100.0);
+                                // todo @todo update when economics/aircraft age/wear/tear are implemented
+                                var purchasePrice = (int)Math.Round((randomType.MaxPrice + randomType.MinPrice) / 2.0 * (Random.Next(80, 120) / 100.0), 0);
+                                purchasePrice = Math.Max(Math.Min(randomType.MaxPrice, purchasePrice), randomType.MinPrice); // Make sure we stay within the min/max limit no matter what
+                                var rentPrice = purchasePrice / 200;
+                                var fuel = Math.Round(randomType.FuelTotalCapacity * (Random.Next(30, 100) / 100.0), 2);
 
                                 var aircraft = new Aircraft
                                 {
@@ -354,9 +356,11 @@ namespace OpenSky.API.Services
 
                         // Pick a random type and set purchase and rent price
                         var randomType = typeCandidates[Random.Next(0, typeCandidates.Count - 1)];
-                        var purchasePrice = (randomType.MaxPrice + randomType.MinPrice) / 2; // todo @todo update when economics/aircraft age/wear/tear are implemented
-                        var rentPrice = purchasePrice / 100;
-                        var fuel = randomType.FuelTotalCapacity * (Random.Next(30, 100) / 100.0);
+                        // todo @todo update when economics/aircraft age/wear/tear are implemented
+                        var purchasePrice = (int)Math.Round((randomType.MaxPrice + randomType.MinPrice) / 2.0 * (Random.Next(80, 120) / 100.0), 0);
+                        purchasePrice = Math.Max(Math.Min(randomType.MaxPrice, purchasePrice), randomType.MinPrice); // Make sure we stay within the min/max limit no matter what
+                        var rentPrice = purchasePrice / 200;
+                        var fuel = Math.Round(randomType.FuelTotalCapacity * (Random.Next(30, 100) / 100.0), 2);
 
                         // Create aircraft with picked type
                         var aircraft = new Aircraft
