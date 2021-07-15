@@ -156,6 +156,40 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Get the current OpenSky tokens.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 12/07/2021.
+        /// </remarks>
+        /// <returns>
+        /// An asynchronous result that yields the tokens.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [Authorize(Roles = UserRoles.User)]
+        [HttpGet("tokens", Name = "GetTokens")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<Token>>>> GetTokens()
+        {
+            this.logger.LogInformation($"Getting tokens for user {this.User.Identity?.Name}");
+
+            var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+            if (user == null)
+            {
+                return new ApiResponse<IEnumerable<Token>> { Message = "Unable to find user record!", IsError = true, Data = new List<Token>() };
+            }
+
+            var tokens = await this.db.OpenSkyTokens.Where(t => t.UserID == user.Id).Select(openSkyToken => new Token
+            {
+                Name = openSkyToken.Name,
+                Expiry = openSkyToken.Expiry,
+                TokenGeo = openSkyToken.TokenGeo,
+                TokenIP = openSkyToken.TokenIP
+            }).ToListAsync();
+
+            return new ApiResponse<IEnumerable<Token>>(tokens);
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Change OpenSky user password.
         /// </summary>
         /// <remarks>
@@ -343,7 +377,9 @@ namespace OpenSky.API.Controllers
                 Name = applicationToken.Name,
                 Created = DateTime.UtcNow,
                 Expiry = DateTime.UtcNow.AddDays(90),
-                UserID = user.Id
+                UserID = user.Id,
+                TokenIP = this.GetRemoteIPAddress(),
+                TokenGeo = await this.geoLocateIPService.Execute(this.GetRemoteIPAddress())
             };
             await this.db.OpenSkyTokens.AddAsync(openSkyToken);
             var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving OpenSky token.");
@@ -490,10 +526,12 @@ namespace OpenSky.API.Controllers
                 var openSkyToken = new OpenSkyToken
                 {
                     ID = Guid.NewGuid(),
-                    Name = "website",
+                    Name = this.configuration["OpenSky:LoginTokenName"],
                     Created = DateTime.UtcNow,
                     Expiry = login.RememberMe ? DateTime.UtcNow.AddDays(30) : DateTime.UtcNow.AddMinutes(30),
-                    UserID = user.Id
+                    UserID = user.Id,
+                    TokenGeo = user.LastLoginGeo,
+                    TokenIP = user.LastLoginIP
                 };
                 await this.db.OpenSkyTokens.AddAsync(openSkyToken);
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving OpenSky token.");
@@ -636,6 +674,28 @@ namespace OpenSky.API.Controllers
                     Expiry = DateTime.UtcNow.AddSeconds((int)(openSkyToken.Expiry - openSkyToken.Created).TotalSeconds),
                     UserID = user.Id
                 };
+
+                // Has the IP address changed?
+                if (this.GetRemoteIPAddress() != openSkyToken.TokenIP)
+                {
+                    var currentCountry = await this.geoLocateIPService.Execute(this.GetRemoteIPAddress());
+                    if (currentCountry != null && openSkyToken.TokenGeo != null && currentCountry != openSkyToken.TokenGeo)
+                    {
+                        this.db.OpenSkyTokens.Remove(openSkyToken);
+                        await this.db.SaveDatabaseChangesAsync(this.logger, "Error deleting old token (country changed).");
+
+                        throw new Exception("Country has changed, revoking token.");
+                    }
+
+                    newOpenSkyToken.TokenIP = this.GetRemoteIPAddress();
+                    newOpenSkyToken.TokenGeo = currentCountry;
+                }
+                else
+                {
+                    newOpenSkyToken.TokenIP = openSkyToken.TokenIP;
+                    newOpenSkyToken.TokenGeo = openSkyToken.TokenGeo;
+                }
+
                 this.db.OpenSkyTokens.Remove(openSkyToken);
                 this.db.OpenSkyTokens.Add(newOpenSkyToken);
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error exchanging OpenSky token.");
@@ -646,7 +706,15 @@ namespace OpenSky.API.Controllers
 
                 // All done, return the tokens to the client
                 return new ApiResponse<RefreshTokenResponse>("Token refreshed successfully!")
-                    { Data = new RefreshTokenResponse { Token = new JwtSecurityTokenHandler().WriteToken(token), Expiration = token.ValidTo, RefreshToken = newOpenSkyToken.ID.ToString("N"), RefreshTokenExpiration = newOpenSkyToken.Expiry } };
+                {
+                    Data = new RefreshTokenResponse
+                    {
+                        Token = new JwtSecurityTokenHandler().WriteToken(token),
+                        Expiration = token.ValidTo,
+                        RefreshToken = newOpenSkyToken.ID.ToString("N"),
+                        RefreshTokenExpiration = newOpenSkyToken.Expiry
+                    }
+                };
             }
             catch (Exception ex)
             {
@@ -969,10 +1037,46 @@ namespace OpenSky.API.Controllers
                 var deleteEx = await this.db.SaveDatabaseChangesAsync(this.logger, $"Error deleting OpenSky token {revokeToken.Token}");
                 if (deleteEx != null)
                 {
-                    return new ApiResponse<string>("Error deleting OpenSky token {revokeToken.Token}", deleteEx);
+                    return new ApiResponse<string>($"Error deleting OpenSky token {revokeToken.Token}", deleteEx);
                 }
 
                 return new ApiResponse<string>("Success");
+            }
+
+            return new ApiResponse<string>("Success, token already revoked or expired");
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Revoke specified OpenSky refresh token using name and expiry.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 12/07/2021.
+        /// </remarks>
+        /// <param name="revokeTokenByName">
+        /// The revoke token by name model.
+        /// </param>
+        /// <returns>
+        /// An IActionResult object returning an ApiResponse object in the body.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpDelete("revokeTokenByName")]
+        public async Task<ActionResult<ApiResponse<string>>> RevokeTokenByName([FromBody] RevokeTokenByName revokeTokenByName)
+        {
+            this.logger.LogInformation($"Revoking token for user {this.User.Identity?.Name}, token being invalidated: {revokeTokenByName.Name}");
+
+            var token = await this.db.OpenSkyTokens.SingleOrDefaultAsync(t => t.Name == revokeTokenByName.Name && t.Expiry == revokeTokenByName.Expiry);
+            if (token != null)
+            {
+                this.db.OpenSkyTokens.Remove(token);
+
+                var deleteEx = await this.db.SaveDatabaseChangesAsync(this.logger, $"Error deleting OpenSky token {revokeTokenByName.Name}");
+                if (deleteEx != null)
+                {
+                    return new ApiResponse<string>($"Error deleting OpenSky token {revokeTokenByName.Name}", deleteEx);
+                }
+
+                return new ApiResponse<string>($"Successfully revoked token {revokeTokenByName.Name}");
             }
 
             return new ApiResponse<string>("Success, token already revoked or expired");

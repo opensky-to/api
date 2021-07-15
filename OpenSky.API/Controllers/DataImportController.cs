@@ -171,7 +171,6 @@ namespace OpenSky.API.Controllers
         [DisableRequestSizeLimit]
         public async Task<ActionResult<ApiResponse<Guid?>>> PostLittleNavmapMSFS(IFormFile fileUpload)
         {
-            var filePath = Path.GetTempFileName();
             try
             {
                 var username = this.User.Identity?.Name;
@@ -180,6 +179,7 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<Guid?>("Unable to determine current user name, aborting.") { IsError = true };
                 }
 
+                var filePath = Path.GetTempFileName();
                 this.logger.LogInformation($"{this.User.Identity?.Name} | PostLittleNavmapMSFS received file with length {fileUpload.Length} bytes, saving to temporary file {filePath}");
                 await using (var stream = System.IO.File.Create(filePath))
                 {
