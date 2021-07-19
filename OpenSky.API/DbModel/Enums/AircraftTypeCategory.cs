@@ -55,5 +55,10 @@ namespace OpenSky.API.DbModel.Enums
         /// Wide-Body Airliner.
         /// </summary>
         WBAirliner = 7,
+
+        /// <summary>
+        /// Helicopter.
+        /// </summary>
+        Helicopter = 8
     }
 }

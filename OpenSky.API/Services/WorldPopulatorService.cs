@@ -78,15 +78,15 @@ namespace OpenSky.API.Services
         /// -------------------------------------------------------------------------------------------------
         private readonly double[,] ratios =
         {
-            //SEP, MEP, SET, MET, JET, Regional, NBAirliner, WBAirliner
-            { 0, 0, 0, 0, 0, 0, 0, 0 }, // -1
-            { 0.85, 0.15, 0, 0, 0, 0, 0, 0 }, // 0
-            { 0.7, 0.15, 0.05, 0.05, 0.05, 0, 0, 0 }, // 1
-            { 0.4, 0.2, 0.1, 0.1f, 0.1, 0.05, 0.05, 0 }, // 2
-            { 0.15, 0.3, 0.15, 0.1, 0.1, 0.1, 0.1, 0 }, // 3
-            { 0.075, 0.075, 0.1, 0.05, 0.1, 0.2, 0.3, 0.1 }, // 4
-            { 0.05, 0.05, 0.05, 0.05, 0.05, 0.15, 0.35, 0.25 }, // 5
-            { 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.3, 0.4, } // 6 
+            //SEP, MEP, SET, MET, JET, Regional, NBAirliner, WBAirliner, Helicopter
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0 }, // -1
+            { 0.8, 0.15, 0, 0, 0, 0, 0, 0, 0.05 }, // 0
+            { 0.65, 0.15, 0.05, 0.05, 0.05, 0, 0, 0, 0.05 }, // 1
+            { 0.35, 0.2, 0.1, 0.1f, 0.1, 0.05, 0.05, 0, 0.05 }, // 2
+            { 0.15, 0.25, 0.15, 0.1, 0.1, 0.1, 0.1, 0, 0.05 }, // 3
+            { 0.075, 0.075, 0.05, 0.05, 0.1, 0.2, 0.3, 0.1, 0.05 }, // 4
+            { 0.05, 0.05, 0.05, 0.05, 0.05, 0.15, 0.35, 0.25, 0 }, // 5
+            { 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.3, 0.4, 0 } // 6 
         };
 
         /// -------------------------------------------------------------------------------------------------
@@ -203,8 +203,11 @@ namespace OpenSky.API.Services
                                 }
 
                                 var randomType = typeCandidates[Random.Next(0, typeCandidates.Count - 1)];
-                                var purchasePrice = (randomType.MaxPrice + randomType.MinPrice) / 2; // @todo update when economics are implemented
-                                var rentPrice = purchasePrice / 100;
+                                // todo @todo update when economics/aircraft age/wear/tear are implemented
+                                var purchasePrice = (int)Math.Round((randomType.MaxPrice + randomType.MinPrice) / 2.0 * (Random.Next(80, 120) / 100.0), 0);
+                                purchasePrice = Math.Max(Math.Min(randomType.MaxPrice, purchasePrice), randomType.MinPrice); // Make sure we stay within the min/max limit no matter what
+                                var rentPrice = purchasePrice / 200;
+                                var fuel = Math.Round(randomType.FuelTotalCapacity * (Random.Next(30, 100) / 100.0), 2);
 
                                 var aircraft = new Aircraft
                                 {
@@ -212,7 +215,8 @@ namespace OpenSky.API.Services
                                     PurchasePrice = purchasePrice,
                                     RentPrice = rentPrice,
                                     Registry = registration,
-                                    TypeID = randomType.ID
+                                    TypeID = randomType.ID,
+                                    Fuel = fuel
                                 };
 
                                 generatedAircraft.Add(aircraft);
@@ -352,8 +356,11 @@ namespace OpenSky.API.Services
 
                         // Pick a random type and set purchase and rent price
                         var randomType = typeCandidates[Random.Next(0, typeCandidates.Count - 1)];
-                        var purchasePrice = (randomType.MaxPrice + randomType.MinPrice) / 2; // @todo update when economics are implemented
-                        var rentPrice = purchasePrice / 100;
+                        // todo @todo update when economics/aircraft age/wear/tear are implemented
+                        var purchasePrice = (int)Math.Round((randomType.MaxPrice + randomType.MinPrice) / 2.0 * (Random.Next(80, 120) / 100.0), 0);
+                        purchasePrice = Math.Max(Math.Min(randomType.MaxPrice, purchasePrice), randomType.MinPrice); // Make sure we stay within the min/max limit no matter what
+                        var rentPrice = purchasePrice / 200;
+                        var fuel = Math.Round(randomType.FuelTotalCapacity * (Random.Next(30, 100) / 100.0), 2);
 
                         // Create aircraft with picked type
                         var aircraft = new Aircraft
@@ -362,7 +369,8 @@ namespace OpenSky.API.Services
                             PurchasePrice = purchasePrice,
                             RentPrice = rentPrice,
                             Registry = registration,
-                            TypeID = randomType.ID
+                            TypeID = randomType.ID,
+                            Fuel = fuel
                         };
 
                         infoText += $"{airport.ICAO}: Generated new aircraft with registration {registration}, category {randomType.Category} and type {randomType.Name} ({randomType.ID})\r\n";

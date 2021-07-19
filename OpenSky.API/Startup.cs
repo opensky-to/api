@@ -223,8 +223,8 @@ namespace OpenSky.API
                             ValidateLifetime = true
                         };
 
-                        options.RequireHttpsMetadata = true; // todo test if this works for localhost development version
-                    }); // todo add other login providers like google, facebook, etc.?
+                        options.RequireHttpsMetadata = true;
+                    });
 
             // Set up Google reCAPTCHAv3 service
             services.AddHttpClient<GoogleRecaptchaV3Service>();
