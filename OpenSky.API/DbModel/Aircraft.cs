@@ -32,6 +32,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The aircraft type.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private AircraftType type;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Initializes a new instance of the <see cref="Aircraft"/> class.
         /// </summary>
         /// <remarks>
@@ -136,7 +143,11 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("TypeID")]
-        public AircraftType Type { get; set; }
+        public AircraftType Type
+        {
+            get => this.LazyLoader.Load(this, ref this.type);
+            set => this.type = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
