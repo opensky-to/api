@@ -6,6 +6,8 @@
 
 namespace OpenSky.API.DbModel.Enums
 {
+    using System.ComponentModel;
+
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
     /// Values that represent aircraft type categories.
@@ -19,46 +21,55 @@ namespace OpenSky.API.DbModel.Enums
         /// <summary>
         /// Single Engine Piston.
         /// </summary>
+        [Description("Single Engine Piston")]
         SEP = 0,
 
         /// <summary>
         /// Multi Engine Piston.
         /// </summary>
+        [Description("Multi Engine Piston")]
         MEP = 1,
 
         /// <summary>
         /// Single Engine Turboprop.
         /// </summary>
+        [Description("Single Engine Turboprop")]
         SET = 2,
 
         /// <summary>
         /// Multi Engine Turboprop.
         /// </summary>
+        [Description("Multi Engine Turboprop")]
         MET = 3,
 
         /// <summary>
-        /// Jet (small private and business jets).
+        /// Small private and business jets.
         /// </summary>
-        Jet = 4,
+        [Description("Small private and business jets")]
+        JET = 4,
 
         /// <summary>
         /// Regional Airliner Jets.
         /// </summary>
-        Regional = 5,
+        [Description("Regional Airliner Jets")]
+        REG = 5,
 
         /// <summary>
         /// Narrow-Body Airliner.
         /// </summary>
-        NBAirliner = 6,
+        [Description("Narrow-Body Airliner")]
+        NBA = 6,
 
         /// <summary>
         /// Wide-Body Airliner.
         /// </summary>
-        WBAirliner = 7,
+        [Description("Wide-Body Airliner")]
+        WBA = 7,
 
         /// <summary>
         /// Helicopter.
         /// </summary>
-        Helicopter = 8
+        [Description("Helicopter")]
+        HEL = 8
     }
 }

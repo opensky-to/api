@@ -769,6 +769,6 @@ namespace OpenSky.API.DbModel.Enums
         ZW = 249,
 
         [Description("Kosovo")]
-        XK = 250,
+        XK = 250
     }
 }
