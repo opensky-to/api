@@ -156,6 +156,11 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<IEnumerable<Aircraft>> { Message = "Unable to find user record!", IsError = true, Data = new List<Aircraft>() };
                 }
 
+                if (await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO.Equals(icao)) == null)
+                {
+                    return new ApiResponse<IEnumerable<Aircraft>> { Message = $"No airport with code {icao} exists!", IsError = true, Data = new List<Aircraft>() };
+                }
+
                 // todo for both queries: filter out planes with an active flight
 
                 if (this.User.IsInRole(UserRoles.Moderator) || this.User.IsInRole(UserRoles.Admin))
