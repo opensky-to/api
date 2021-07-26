@@ -116,6 +116,27 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets the owner name.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [NotMapped]
+        public string OwnerName
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(this.OwnerID))
+                {
+                    return this.Owner.UserName;
+                }
+
+                // todo return VA owner once we add that
+
+                return "[System]";
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the purchase price for the aircraft. Null if not available for purchase.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
