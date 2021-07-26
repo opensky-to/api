@@ -268,6 +268,8 @@ namespace OpenSky.API.Controllers
                     throw saveEx;
                 }
 
+                // todo ask world populator to "restock" the airport by adding a new plane in place of this one
+
                 return new ApiResponse<string>($"Successfully purchased aircraft {registry}");
             }
             catch (Exception ex)
