@@ -19,10 +19,10 @@ namespace OpenSky.API.DbModel
      *
      * INSERT INTO `Airports` (`ICAO`, `Altitude`, `AtisFrequency`, `City`, `GaRamps`, `Gates`, `HasAvGas`, `HasJetFuel`, `IsClosed`, `IsMilitary`, `Latitude`,
      * `LongestRunwayLength`, `LongestRunwaySurface`, `Longitude`, `Name`, `RunwayCount`, `TowerFrequency`, `UnicomFrequency`, `Size`, `MSFS`, `SupportsSuper`,
-     * `Country`, `HasBeenPopulated`)
+     * `HasBeenPopulated`)
      *
      * VALUES ('LOWW', '0', '121730', 'Schwechat', '29', '31', '1', '1', '0', '0', '48.11007308959961',
-     * '11811', 'A', '16.569616317749023', 'Flughafen Wien-Schwechat', '2', '119400', '118525', '5', '1', '1', 'AT' ,'0')
+     * '11811', 'A', '16.569616317749023', 'Flughafen Wien-Schwechat', '2', '119400', '118525', '5', '1', '1', '0')
      */
 
     /// -------------------------------------------------------------------------------------------------
@@ -110,13 +110,6 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [StringLength(50)]
         public string City { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the country.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public Country? Country { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

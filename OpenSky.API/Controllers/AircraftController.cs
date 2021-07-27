@@ -19,7 +19,9 @@ namespace OpenSky.API.Controllers
 
     using OpenSky.API.DbModel;
     using OpenSky.API.Model;
+    using OpenSky.API.Model.Aircraft;
     using OpenSky.API.Model.Authentication;
+    using OpenSky.API.Services;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -41,6 +43,13 @@ namespace OpenSky.API.Controllers
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private readonly OpenSkyDbContext db;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The icao registration service.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly IcaoRegistrationsService icaoRegistrations;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -72,12 +81,16 @@ namespace OpenSky.API.Controllers
         /// <param name="userManager">
         /// The user manager.
         /// </param>
+        /// <param name="icaoRegistrations">
+        /// The icao registration service.
+        /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public AircraftController(ILogger<AirportController> logger, OpenSkyDbContext db, UserManager<OpenSkyUser> userManager)
+        public AircraftController(ILogger<AirportController> logger, OpenSkyDbContext db, UserManager<OpenSkyUser> userManager, IcaoRegistrationsService icaoRegistrations)
         {
             this.logger = logger;
             this.db = db;
             this.userManager = userManager;
+            this.icaoRegistrations = icaoRegistrations;
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -277,6 +290,66 @@ namespace OpenSky.API.Controllers
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Aircraft/purchase/{registry}");
                 return new ApiResponse<string>(ex);
             }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Searches for aircraft matching the criteria in the specified country.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 27/07/2021.
+        /// </remarks>
+        /// <param name="search">
+        /// The search.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields the found aircraft in the country.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPost("searchInCountry", Name = "SearchAircraftInCountry")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<Aircraft>>>> SearchAircraftInCountry([FromBody] AircraftSearchInCountry search)
+        {
+            this.logger.LogInformation($"{this.User.Identity?.Name} | GET Aircraft/searchInCountry");
+            var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+            if (user == null)
+            {
+                return new ApiResponse<IEnumerable<Aircraft>> { Message = "Unable to find user record!", IsError = true, Data = new List<Aircraft>() };
+            }
+
+            // Get the ICAO registration entries for the specified country to get the airport prefixes
+            var airportPrefixes = this.icaoRegistrations.GetIcaoRegistrationsForCountry(search.Country).Select(r => r.AirportPrefix).Distinct().ToArray();
+
+            var searchResults = new List<Aircraft>();
+            foreach (var airportPrefix in airportPrefixes)
+            {
+                if (this.User.IsInRole(UserRoles.Moderator) || this.User.IsInRole(UserRoles.Admin))
+                {
+                    // Return all matching planes
+                    var aircraft = await this.db.Aircraft.Where(
+                        a => a.AirportICAO.StartsWith(airportPrefix) && (!search.FilterByCategory || a.Type.Category == search.Category) &&
+                             (string.IsNullOrEmpty(search.Manufacturer) || a.Type.Manufacturer.Contains(search.Manufacturer)) &&
+                             (string.IsNullOrEmpty(search.Name) || a.Type.Name.Contains(search.Name))).Take(search.MaxResults).ToListAsync();
+                    searchResults.AddRange(aircraft);
+                }
+                else
+                {
+                    // Only return planes that are available for purchase or rent, or owned by the player
+                    var aircraft = await this.db.Aircraft.Where(
+                                                 a => a.AirportICAO.StartsWith(airportPrefix) && (!search.FilterByCategory || a.Type.Category == search.Category) &&
+                                                      (string.IsNullOrEmpty(search.Manufacturer) || a.Type.Manufacturer.Contains(search.Manufacturer)) &&
+                                                      (string.IsNullOrEmpty(search.Name) || a.Type.Name.Contains(search.Name)) && (a.OwnerID == user.Id || a.PurchasePrice.HasValue || a.RentPrice.HasValue))
+                                             .Take(search.MaxResults)
+                                             .ToListAsync();
+                    searchResults.AddRange(aircraft);
+                }
+
+                if (searchResults.Count >= search.MaxResults)
+                {
+                    break;
+                }
+            }
+
+            return new ApiResponse<IEnumerable<Aircraft>>(searchResults);
         }
     }
 }
