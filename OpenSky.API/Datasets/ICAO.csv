@@ -1,239 +1,239 @@
 ﻿AirportPrefix,Country,AircraftPrefix
-OA,Afghanistan,YA
-LA,Albania,ZA
-DA,Algeria,7T
-FN,Angola,D2
-TA,Antigua and Barbuda,V2
-SA,Argentina (including parts of Antarctica),LQ;LV
-UD,Armenia,EK
-Y,Australia,VH
-LO,Austria,OE
-UB,Azerbaijan,4K
-MY,Bahamas,C6
-OB,Bahrain,A9C
-VG,Bangladesh,S2
-TB,Barbados,8P
-UM,Belarus and Russia (Kaliningrad Oblast),EW
-EB,Belgium,OO
-MZ,Belize,V3
-DB,Benin,TY
-VQ,Bhutan,A5
-SL,Bolivia,CP
-LQ,Bosnia and Herzegovina,E7
-FB,Botswana,A2
-SB,Brazil,PP;PR;PT;PU
-SD,Brazil,PP;PR;PT;PU
-SI,Brazil,PP;PR;PT;PU
-SJ,Brazil,PP;PR;PT;PU
-SN,Brazil,PP;PR;PT;PU
-SS,Brazil,PP;PR;PT;PU
-SW,Brazil,PP;PR;PT;PU
-FJ,British Indian Ocean Territory,VP
-WB,"Brunei, Malaysia (East Malaysia)",V8
-LB,Bulgaria,LZ
-DF,Burkina Faso,XT
-HB,Burundi,9U
-VD,Cambodia,XU
-FK,Cameroon,TJ
-C,Canada,C;CF
-GV,Cape Verde,D4
-TN,"Caribbean Netherlands, Aruba, Curaçao, Sint Maarten",PH
-MW,Cayman Islands,VP-C
-FE,Central African Republic,TL
-FT,Chad,TT
-SH,Chile,CC
-SC,Chile (including Easter Island and parts of Antarctica),CC
-SK,Colombia,HK
-FM,"Comoros, France (Mayotte and Réunion), and Madagascar",D6
-NC,Cook Islands,E5
-MR,Costa Rica,TI
-DI,Côte d'Ivoire,TU
-LD,Croatia,9A
-MU,Cuba,CU
-LC,Cyprus,5B
-LK,Czech Republic,OK
-FZ,Democratic Republic of the Congo,9Q
-EK,Denmark and the Faroe Islands,OY
-HD,Djibouti,J2
-TD,Dominica,J7
-MD,Dominican Republic,HI
-SE,Ecuador,HC
-HE,Egypt,SU
-MS,El Salvador,YS
-FG,Equatorial Guinea,3C
-HH,Eritrea,E3
-EE,Estonia,ES
-FD,Eswatini,3DC
-HA,Ethiopia,ET
-PT,"Federated States of Micronesia, Palau",V6
-NF,"Fiji, Tonga",DQ
-EF,Finland,OH
-SO,France (French Guiana),F-O
-NT,France (French Polynesia),F
-TF,"France (Guadeloupe, Martinique, Saint Barthélemy, Saint Martin)",F-OG
-LF,France (Metropolitan France; including Saint-Pierre and Miquelon),F
-NW,France (New Caledonia),F
-NL,France (Wallis and Futuna),F
-FO,Gabon,TR
-UG,Georgia,4L
-ED,Germany,D
-ET,Germany (military),D
-DG,Ghana,9G
-LX,Gibraltar,VP-G
-LG,Greece,SX
-BG,Greenland,OY
-TG,Grenada,J3
-MG,Guatemala,TG
-GU,Guinea,3X
-GG,Guinea-Bissau,J5
-SY,Guyana,8R
-MT,Haiti,HH
-MH,Honduras,HR
-VH,Hong Kong,B
-LH,Hungary,HA
-BI,Iceland,TF
-VE,India (East India),VT
-VI,India (North India),VT
-VO,India (South India),VT
-VA,India (West India),VT
-WA,Indonesia,PK
-WI,Indonesia,PK
-WQ,Indonesia,PK
-WR,Indonesia,PK
-OI,Iran,EP
-OR,Iraq,YI
-EI,Ireland,EI;EJ
-LL,Israel,4X
-LI,Italy,I
-MK,Jamaica,6Y
-RJ,Japan,JA
-RO,Japan (Okinawa),JA
-OJ,Jordan and the West Bank,JY
-UA,Kazakhstan,UP
-HK,Kenya,5Y
-PC,"Kiribati (Canton Airfield, Phoenix Islands)",T3
-NG,"Kiribati (Gilbert Islands), Tuvalu",T3
-PL,Kiribati (Line Islands),T3
-BK,Kosovo,T3
-OK,Kuwait,9K
-UC,Kyrgyzstan,EX
-VL,Laos,RDPL
-EV,Latvia,YL
-OL,Lebanon,OD
-FX,Lesotho,7P
-GL,Liberia,A8
-HL,Libya,5A
-EY,Lithuania,LY
-EL,Luxembourg,LX
-VM,Macau,B
-Z,Mainland China,B
-FW,Malawi,7Q
-WM,Malaysia (Peninsular Malaysia),9M
-VR,Maldives,8Q
-GA,Mali,TZ
-LM,Malta,9H
-PK,Marshall Islands,V7
-GQ,Mauritania,5T
-FI,Mauritius,3B
-MM,Mexico,XA;XB;XC
-LU,Moldova,ER
-LN,Monaco,3A
-ZM,Mongolia,JU
-GM,Morocco,CN
-FQ,Mozambique,C9
-VY,Myanmar,XY;XZ
-FY,Namibia,V5
-AN,Nauru,C2
-VN,Nepal,9N
-EH,Netherlands,PH
-NZ,"New Zealand, parts of Antarctica",ZK;ZL;ZM
-MN,Nicaragua,YN
-DR,Niger,5U
-DN,Nigeria,5N
-NI,Niue,A3
-ZK,North Korea,P
-LW,North Macedonia,Z3
-EN,Norway,LN
-OO,Oman,A4O
-OP,Pakistan,AP
-LV,Palestine/Palestinian territories,E4;SU-Y
-MP,Panama,HP
-AY,Papua New Guinea,P2
-SG,Paraguay,ZP
-SP,Peru,OB
-RP,Philippines,RP
-EP,Poland,SP
-LP,Portugal (including the Azores and Madeira),CR;CS
-OT,Qatar,A7
-RC,Republic of China (Taiwan),B
-RK,Republic of Korea (South Korea),HL
-FC,Republic of the Congo,TN
-LR,Romania,YR
-U,Russia,RA
-HR,Rwanda,9XR
-FH,"Saint Helena, Ascension and Tristan da Cunha",VQ-H
-TK,Saint Kitts and Nevis,V4
-TL,Saint Lucia,J6
-TV,Saint Vincent and the Grenadines,J8
-NS,"Samoa, United States (American Samoa)",5W
-FP,São Tomé and Príncipe,S9
-OE,Saudi Arabia,HZ
-GO,Senegal,6V;6W
-LY,Serbia and Montenegro,YU
-FS,Seychelles,S7
-GF,Sierra Leone,9L
-WS,Singapore,9V
-LZ,Slovakia,OM
-LJ,Slovenia,S5
-AG,Solomon Islands,H4
-HC,Somalia (including Somaliland),6O
-FA,South Africa,ZS;ZT;ZU
-GC,Spain (Canary Islands),EC
-GE,Spain (Ceuta and Melilla),EC
-LE,Spain (mainland section and Balearic Islands),EC
-VC,Sri Lanka,4R
-HS,Sudan and South Sudan,ST
-SM,Suriname,PZ
-ES,Sweden,SE
-LS,Switzerland,HB
-OS,Syria,YK
-UT,"Tajikistan, Turkmenistan, Uzbekistan",EY
-HT,Tanzania,5H
-VT,Thailand,HS
-GB,Gambia,C5
-WP,Timor-Leste,4W
-DX,Togolese Republic,5V
-TT,Trinidad and Tobago,9Y
-DT,Tunisia,TS
-LT,Turkey,TC
-MB,Turks and Caicos Islands,VQ-T
-HU,Uganda,5X
-TX,UK (Bermuda),VP-B
-TU,UK (British Virgin Islands),VP-L
-TR,UK (Montserrat),VP-M
-TQ,UK (Anguilla),VP-A
-UK,Ukraine,UR
-OM,United Arab Emirates,A6
-EG,United Kingdom (and Crown dependencies),G;M
-SF,United Kingdom (Falkland Islands),VP-F
-K,United States,N
-SU,Uruguay,CX
-PF,US (Alaska),N
-PO,US (Alaska),N
-PP,US (Alaska),N
-PB,US (Baker Island),N
-PG,"US (Guam, Northern Mariana Islands)",N
-PH,US (Hawaii),N
-PJ,US (Johnston Atoll),N
-PM,US (Midway Island),N
-TJ,US (Puerto Rico),N
-PW,US (Wake Island),N
-PA,US (Alaska),N
-TI,US (U.S. Virgin Islands),N
-NV,Vanuatu,YJ
-SV,Venezuela,YV
-VV,Vietnam,XV
-GS,Western Sahara,CN
-OY,Yemen,7O
-FL,Zambia,9J
-FV,Zimbabwe,Z
+OA,AF,YA
+LA,AL,ZA
+DA,DZ,7T
+FN,AO,D2
+TA,AG,V2
+SA,AR,LQ;LV
+UD,AM,EK
+Y,AU,VH
+LO,AT,OE
+UB,AZ,4K
+MY,BS,C6
+OB,BH,A9C
+VG,BD,S2
+TB,BB,8P
+UM,BY,EW
+EB,BE,OO
+MZ,BZ,V3
+DB,BJ,TY
+VQ,BT,A5
+SL,BO,CP
+LQ,BA,E7
+FB,BW,A2
+SB,BR,PP;PR;PT;PU
+SD,BR,PP;PR;PT;PU
+SI,BR,PP;PR;PT;PU
+SJ,BR,PP;PR;PT;PU
+SN,BR,PP;PR;PT;PU
+SS,BR,PP;PR;PT;PU
+SW,BR,PP;PR;PT;PU
+FJ,IO,VP
+WB,BN;MY,V8
+LB,BG,LZ
+DF,BF,XT
+HB,BI,9U
+VD,KH,XU
+FK,CM,TJ
+C,CA,C;CF
+GV,CV,D4
+TN,NL;AW;CW;SX;MF,PH
+MW,KY,VP-C
+FE,CF,TL
+FT,TD,TT
+SH,CL,CC
+SC,CL,CC
+SK,CO,HK
+FM,KM,D6
+NC,CK,E5
+MR,CR,TI
+DI,CI,TU
+LD,HR,9A
+MU,CU,CU
+LC,CY,5B
+LK,CZ,OK
+FZ,CD,9Q
+EK,DK,OY
+HD,DJ,J2
+TD,DM,J7
+MD,DO,HI
+SE,EC,HC
+HE,EG,SU
+MS,SV,YS
+FG,GQ,3C
+HH,ER,E3
+EE,EE,ES
+FD,SZ,3DC
+HA,ET,ET
+PT,FM;PW,V6
+NF,FJ,DQ
+EF,FI;TO,OH
+SO,GF,F-O
+NT,PF,F
+TF,GP;MQ;BL;MF,F-OG
+LF,FR,F
+NW,NC,F
+NL,FR,F
+FO,GA,TR
+UG,GE,4L
+ED,DE,D
+ET,DE,D
+DG,GH,9G
+LX,GI,VP-G
+LG,GR,SX
+BG,GL,OY
+TG,GD,J3
+MG,GT,TG
+GU,GN,3X
+GG,GW,J5
+SY,GY,8R
+MT,HT,HH
+MH,HN,HR
+VH,HK,B
+LH,HU,HA
+BI,IS,TF
+VE,IN,VT
+VI,IN,VT
+VO,IN,VT
+VA,IN,VT
+WA,ID,PK
+WI,ID,PK
+WQ,ID,PK
+WR,ID,PK
+OI,IR,EP
+OR,IQ,YI
+EI,IE,EI;EJ
+LL,IL,4X
+LI,IT,I
+MK,JM,6Y
+RJ,JP,JA
+RO,JP,JA
+OJ,JO,JY
+UA,KZ,UP
+HK,KE,5Y
+PC,KI,T3
+NG,KI,T3
+PL,KI,T3
+BK,XK,T3
+OK,KW,9K
+UC,KG,EX
+VL,LA,RDPL
+EV,LV,YL
+OL,LB,OD
+FX,LS,7P
+GL,LR,A8
+HL,LY,5A
+EY,LT,LY
+EL,LU,LX
+VM,MO,B
+Z,CN,B
+FW,MW,7Q
+WM,MY,9M
+VR,MV,8Q
+GA,ML,TZ
+LM,MT,9H
+PK,MH,V7
+GQ,MR,5T
+FI,MU,3B
+MM,MX,XA;XB;XC
+LU,MD,ER
+LN,MC,3A
+ZM,MN,JU
+GM,MA,CN
+FQ,MZ,C9
+VY,MM,XY;XZ
+FY,NA,V5
+AN,NR,C2
+VN,NP,9N
+EH,NL,PH
+NZ,NZ,ZK;ZL;ZM
+MN,NI,YN
+DR,NE,5U
+DN,NG,5N
+NI,NU,A3
+ZK,KP,P
+LW,MK,Z3
+EN,NO,LN
+OO,OM,A4O
+OP,PK,AP
+LV,PS,E4;SU-Y
+MP,PA,HP
+AY,PG,P2
+SG,PY,ZP
+SP,PE,OB
+RP,PH,RP
+EP,PL,SP
+LP,PT,CR;CS
+OT,QA,A7
+RC,TW,B
+RK,KR,HL
+FC,CD,TN
+LR,RO,YR
+U,RU,RA
+HR,RW,9XR
+FH,SH,VQ-H
+TK,KN,V4
+TL,LC,J6
+TV,VC,J8
+NS,WS,5W
+FP,ST,S9
+OE,SA,HZ
+GO,SN,6V;6W
+LY,RS;ME,YU
+FS,SC,S7
+GF,SL,9L
+WS,SG,9V
+LZ,SK,OM
+LJ,SI,S5
+AG,SB,H4
+HC,SO,6O
+FA,ZA,ZS;ZT;ZU
+GC,ES,EC
+GE,ES,EC
+LE,ES,EC
+VC,LK,4R
+HS,SD;SS,ST
+SM,SR,PZ
+ES,SE,SE
+LS,CH,HB
+OS,SY,YK
+UT,TJ;TM;UZ,EY
+HT,TZ,5H
+VT,TH,HS
+GB,GM,C5
+WP,TL,4W
+DX,TG,5V
+TT,TT,9Y
+DT,TN,TS
+LT,TR,TC
+MB,TC,VQ-T
+HU,UG,5X
+TX,BM,VP-B
+TU,VG,VP-L
+TR,MS,VP-M
+TQ,AI,VP-A
+UK,UA,UR
+OM,AE,A6
+EG,GB,G;M
+SF,FK,VP-F
+K,US,N
+SU,UY,CX
+PF,US,N
+PO,US,N
+PP,US,N
+PB,US,N
+PG,GU;MP,N
+PH,US,N
+PJ,US,N
+PM,US,N
+TJ,PR,N
+PW,US,N
+PA,US,N
+TI,VI,N
+NV,VU,YJ
+SV,VE,YV
+VV,VN,XV
+GS,EH,CN
+OY,YE,7O
+FL,ZM,9J
+FV,ZW,Z

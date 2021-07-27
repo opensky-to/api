@@ -6,7 +6,12 @@
 
 namespace OpenSky.API.Datasets
 {
+    using System;
+    using System.Linq;
+
     using CsvHelper.Configuration.Attributes;
+
+    using OpenSky.API.DbModel.Enums;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -34,7 +39,7 @@ namespace OpenSky.API.Datasets
         /// Returns the raw string from the CSV as string array split along the separator.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public string[] AircraftPrefixes => this.AircraftPrefix.Split(";");
+        public string[] AircraftPrefixes => this.AircraftPrefix.Split(';');
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -46,7 +51,14 @@ namespace OpenSky.API.Datasets
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Full name of the airports country.
+        /// Gets the list of countries for this ICAO registration.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public Country[] Countries => this.Country.Split(';').Select(Enum.Parse<Country>).ToArray();
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Two letter country code(s) according to ISO-3166.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [Name("Country")]

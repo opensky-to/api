@@ -414,7 +414,7 @@ namespace OpenSky.API.DbModel.Enums
         [Description("Macao")]
         MO = 131,
 
-        [Description("Macedonia (the former Yugoslav Republic of)")]
+        [Description("North Macedonia")]
         MK = 132,
 
         [Description("Madagascar")]
@@ -672,7 +672,7 @@ namespace OpenSky.API.DbModel.Enums
         [Description("Syrian Arab Republic")]
         SY = 217,
 
-        [Description("Taiwan, Province of China[a]")]
+        [Description("Taiwan, Province of China")]
         TW = 218,
 
         [Description("Tajikistan")]
