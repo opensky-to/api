@@ -59,5 +59,12 @@ namespace OpenSky.API.Model.Aircraft
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string Name { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets a value indicating whether to only include vanilla aircraft in the search results.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public bool OnlyVanilla { get; set; }
     }
 }
