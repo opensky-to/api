@@ -266,6 +266,11 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>($"Aircraft with registry {registry} is not for sale!") { IsError = true };
                 }
 
+                if (aircraft.OwnerID == user.Id)
+                {
+                    return new ApiResponse<string>("You can't purchase your own aircraft!") { IsError = true };
+                }
+
                 // todo check if the plane is in flight - has to be on the ground and idle
 
                 // todo check if player has enough money, plus deduct purchase price from account balance
@@ -326,20 +331,25 @@ namespace OpenSky.API.Controllers
                 {
                     // Return all matching planes
                     var aircraft = await this.db.Aircraft.Where(
-                        a => a.AirportICAO.StartsWith(airportPrefix) && (!search.FilterByCategory || a.Type.Category == search.Category) &&
+                        a => a.AirportICAO.StartsWith(airportPrefix) &&
+                             (!search.OnlyVanilla || a.Type.IsVanilla) &&
+                             (!search.FilterByCategory || a.Type.Category == search.Category) &&
                              (string.IsNullOrEmpty(search.Manufacturer) || a.Type.Manufacturer.Contains(search.Manufacturer)) &&
-                             (string.IsNullOrEmpty(search.Name) || a.Type.Name.Contains(search.Name))).Take(search.MaxResults).ToListAsync();
+                             (string.IsNullOrEmpty(search.Name) || a.Type.Name.Contains(search.Name)))
+                                             .Take(search.MaxResults).ToListAsync();
                     searchResults.AddRange(aircraft);
                 }
                 else
                 {
                     // Only return planes that are available for purchase or rent, or owned by the player
                     var aircraft = await this.db.Aircraft.Where(
-                                                 a => a.AirportICAO.StartsWith(airportPrefix) && (!search.FilterByCategory || a.Type.Category == search.Category) &&
+                                                 a => a.AirportICAO.StartsWith(airportPrefix) &&
+                                                      (!search.OnlyVanilla || a.Type.IsVanilla) &&
+                                                      (!search.FilterByCategory || a.Type.Category == search.Category) &&
                                                       (string.IsNullOrEmpty(search.Manufacturer) || a.Type.Manufacturer.Contains(search.Manufacturer)) &&
-                                                      (string.IsNullOrEmpty(search.Name) || a.Type.Name.Contains(search.Name)) && (a.OwnerID == user.Id || a.PurchasePrice.HasValue || a.RentPrice.HasValue))
-                                             .Take(search.MaxResults)
-                                             .ToListAsync();
+                                                      (string.IsNullOrEmpty(search.Name) || a.Type.Name.Contains(search.Name)) &&
+                                                      (a.OwnerID == user.Id || a.PurchasePrice.HasValue || a.RentPrice.HasValue))
+                                             .Take(search.MaxResults).ToListAsync();
                     searchResults.AddRange(aircraft);
                 }
 
