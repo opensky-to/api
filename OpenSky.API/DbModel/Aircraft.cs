@@ -32,6 +32,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The aircraft type.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private AircraftType type;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Initializes a new instance of the <see cref="Aircraft"/> class.
         /// </summary>
         /// <remarks>
@@ -91,6 +98,14 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the user-chosen name of the aircraft.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [StringLength(30)]
+        public string Name { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the user owner (NULL if no user owner).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -106,6 +121,27 @@ namespace OpenSky.API.DbModel
         [ForeignKey("Owner")]
         [StringLength(255)]
         public string OwnerID { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the owner name.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [NotMapped]
+        public string OwnerName
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(this.OwnerID))
+                {
+                    return this.Owner.UserName;
+                }
+
+                // todo return VA owner once we add that
+
+                return "[System]";
+            }
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -136,7 +172,11 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("TypeID")]
-        public AircraftType Type { get; set; }
+        public AircraftType Type
+        {
+            get => this.LazyLoader.Load(this, ref this.type);
+            set => this.type = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

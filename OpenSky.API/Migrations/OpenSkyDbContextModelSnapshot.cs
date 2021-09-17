@@ -15,7 +15,7 @@ namespace OpenSky.API.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("Relational:MaxIdentifierLength", 64)
-                .HasAnnotation("ProductVersion", "5.0.7");
+                .HasAnnotation("ProductVersion", "5.0.10");
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -159,6 +159,10 @@ namespace OpenSky.API.Migrations
                     b.Property<double>("Fuel")
                         .HasColumnType("double");
 
+                    b.Property<string>("Name")
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
                     b.Property<string>("OwnerID")
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
@@ -242,6 +246,11 @@ namespace OpenSky.API.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
+                    b.Property<string>("Manufacturer")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
                     b.Property<double>("MaxGrossWeight")
                         .HasColumnType("double");
 
@@ -304,9 +313,6 @@ namespace OpenSky.API.Migrations
                     b.Property<string>("City")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
-
-                    b.Property<int?>("Country")
-                        .HasColumnType("int");
 
                     b.Property<int>("GaRamps")
                         .HasColumnType("int");
