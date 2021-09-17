@@ -2,20 +2,24 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OpenSky.API;
 
 namespace OpenSky.API.Migrations
 {
     [DbContext(typeof(OpenSkyDbContext))]
-    partial class OpenSkyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20210728140109_RemoveAirportCountry")]
+    partial class RemoveAirportCountry
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+#pragma warning restore CS1591 // Missing XML comment for publicly
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("Relational:MaxIdentifierLength", 64)
-                .HasAnnotation("ProductVersion", "5.0.10");
+                    .HasAnnotation("Relational:MaxIdentifierLength", 64)
+                    .HasAnnotation("ProductVersion", "5.0.7");
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -158,10 +162,6 @@ namespace OpenSky.API.Migrations
 
                     b.Property<double>("Fuel")
                         .HasColumnType("double");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(30)
-                        .HasColumnType("varchar(30)");
 
                     b.Property<string>("OwnerID")
                         .HasMaxLength(255)
