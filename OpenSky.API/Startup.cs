@@ -234,6 +234,9 @@ namespace OpenSky.API
             services.AddHttpClient<GeoLocateIPService>();
             services.AddSingleton<GeoLocateIPService>();
 
+            // Set up ICAO registration service
+            services.AddSingleton<IcaoRegistrationsService>();
+
             // Setup world populator service
             services.AddSingleton<WorldPopulatorService>();
             

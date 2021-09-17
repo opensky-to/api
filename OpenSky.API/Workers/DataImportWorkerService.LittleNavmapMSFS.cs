@@ -11,19 +11,15 @@ namespace OpenSky.API.Workers
     using System.Data;
     using System.Data.Common;
     using System.Data.SQLite;
-    using System.Globalization;
     using System.IO;
     using System.Linq;
     using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
 
-    using CsvHelper;
-
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
 
-    using OpenSky.API.Datasets;
     using OpenSky.API.DbModel;
     using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Model;
@@ -75,14 +71,6 @@ namespace OpenSky.API.Workers
                 // Load "static" dataset for A380 airports
                 var a380Airports = await File.ReadAllLinesAsync("Datasets/a380airports.txt", token);
 
-                // Read airports CSV file
-                var airportReader = new StreamReader("Datasets/airports.csv");
-                var csv = new CsvReader(airportReader, CultureInfo.InvariantCulture);
-                var airportRecords = csv.GetRecords<AirportData>().ToList();
-                csv.Dispose();
-                airportReader.Close();
-                airportReader.Dispose();
-
                 var newAirports = new List<Airport>();
                 var updatedAirports = new List<Airport>();
                 var reader = await airportCommand.ExecuteReaderAsync(token);
@@ -98,14 +86,6 @@ namespace OpenSky.API.Workers
 
                         var ident = reader.GetString("ident");
                         lastIdent = ident;
-
-                        // Fetch country data from OurAirports CSV
-                        Country? airportCountry = null;
-                        var airportRecord = airportRecords.FirstOrDefault(airport => airport.Ident == ident);
-                        if (airportRecord != null)
-                        {
-                            airportCountry = Enum.Parse<Country>(airportRecord.IsoCountry);
-                        }
 
                         var existingAirport = await db.Airports.SingleOrDefaultAsync(a => a.ICAO == ident, token);
                         if (existingAirport == null)
@@ -134,7 +114,6 @@ namespace OpenSky.API.Workers
                                 MSFS = true,
                                 SupportsSuper = a380Airports.Contains(ident),
                                 Size = null, // This will be calculated later as this depends on runways and approaches that aren't imported yet
-                                Country = airportCountry,
                                 HasBeenPopulated = ProcessingStatus.NeedsHandling
                             };
                             newAirports.Add(newAirport);
@@ -165,7 +144,6 @@ namespace OpenSky.API.Workers
                             existingAirport.SupportsSuper = a380Airports.Contains(ident);
                             existingAirport.PreviousSize = existingAirport.Size; // Save that away to detect size changes
                             existingAirport.Size = null; // Re-calculate the size
-                            existingAirport.Country = airportCountry;
                             if (triggerWorldPopulator)
                             {
                                 existingAirport.HasBeenPopulated = ProcessingStatus.NeedsHandling;

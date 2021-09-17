@@ -8,14 +8,9 @@ namespace OpenSky.API.Services
 {
     using System;
     using System.Collections.Generic;
-    using System.Globalization;
-    using System.IO;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-
-    using CsvHelper;
-    using CsvHelper.Configuration;
 
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.DependencyInjection;
@@ -59,13 +54,6 @@ namespace OpenSky.API.Services
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The icao registrations from the CSV file.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private readonly IcaoRegistration[] icaoRegistrations;
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// The logger.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -91,6 +79,13 @@ namespace OpenSky.API.Services
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The ICAO registrations service.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly IcaoRegistrationsService icaoRegistrations;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Initializes a new instance of the <see cref="WorldPopulatorService"/> class.
         /// </summary>
         /// <remarks>
@@ -102,24 +97,16 @@ namespace OpenSky.API.Services
         /// <param name="logger">
         /// The logger.
         /// </param>
+        /// <param name="icaoRegistrations">
+        /// The ICAO registrations service.
+        /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public WorldPopulatorService(IServiceProvider services, ILogger<WorldPopulatorService> logger)
+        public WorldPopulatorService(IServiceProvider services, ILogger<WorldPopulatorService> logger, IcaoRegistrationsService icaoRegistrations)
         {
             this.logger = logger;
             this.db = services.CreateScope().ServiceProvider.GetRequiredService<OpenSkyDbContext>();
-            var reader = new StreamReader("Datasets/ICAO.csv");
-
-            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
-            {
-                MissingFieldFound = null
-            };
-
-            var csv = new CsvReader(reader, config);
-            this.icaoRegistrations = csv.GetRecords<IcaoRegistration>().OrderByDescending(i => i.AirportPrefix).ToArray();
-            csv.Dispose();
-            reader.Close();
-            reader.Dispose();
-            this.logger.LogInformation("Populator Service running");
+            this.icaoRegistrations = icaoRegistrations;
+            this.logger.LogInformation("World populator service started");
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -761,7 +748,12 @@ namespace OpenSky.API.Services
         /// -------------------------------------------------------------------------------------------------
         private string GenerateRegistration(Airport airport, IReadOnlyCollection<Aircraft> generatedAircraft)
         {
-            var airportRegistrationsEntry = this.icaoRegistrations.FirstOrDefault(icaoRegistration => airport.ICAO.ToLower()[..2].StartsWith(icaoRegistration.AirportPrefix.ToLower()));
+            var airportRegistrationsEntry = this.icaoRegistrations.GetIcaoRegistrationForAirport(airport);
+            if (airportRegistrationsEntry == null)
+            {
+                throw new Exception($"Unable to find ICAO registration for airport {airport.ICAO}.");
+            }
+
             const int maxAttempts = 20;
             var registration = string.Empty;
 
@@ -769,7 +761,7 @@ namespace OpenSky.API.Services
             var randomReg = Random.Next(1, 100);
             if (randomReg <= this.foreignRegChances[airport.Size ?? 0])
             {
-                airportRegistrationsEntry = this.icaoRegistrations[Random.Next(0, this.icaoRegistrations.Length - 1)];
+                airportRegistrationsEntry = this.icaoRegistrations.GetRandomIcaoRegistration();
             }
 
             // Default to US Registration if there is no entry for a given country
