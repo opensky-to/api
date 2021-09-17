@@ -331,11 +331,11 @@ namespace OpenSky.API.Controllers
                 {
                     // Return all matching planes
                     var aircraft = await this.db.Aircraft.Where(
-                        a => a.AirportICAO.StartsWith(airportPrefix) &&
-                             (!search.OnlyVanilla || a.Type.IsVanilla) &&
-                             (!search.FilterByCategory || a.Type.Category == search.Category) &&
-                             (string.IsNullOrEmpty(search.Manufacturer) || a.Type.Manufacturer.Contains(search.Manufacturer)) &&
-                             (string.IsNullOrEmpty(search.Name) || a.Type.Name.Contains(search.Name)))
+                                                 a => a.AirportICAO.StartsWith(airportPrefix) &&
+                                                      (!search.OnlyVanilla || a.Type.IsVanilla) &&
+                                                      (!search.FilterByCategory || a.Type.Category == search.Category) &&
+                                                      (string.IsNullOrEmpty(search.Manufacturer) || a.Type.Manufacturer.Contains(search.Manufacturer)) &&
+                                                      (string.IsNullOrEmpty(search.Name) || a.Type.Name.Contains(search.Name)))
                                              .Take(search.MaxResults).ToListAsync();
                     searchResults.AddRange(aircraft);
                 }
@@ -360,6 +360,62 @@ namespace OpenSky.API.Controllers
             }
 
             return new ApiResponse<IEnumerable<Aircraft>>(searchResults);
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Updates the specified aircraft (user editable properties only)
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 17/09/2021.
+        /// </remarks>
+        /// <param name="updateAircraft">
+        /// The update aircraft.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields an ActionResult&lt;ApiResponse&lt;string&gt;&gt;
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPut(Name = "UpdateAircraft")]
+        public async Task<ActionResult<ApiResponse<string>>> UpdateAircraft([FromBody] UpdateAircraft updateAircraft)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Aircraft/update/{updateAircraft.Registry}");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
+                }
+
+                var aircraft = await this.db.Aircraft.SingleOrDefaultAsync(a => a.Registry.Equals(updateAircraft.Registry));
+                if (aircraft == null)
+                {
+                    return new ApiResponse<string>("Aircraft not found!") { IsError = true };
+                }
+
+                if (aircraft.OwnerID != user.Id)
+                {
+                    return new ApiResponse<string>("You don't own this aircraft!") { IsError = true };
+                }
+
+                aircraft.Name = updateAircraft.Name;
+                aircraft.PurchasePrice = updateAircraft.PurchasePrice;
+                aircraft.RentPrice = updateAircraft.RentPrice;
+
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving changes to aircraft.");
+                if (saveEx != null)
+                {
+                    return new ApiResponse<string>("Error saving changes to aircraft", saveEx);
+                }
+
+                return new ApiResponse<string>($"Successfully updated aircraft {updateAircraft.Registry}");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Aircraft/update/{updateAircraft.Registry}");
+                return new ApiResponse<string>(ex);
+            }
         }
     }
 }
