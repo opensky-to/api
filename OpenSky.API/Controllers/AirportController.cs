@@ -11,14 +11,20 @@ namespace OpenSky.API.Controllers
     using System.Linq;
     using System.Threading.Tasks;
 
+    using CsvHelper.Configuration.Attributes;
+
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
 
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
+
     using OpenSky.API.DbModel;
     using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Model;
+    using OpenSky.API.Model.Airport;
     using OpenSky.API.Model.Authentication;
 
     /// -------------------------------------------------------------------------------------------------
@@ -97,6 +103,72 @@ namespace OpenSky.API.Controllers
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Airport/{icao}");
                 return new ApiResponse<Airport>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Searches for airports using ICAO, name or city and return the first 50 results.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 21/09/2021.
+        /// </remarks>
+        /// <param name="searchString">
+        /// The search string.
+        /// </param>
+        /// <returns>
+        /// The matching airport records.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet("search/{searchString}", Name = "SearchAirport")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<Airport>>>> SearchAirport(string searchString)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Airport/search/{searchString}");
+                var airports = await this.db.Airports.Where(a => a.ICAO.Contains(searchString) || a.City.Contains(searchString) || a.Name.Contains(searchString)).Take(50).ToListAsync();
+                return new ApiResponse<IEnumerable<Airport>>(airports);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Airport/search/{searchString}");
+                return new ApiResponse<IEnumerable<Airport>>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Creates a new airport client package.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 21/09/2021.
+        /// </remarks>
+        /// <returns>
+        /// The creation result string.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPost("clientPackage", Name = "CreateAirportClientPackage")]
+        [Authorize(Roles = UserRoles.Admin)]
+        public async Task<ActionResult<ApiResponse<string>>> CreateAirportClientPackage()
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Airport/clientPackage");
+                var packageEntries = await this.db.Airports.Where(a => a.Size.HasValue).Select(a => new AirportClientPackageEntry(a)).ToListAsync();
+
+                var package = new AirportClientPackage(packageEntries);
+
+                var jObject = JObject.FromObject(package);
+                var jsonString = jObject.ToString(Formatting.None);
+
+                // todo calculate sha2 hash and compare to last entry in the database
+
+                return new ApiResponse<string>(jsonString);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Airport/clientPackage");
+                return new ApiResponse<string>(ex);
             }
         }
 
