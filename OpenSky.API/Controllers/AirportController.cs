@@ -9,9 +9,9 @@ namespace OpenSky.API.Controllers
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Security.Cryptography;
+    using System.Text;
     using System.Threading.Tasks;
-
-    using CsvHelper.Configuration.Attributes;
 
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
@@ -23,6 +23,7 @@ namespace OpenSky.API.Controllers
 
     using OpenSky.API.DbModel;
     using OpenSky.API.DbModel.Enums;
+    using OpenSky.API.Helpers;
     using OpenSky.API.Model;
     using OpenSky.API.Model.Airport;
     using OpenSky.API.Model.Authentication;
@@ -156,14 +157,39 @@ namespace OpenSky.API.Controllers
                 this.logger.LogInformation($"{this.User.Identity?.Name} | POST Airport/clientPackage");
                 var packageEntries = await this.db.Airports.Where(a => a.Size.HasValue).Select(a => new AirportClientPackageEntry(a)).ToListAsync();
 
-                var package = new AirportClientPackage(packageEntries);
+                var package = new AirportClientPackageRoot(packageEntries);
 
                 var jObject = JObject.FromObject(package);
                 var jsonString = jObject.ToString(Formatting.None);
 
-                // todo calculate sha2 hash and compare to last entry in the database
+                using var sha256Hash = SHA256.Create();
+                var jsonHash = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(jsonString));
+                var hashBase64 = Convert.ToBase64String(jsonHash);
 
-                return new ApiResponse<string>(jsonString);
+                var latestClientPackage = await this.db.AirportClientPackages.OrderByDescending(p => p.CreationTime).FirstOrDefaultAsync();
+                if (latestClientPackage == null || !string.Equals(latestClientPackage.PackageHash, hashBase64, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    // Create new client package
+                    var newPackage = new AirportClientPackage
+                    {
+                        CreationTime = DateTime.Now,
+                        PackageHash = hashBase64,
+                        Package = jsonString.CompressToBase64()
+                    };
+
+                    await this.db.AirportClientPackages.AddAsync(newPackage);
+                    var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving new airport client package.");
+                    if (saveEx != null)
+                    {
+                        return new ApiResponse<string>("Error saving new airport client package", saveEx);
+                    }
+
+                    return new ApiResponse<string>("Successfully created new client airport package.");
+                }
+                else
+                {
+                    return new ApiResponse<string>("Skipped, no changes since last airport client package.");
+                }
             }
             catch (Exception ex)
             {
