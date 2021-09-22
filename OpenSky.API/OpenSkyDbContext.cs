@@ -60,6 +60,13 @@ namespace OpenSky.API
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the client airport packages.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public virtual DbSet<AirportClientPackage> AirportClientPackages { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the airports.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -245,5 +252,4 @@ namespace OpenSky.API
             return context.Set<TEntity>().Local.Any(e => e == entity);
         }
     }
-
 }
