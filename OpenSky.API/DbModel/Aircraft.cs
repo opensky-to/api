@@ -7,8 +7,10 @@
 namespace OpenSky.API.DbModel
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
+    using System.Linq;
     using System.Text.Json.Serialization;
 
     using OpenSky.API.Helpers;
@@ -29,6 +31,13 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private Airport airport;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The flights of this aircraft.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<Flight> flights;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -88,6 +97,18 @@ namespace OpenSky.API.DbModel
         [StringLength(5, MinimumLength = 3)]
         [ForeignKey("Airport")]
         public string AirportICAO { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the flights.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        public ICollection<Flight> Flights
+        {
+            get => this.LazyLoader.Load(this, ref this.flights);
+            set => this.flights = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -165,6 +186,34 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public int? RentPrice { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the current status of the aircraft.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [NotMapped]
+        public string Status
+        {
+            get
+            {
+                // Check for active flight
+                var activeFlight = this.Flights.SingleOrDefault(f => f.Started.HasValue && !f.Completed.HasValue);
+                if (activeFlight != null)
+                {
+                    if (activeFlight.Paused.HasValue)
+                    {
+                        return $"Paused ({activeFlight.FlightNumber})";
+                    }
+
+                    return $"{activeFlight.FlightPhase} ({activeFlight.FlightNumber})";
+                }
+
+                // todo return repair/etc. status
+
+                return "Idle";
+            }
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

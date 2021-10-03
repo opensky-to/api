@@ -17,14 +17,19 @@ namespace OpenSky.API.DbModel.Enums
     public enum FlightPhase
     {
         /// <summary>
-        /// Unknown flight phase (not connected, or not status received yet).
+        /// Flight has been started but agent hasn't reported any status yet.
         /// </summary>
-        Unknown = 0,
+        Briefing = 0,
 
         /// <summary>
-        /// Flight simulator main menu (lat/lon 0, OnGround=true, would be in the ocean).
+        /// Unknown flight phase (not connected, or not status received yet).
         /// </summary>
-        InMenu = 1,
+        Unknown = 1,
+
+        /// <summary>
+        /// Flight phase is not currently tracked.
+        /// </summary>
+        UnTracked = 2,
 
         /// <summary>
         /// Pre flight phase (Plane spawned in, but engines are off).
@@ -90,11 +95,6 @@ namespace OpenSky.API.DbModel.Enums
         /// Post flight (Engines turned off, tracking is about to stop, just saving flight log reporting back).
         /// </summary>
         PostFlight = 22,
-
-        /// <summary>
-        /// Flight phase is not currently tracked.
-        /// </summary>
-        UnTracked = 98,
 
         /// <summary>
         /// Crashed (phase), oh oh :).

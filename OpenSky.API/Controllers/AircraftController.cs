@@ -314,52 +314,60 @@ namespace OpenSky.API.Controllers
         [HttpPost("searchInCountry", Name = "SearchAircraftInCountry")]
         public async Task<ActionResult<ApiResponse<IEnumerable<Aircraft>>>> SearchAircraftInCountry([FromBody] AircraftSearchInCountry search)
         {
-            this.logger.LogInformation($"{this.User.Identity?.Name} | GET Aircraft/searchInCountry");
-            var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
-            if (user == null)
+            try
             {
-                return new ApiResponse<IEnumerable<Aircraft>> { Message = "Unable to find user record!", IsError = true, Data = new List<Aircraft>() };
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Aircraft/searchInCountry");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<IEnumerable<Aircraft>> { Message = "Unable to find user record!", IsError = true, Data = new List<Aircraft>() };
+                }
+
+                // Get the ICAO registration entries for the specified country to get the airport prefixes
+                var airportPrefixes = this.icaoRegistrations.GetIcaoRegistrationsForCountry(search.Country).Select(r => r.AirportPrefix).Distinct().ToArray();
+
+                var searchResults = new List<Aircraft>();
+                foreach (var airportPrefix in airportPrefixes)
+                {
+                    if (this.User.IsInRole(UserRoles.Moderator) || this.User.IsInRole(UserRoles.Admin))
+                    {
+                        // Return all matching planes
+                        var aircraft = await this.db.Aircraft.Where(
+                                                     a => a.AirportICAO.StartsWith(airportPrefix) &&
+                                                          (!search.OnlyVanilla || a.Type.IsVanilla) &&
+                                                          (!search.FilterByCategory || a.Type.Category == search.Category) &&
+                                                          (string.IsNullOrEmpty(search.Manufacturer) || a.Type.Manufacturer.Contains(search.Manufacturer)) &&
+                                                          (string.IsNullOrEmpty(search.Name) || a.Type.Name.Contains(search.Name)))
+                                                 .Take(search.MaxResults).ToListAsync();
+                        searchResults.AddRange(aircraft);
+                    }
+                    else
+                    {
+                        // Only return planes that are available for purchase or rent, or owned by the player
+                        var aircraft = await this.db.Aircraft.Where(
+                                                     a => a.AirportICAO.StartsWith(airportPrefix) &&
+                                                          (!search.OnlyVanilla || a.Type.IsVanilla) &&
+                                                          (!search.FilterByCategory || a.Type.Category == search.Category) &&
+                                                          (string.IsNullOrEmpty(search.Manufacturer) || a.Type.Manufacturer.Contains(search.Manufacturer)) &&
+                                                          (string.IsNullOrEmpty(search.Name) || a.Type.Name.Contains(search.Name)) &&
+                                                          (a.OwnerID == user.Id || a.PurchasePrice.HasValue || a.RentPrice.HasValue))
+                                                 .Take(search.MaxResults).ToListAsync();
+                        searchResults.AddRange(aircraft);
+                    }
+
+                    if (searchResults.Count >= search.MaxResults)
+                    {
+                        break;
+                    }
+                }
+
+                return new ApiResponse<IEnumerable<Aircraft>>(searchResults);
             }
-
-            // Get the ICAO registration entries for the specified country to get the airport prefixes
-            var airportPrefixes = this.icaoRegistrations.GetIcaoRegistrationsForCountry(search.Country).Select(r => r.AirportPrefix).Distinct().ToArray();
-
-            var searchResults = new List<Aircraft>();
-            foreach (var airportPrefix in airportPrefixes)
+            catch (Exception ex)
             {
-                if (this.User.IsInRole(UserRoles.Moderator) || this.User.IsInRole(UserRoles.Admin))
-                {
-                    // Return all matching planes
-                    var aircraft = await this.db.Aircraft.Where(
-                                                 a => a.AirportICAO.StartsWith(airportPrefix) &&
-                                                      (!search.OnlyVanilla || a.Type.IsVanilla) &&
-                                                      (!search.FilterByCategory || a.Type.Category == search.Category) &&
-                                                      (string.IsNullOrEmpty(search.Manufacturer) || a.Type.Manufacturer.Contains(search.Manufacturer)) &&
-                                                      (string.IsNullOrEmpty(search.Name) || a.Type.Name.Contains(search.Name)))
-                                             .Take(search.MaxResults).ToListAsync();
-                    searchResults.AddRange(aircraft);
-                }
-                else
-                {
-                    // Only return planes that are available for purchase or rent, or owned by the player
-                    var aircraft = await this.db.Aircraft.Where(
-                                                 a => a.AirportICAO.StartsWith(airportPrefix) &&
-                                                      (!search.OnlyVanilla || a.Type.IsVanilla) &&
-                                                      (!search.FilterByCategory || a.Type.Category == search.Category) &&
-                                                      (string.IsNullOrEmpty(search.Manufacturer) || a.Type.Manufacturer.Contains(search.Manufacturer)) &&
-                                                      (string.IsNullOrEmpty(search.Name) || a.Type.Name.Contains(search.Name)) &&
-                                                      (a.OwnerID == user.Id || a.PurchasePrice.HasValue || a.RentPrice.HasValue))
-                                             .Take(search.MaxResults).ToListAsync();
-                    searchResults.AddRange(aircraft);
-                }
-
-                if (searchResults.Count >= search.MaxResults)
-                {
-                    break;
-                }
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Aircraft/searchInCountry");
+                return new ApiResponse<IEnumerable<Aircraft>>(ex) { Data = new List<Aircraft>() };
             }
-
-            return new ApiResponse<IEnumerable<Aircraft>>(searchResults);
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -373,7 +381,7 @@ namespace OpenSky.API.Controllers
         /// The update aircraft.
         /// </param>
         /// <returns>
-        /// An asynchronous result that yields an ActionResult&lt;ApiResponse&lt;string&gt;&gt;
+        /// An asynchronous result that yields a string.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
         [HttpPut(Name = "UpdateAircraft")]
