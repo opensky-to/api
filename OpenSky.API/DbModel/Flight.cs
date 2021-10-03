@@ -27,6 +27,15 @@ namespace OpenSky.API.DbModel
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets the operator.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+
+        // ReSharper disable once InconsistentNaming
+        private OpenSkyUser _operator;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The aircraft.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -133,6 +142,14 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the latest auto-save flight log file (base64 encoded).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        public string AutoSaveLog { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The bank angle in degrees.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -144,6 +161,13 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public DateTime? Completed { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the Date/Time of when the flight was paused (so it can be resumed later).
+        /// </summary>
+        /// 
+        public DateTime? Paused { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -176,10 +200,19 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the final flight log file (base64 encoded).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        public string FlightLog { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the flight number.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [StringLength(7, MinimumLength = 1)]
+        [Required]
         public string FlightNumber { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -188,6 +221,83 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public FlightPhase FlightPhase { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the fuel tank center 2 quantity.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double? FuelTankCenter2Quantity { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the fuel tank center 3 quantity.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double? FuelTankCenter3Quantity { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the fuel tank center quantity.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double? FuelTankCenterQuantity { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the fuel tank external 1 quantity.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double? FuelTankExternal1Quantity { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the fuel tank external 2 quantity.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double? FuelTankExternal2Quantity { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the fuel tank left auxiliary quantity.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double? FuelTankLeftAuxQuantity { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the fuel tank left main quantity.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double? FuelTankLeftMainQuantity { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the fuel tank left tip quantity.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double? FuelTankLeftTipQuantity { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the fuel tank right auxiliary quantity.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double? FuelTankRightAuxQuantity { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the fuel tank right main quantity.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double? FuelTankRightMainQuantity { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the fuel tank right tip quantity.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double? FuelTankRightTipQuantity { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -233,7 +343,11 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("OperatorID")]
         [JsonIgnore]
-        public OpenSkyUser Operator { get; set; }
+        public OpenSkyUser Operator
+        {
+            get => this.LazyLoader.Load(this, ref this._operator);
+            set => this._operator = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -303,93 +417,30 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the fuel tank center quantity.
+        /// Gets or sets the fuel in gallons.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public double? FuelTankCenterQuantity { get; set; }
+        public double? FuelGallons { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the fuel tank center 2 quantity.
+        /// Gets or sets the Date/Time when fuel loading will be complete.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public double? FuelTankCenter2Quantity { get; set; }
+        public DateTime? FuelLoadingComplete { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the fuel tank center 3 quantity.
+        /// Gets or sets the Date/Time when payload loading will be complete.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public double? FuelTankCenter3Quantity { get; set; }
+        public DateTime? PayloadLoadingComplete { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the fuel tank left main quantity.
+        /// Gets or sets the UTC offset for the flight.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public double? FuelTankLeftMainQuantity { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the fuel tank left auxiliary quantity.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public double? FuelTankLeftAuxQuantity { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the fuel tank left tip quantity.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public double? FuelTankLeftTipQuantity { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the fuel tank right main quantity.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public double? FuelTankRightMainQuantity { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the fuel tank right auxiliary quantity.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public double? FuelTankRightAuxQuantity { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the fuel tank right tip quantity.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public double? FuelTankRightTipQuantity { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the fuel tank external 1 quantity.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public double? FuelTankExternal1Quantity { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the fuel tank external 2 quantity.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public double? FuelTankExternal2Quantity { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the latest auto-save flight log file (base64 encoded).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public string AutoSaveLog { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the final flight log file (base64 encoded).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public string FlightLog { get; set; }
+        public double UtcOffset { get; set; }
     }
 }
