@@ -105,6 +105,9 @@ namespace OpenSky.API.Controllers
                 }
 
                 var plans = await this.db.Flights.Where(f => f.OperatorID == user.Id && !f.Started.HasValue).Select(f => new FlightPlan(f)).ToListAsync();
+
+                // todo also return VA plans
+
                 return new ApiResponse<IEnumerable<FlightPlan>>(plans);
             }
             catch (Exception ex)

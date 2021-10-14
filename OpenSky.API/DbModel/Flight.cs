@@ -64,6 +64,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets the operator airline.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private Airline operatorAirline;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Initializes a new instance of the <see cref="Flight"/> class.
         /// </summary>
         /// <remarks>
@@ -358,6 +365,29 @@ namespace OpenSky.API.DbModel
         [ForeignKey("Operator")]
         [StringLength(255)]
         public string OperatorID { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the identifier of the airline operator of this flight (either this or OperatorID
+        /// must be set.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("OperatorAirline")]
+        [StringLength(3)]
+        public string OperatorAirlineID { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the operator airline of this flight.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("OperatorAirlineID")]
+        [JsonIgnore]
+        public Airline OperatorAirline
+        {
+            get => this.LazyLoader.Load(this, ref this.operatorAirline);
+            set => this.operatorAirline = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

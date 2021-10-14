@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="OpenSkyUser.cs" company="OpenSky">
+// <copyright file="Airline.cs" company="OpenSky">
 // OpenSky project 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
@@ -12,81 +12,85 @@ namespace OpenSky.API.DbModel
     using System.ComponentModel.DataAnnotations.Schema;
     using System.Text.Json.Serialization;
 
-    using Microsoft.AspNetCore.Identity;
-
     using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Helpers;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// OpenSky user model.
+    /// Airline model.
     /// </summary>
     /// <remarks>
-    /// sushi.at, 05/05/2021.
+    /// sushi.at, 11/10/2021.
     /// </remarks>
-    /// <seealso cref="T:Microsoft.AspNetCore.Identity.IdentityUser"/>
     /// -------------------------------------------------------------------------------------------------
-    public class OpenSkyUser : IdentityUser
+    public class Airline
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The airline the user belongs to (or NULL if not member of an airline).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private Airline airline;
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// The airline roles for this user.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private ICollection<AirlineUserRole> roles;
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// The access tokens of the user.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private ICollection<OpenSkyToken> tokens;
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// The user operated flights (not airline).
+        /// The flights of this airline.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private ICollection<Flight> flights;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="OpenSkyUser"/> class.
+        /// The members of the airline.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<OpenSkyUser> members;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The airline user roles.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<AirlineUserRole> roles;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The founding user.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private OpenSkyUser founder;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Airline"/> class.
         /// </summary>
         /// <remarks>
-        /// sushi.at, 29/05/2021.
+        /// sushi.at, 12/10/2021.
         /// </remarks>
         /// -------------------------------------------------------------------------------------------------
-        public OpenSkyUser()
+        public Airline()
         {
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="OpenSkyUser"/> class.
+        /// Initializes a new instance of the <see cref="Airline"/> class.
         /// </summary>
         /// <remarks>
-        /// sushi.at, 29/05/2021.
+        /// sushi.at, 12/10/2021.
         /// </remarks>
         /// <param name="lazyLoader">
         /// The lazy loader.
         /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public OpenSkyUser(Action<object, string> lazyLoader)
+        public Airline(Action<object, string> lazyLoader)
         {
             this.LazyLoader = lazyLoader;
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the user operated flights (not airline).
+        /// Gets or sets the country.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public Country Country { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the flights.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [JsonIgnore]
@@ -98,92 +102,19 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the airline the user belongs to (or NULL if not member of an airline).
+        /// Gets or sets the members.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [JsonIgnore]
-        [ForeignKey("AirlineICAO")]
-        public Airline Airline
+        public ICollection<OpenSkyUser> Members
         {
-            get => this.LazyLoader.Load(this, ref this.airline);
-            set => this.airline = value;
+            get => this.LazyLoader.Load(this, ref this.members);
+            set => this.members = value;
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the airline ICAO code (or NULL if not member of an airline).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [ForeignKey("Airline")]
-        [StringLength(3, MinimumLength = 3)]
-        public string AirlineICAO { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the airline income share (in percent, 20=>20% of job income).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public int? AirlineIncomeShare { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the airline rank (or NULL if not member of an airline).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public PilotRank? AirlineRank { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the airline salary (SkyBucks per NM flown).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public int? AirlineSalary { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the Bing maps API key.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public string BingMapsKey { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the Date/Time of the last login.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public DateTime? LastLogin { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the last login geo location (country).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public string LastLoginGeo { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the last login IP.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public string LastLoginIP { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the profile image.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public byte[] ProfileImage { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the Date/Time when the user registered.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public DateTime RegisteredOn { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the user's airline roles.
+        /// Gets or sets the airline user roles.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [JsonIgnore]
@@ -195,22 +126,60 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the Simbrief username.
+        /// Gets or sets the optional IATA code of the airline.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public string SimbriefUsername { get; set; }
+        [StringLength(2, MinimumLength = 2)]
+        public string IATA { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the access tokens of the user.
+        /// Gets or sets the airline ICAO code.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [Key]
+        [Required]
+        [StringLength(3, MinimumLength = 3)]
+        public string ICAO { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the name of the airline.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [Required]
+        [StringLength(50, MinimumLength = 4)]
+        public string Name { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the founding user.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("FounderID")]
         [JsonIgnore]
-        public ICollection<OpenSkyToken> Tokens
+        public OpenSkyUser Founder
         {
-            get => this.LazyLoader.Load(this, ref this.tokens);
-            set => this.tokens = value;
+            get => this.LazyLoader.Load(this, ref this.founder);
+            set => this.founder = value;
         }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the identifier of the user that founded this airline.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("Founder")]
+        [StringLength(255)]
+        [Required]
+        public string FounderID { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the founding date of the airline.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public DateTime FoundingDate { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
