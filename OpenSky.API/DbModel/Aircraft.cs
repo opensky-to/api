@@ -48,6 +48,20 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The airline owner of the aircraft (or NULL if no airline owner).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private Airline airlineOwner;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The owner of the aircraft (or NULL if no user owner).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private OpenSkyUser owner;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Initializes a new instance of the <see cref="Aircraft"/> class.
         /// </summary>
         /// <remarks>
@@ -132,7 +146,11 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("OwnerID")]
         [JsonIgnore]
-        public OpenSkyUser Owner { get; set; }
+        public OpenSkyUser Owner
+        {
+            get => this.LazyLoader.Load(this, ref this.owner);
+            set => this.owner = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -142,6 +160,28 @@ namespace OpenSky.API.DbModel
         [ForeignKey("Owner")]
         [StringLength(255)]
         public string OwnerID { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the airline owner (NULL if no airline owner).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("AirlineOwnerID")]
+        [JsonIgnore]
+        public Airline AirlineOwner
+        {
+            get => this.LazyLoader.Load(this, ref this.airlineOwner);
+            set => this.airlineOwner = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the identifier of the airline owner (NULL if no airline owner).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("AirlineOwnerID")]
+        [StringLength(3)]
+        public string AirlineOwnerID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -158,7 +198,10 @@ namespace OpenSky.API.DbModel
                     return this.Owner.UserName;
                 }
 
-                // todo return VA owner once we add that
+                if (!string.IsNullOrEmpty(this.AirlineOwnerID))
+                {
+                    return this.AirlineOwner.Name;
+                }
 
                 return "[System]";
             }
