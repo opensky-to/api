@@ -37,17 +37,10 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The airline roles for this user.
+        /// The airline permissions for this user.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private ICollection<AirlineUserRole> roles;
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// The access tokens of the user.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private ICollection<OpenSkyToken> tokens;
+        private ICollection<AirlineUserPermission> airlinePermissions;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -55,6 +48,20 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private ICollection<Flight> flights;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The airline share holdings for this user.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<AirlineShareHolder> shareHoldings;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The access tokens of the user.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<OpenSkyToken> tokens;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -82,18 +89,6 @@ namespace OpenSky.API.DbModel
         public OpenSkyUser(Action<object, string> lazyLoader)
         {
             this.LazyLoader = lazyLoader;
-        }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the user operated flights (not airline).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [JsonIgnore]
-        public ICollection<Flight> Flights
-        {
-            get => this.LazyLoader.Load(this, ref this.flights);
-            set => this.flights = value;
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -127,6 +122,18 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the airline permissions for this user.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        public ICollection<AirlineUserPermission> AirlinePermissions
+        {
+            get => this.LazyLoader.Load(this, ref this.airlinePermissions);
+            set => this.airlinePermissions = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the airline rank (or NULL if not member of an airline).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -134,7 +141,7 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the airline salary (SkyBucks per NM flown).
+        /// Gets or sets the airline salary (SkyBucks per flight hour).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public int? AirlineSalary { get; set; }
@@ -145,6 +152,18 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string BingMapsKey { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the user operated flights (not airline).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        public ICollection<Flight> Flights
+        {
+            get => this.LazyLoader.Load(this, ref this.flights);
+            set => this.flights = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -183,14 +202,14 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the user's airline roles.
+        /// Gets or sets the user's airline share holdings.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [JsonIgnore]
-        public ICollection<AirlineUserRole> Roles
+        public ICollection<AirlineShareHolder> ShareHoldings
         {
-            get => this.LazyLoader.Load(this, ref this.roles);
-            set => this.roles = value;
+            get => this.LazyLoader.Load(this, ref this.shareHoldings);
+            set => this.shareHoldings = value;
         }
 
         /// -------------------------------------------------------------------------------------------------

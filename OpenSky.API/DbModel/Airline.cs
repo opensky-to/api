@@ -34,6 +34,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The founding user.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private OpenSkyUser founder;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The members of the airline.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -41,17 +48,17 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The airline user roles.
+        /// The airline share holders.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private ICollection<AirlineUserRole> roles;
+        private ICollection<AirlineShareHolder> shareHolders;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The founding user.
+        /// The user permissions for this airline.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private OpenSkyUser founder;
+        private ICollection<AirlineUserPermission> userPermissions;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -102,57 +109,6 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the members.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [JsonIgnore]
-        public ICollection<OpenSkyUser> Members
-        {
-            get => this.LazyLoader.Load(this, ref this.members);
-            set => this.members = value;
-        }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the airline user roles.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [JsonIgnore]
-        public ICollection<AirlineUserRole> Roles
-        {
-            get => this.LazyLoader.Load(this, ref this.roles);
-            set => this.roles = value;
-        }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the optional IATA code of the airline.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [StringLength(2, MinimumLength = 2)]
-        public string IATA { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the airline ICAO code.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [Key]
-        [Required]
-        [StringLength(3, MinimumLength = 3)]
-        public string ICAO { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the name of the airline.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [Required]
-        [StringLength(50, MinimumLength = 4)]
-        public string Name { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// Gets or sets the founding user.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -180,6 +136,69 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public DateTime FoundingDate { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the optional IATA code of the airline.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [StringLength(2, MinimumLength = 2)]
+        public string IATA { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the airline ICAO code.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [Key]
+        [Required]
+        [StringLength(3, MinimumLength = 3)]
+        public string ICAO { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the members.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        public ICollection<OpenSkyUser> Members
+        {
+            get => this.LazyLoader.Load(this, ref this.members);
+            set => this.members = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the name of the airline.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [Required]
+        [StringLength(50, MinimumLength = 4)]
+        public string Name { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the airline share holders.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        public ICollection<AirlineShareHolder> ShareHolders
+        {
+            get => this.LazyLoader.Load(this, ref this.shareHolders);
+            set => this.shareHolders = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the user permissions for this airline.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        public ICollection<AirlineUserPermission> UserPermissions
+        {
+            get => this.LazyLoader.Load(this, ref this.userPermissions);
+            set => this.userPermissions = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
