@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="AirlineUserRole.cs" company="OpenSky">
+// <copyright file="AirlineShareHolder.cs" company="OpenSky">
 // OpenSky project 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
@@ -12,18 +12,17 @@ namespace OpenSky.API.DbModel
 
     using Newtonsoft.Json;
 
-    using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Helpers;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Airline user roles model.
+    /// Airline share holders model.
     /// </summary>
     /// <remarks>
     /// sushi.at, 14/10/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class AirlineUserRole
+    public class AirlineShareHolder
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -41,19 +40,19 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="AirlineUserRole"/> class.
+        /// Initializes a new instance of the <see cref="AirlineShareHolder"/> class.
         /// </summary>
         /// <remarks>
         /// sushi.at, 14/10/2021.
         /// </remarks>
         /// -------------------------------------------------------------------------------------------------
-        public AirlineUserRole()
+        public AirlineShareHolder()
         {
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="AirlineUserRole"/> class.
+        /// Initializes a new instance of the <see cref="AirlineShareHolder"/> class.
         /// </summary>
         /// <remarks>
         /// sushi.at, 14/10/2021.
@@ -62,7 +61,7 @@ namespace OpenSky.API.DbModel
         /// The lazy loader.
         /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public AirlineUserRole(Action<object, string> lazyLoader)
+        public AirlineShareHolder(Action<object, string> lazyLoader)
         {
             this.LazyLoader = lazyLoader;
         }
@@ -90,13 +89,6 @@ namespace OpenSky.API.DbModel
         [StringLength(3, MinimumLength = 3)]
         [ForeignKey("Airline")]
         public string AirlineICAO { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the role.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public AirlineRole Role { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

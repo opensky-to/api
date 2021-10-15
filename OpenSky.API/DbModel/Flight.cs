@@ -27,7 +27,7 @@ namespace OpenSky.API.DbModel
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets the operator.
+        /// The user operator.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
 
@@ -50,6 +50,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The assigned airline pilot.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private OpenSkyUser assignedAirlinePilot;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The destination airport.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -57,17 +64,17 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The operator airline.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private Airline operatorAirline;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The origin airport.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private Airport origin;
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets the operator airline.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private Airline operatorAirline;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -149,6 +156,28 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the assigned airline pilot (should not be set for user operated flights - will be ignored).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("AssignedAirlinePilotID")]
+        [JsonIgnore]
+        public OpenSkyUser AssignedAirlinePilot
+        {
+            get => this.LazyLoader.Load(this, ref this.assignedAirlinePilot);
+            set => this.assignedAirlinePilot = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the identifier of the assigned airline pilot (should not be set for user operated flights - will be ignored).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("AssignedAirlinePilot")]
+        [StringLength(255)]
+        public string AssignedAirlinePilotID { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the latest auto-save flight log file (base64 encoded).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -168,13 +197,6 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public DateTime? Completed { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the Date/Time of when the flight was paused (so it can be resumed later).
-        /// </summary>
-        /// 
-        public DateTime? Paused { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -228,6 +250,20 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public FlightPhase FlightPhase { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the fuel in gallons.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double? FuelGallons { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the Date/Time when fuel loading will be complete.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public DateTime? FuelLoadingComplete { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -358,13 +394,16 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the identifier of the operator of this flight (either this or OperatorAirlineID
-        /// must be set.
+        /// Gets or sets the operator airline of this flight.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [ForeignKey("Operator")]
-        [StringLength(255)]
-        public string OperatorID { get; set; }
+        [ForeignKey("OperatorAirlineID")]
+        [JsonIgnore]
+        public Airline OperatorAirline
+        {
+            get => this.LazyLoader.Load(this, ref this.operatorAirline);
+            set => this.operatorAirline = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -378,16 +417,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the operator airline of this flight.
+        /// Gets or sets the identifier of the operator of this flight (either this or OperatorAirlineID
+        /// must be set.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [ForeignKey("OperatorAirlineID")]
-        [JsonIgnore]
-        public Airline OperatorAirline
-        {
-            get => this.LazyLoader.Load(this, ref this.operatorAirline);
-            set => this.operatorAirline = value;
-        }
+        [ForeignKey("Operator")]
+        [StringLength(255)]
+        public string OperatorID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -412,6 +448,20 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the Date/Time of when the flight was paused (so it can be resumed later).
+        /// </summary>
+        /// 
+        public DateTime? Paused { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the Date/Time when payload loading will be complete.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public DateTime? PayloadLoadingComplete { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The pitch angle in degrees.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -433,6 +483,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the UTC offset for the flight.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double UtcOffset { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The vertical speed in feet per second.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -444,33 +501,5 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private Action<object, string> LazyLoader { get; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the fuel in gallons.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public double? FuelGallons { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the Date/Time when fuel loading will be complete.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public DateTime? FuelLoadingComplete { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the Date/Time when payload loading will be complete.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public DateTime? PayloadLoadingComplete { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the UTC offset for the flight.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public double UtcOffset { get; set; }
     }
 }

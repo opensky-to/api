@@ -126,6 +126,7 @@ namespace OpenSky.API.Controllers
                 }
 
                 // Only return planes that are available for purchase or rent, or owned by the player
+                // todo include airline owned? or assigned?
                 if (!this.User.IsInRole(UserRoles.Moderator) && !this.User.IsInRole(UserRoles.Admin))
                 {
                     if (aircraft.OwnerID != user.Id && !aircraft.PurchasePrice.HasValue && !aircraft.RentPrice.HasValue)
@@ -185,6 +186,7 @@ namespace OpenSky.API.Controllers
                 else
                 {
                     // Only return planes that are available for purchase or rent, or owned by the player
+                    // todo or owned by the airline? or remove them? would this not only be used to buy new planes?
                     var aircraft = await this.db.Aircraft.Where(a => a.AirportICAO.Equals(icao) && (a.OwnerID == user.Id || a.PurchasePrice.HasValue || a.RentPrice.HasValue)).ToListAsync();
                     return new ApiResponse<IEnumerable<Aircraft>>(aircraft);
                 }
@@ -219,6 +221,8 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<IEnumerable<Aircraft>> { Message = "Unable to find user record!", IsError = true, Data = new List<Aircraft>() };
                 }
 
+                // todo add airline aircraft? or just assigned airline aircraft?
+
                 var aircraft = await this.db.Aircraft.Where(a => a.OwnerID == user.Id).ToListAsync();
                 return new ApiResponse<IEnumerable<Aircraft>>(aircraft);
             }
@@ -246,6 +250,8 @@ namespace OpenSky.API.Controllers
         [HttpPost("purchase/{registry}", Name = "PurchaseAircraft")]
         public async Task<ActionResult<ApiResponse<string>>> PurchaseAircraft(string registry)
         {
+            // todo add forAirline parameter or make separate method
+
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | POST Aircraft/purchase/{registry}");
@@ -344,6 +350,7 @@ namespace OpenSky.API.Controllers
                     else
                     {
                         // Only return planes that are available for purchase or rent, or owned by the player
+                        // todo either also add owned by airline or remove this requirement, what is this used for?
                         var aircraft = await this.db.Aircraft.Where(
                                                      a => a.AirportICAO.StartsWith(airportPrefix) &&
                                                           (!search.OnlyVanilla || a.Type.IsVanilla) &&
@@ -406,6 +413,8 @@ namespace OpenSky.API.Controllers
                 {
                     return new ApiResponse<string>("You don't own this aircraft!") { IsError = true };
                 }
+
+                // todo airline owns and user has permission
 
                 aircraft.Name = updateAircraft.Name;
                 aircraft.PurchasePrice = updateAircraft.PurchasePrice;

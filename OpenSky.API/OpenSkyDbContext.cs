@@ -67,10 +67,17 @@ namespace OpenSky.API
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the airline user roles.
+        /// Gets or sets the airline share holders.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public virtual DbSet<AirlineUserRole> AirlineUserRoles { get; set; }
+        public virtual DbSet<AirlineShareHolder> AirlineShareHolders { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the airline user permissions.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public virtual DbSet<AirlineUserPermission> AirlineUserPermissions { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
