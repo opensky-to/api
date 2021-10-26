@@ -9,15 +9,15 @@ using OpenSky.API;
 namespace OpenSky.API.Migrations
 {
     [DbContext(typeof(OpenSkyDbContext))]
-    [Migration("20211003154613_Flight")]
-    partial class Flight
+    [Migration("20211026161008_AirlinesAndFlights")]
+    partial class AirlinesAndFlights
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("Relational:MaxIdentifierLength", 64)
-                .HasAnnotation("ProductVersion", "5.0.10");
+                .HasAnnotation("ProductVersion", "5.0.11");
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -153,6 +153,10 @@ namespace OpenSky.API.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("varchar(10)");
 
+                    b.Property<string>("AirlineOwnerID")
+                        .HasMaxLength(3)
+                        .HasColumnType("varchar(3)");
+
                     b.Property<string>("AirportICAO")
                         .IsRequired()
                         .HasMaxLength(5)
@@ -179,6 +183,8 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("char(36)");
 
                     b.HasKey("Registry");
+
+                    b.HasIndex("AirlineOwnerID");
 
                     b.HasIndex("AirportICAO");
 
@@ -298,6 +304,77 @@ namespace OpenSky.API.Migrations
                     b.HasIndex("UploaderID");
 
                     b.ToTable("AircraftTypes");
+                });
+
+            modelBuilder.Entity("OpenSky.API.DbModel.Airline", b =>
+                {
+                    b.Property<string>("ICAO")
+                        .HasMaxLength(3)
+                        .HasColumnType("varchar(3)");
+
+                    b.Property<int>("Country")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FounderID")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("FoundingDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("IATA")
+                        .HasMaxLength(2)
+                        .HasColumnType("varchar(2)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.HasKey("ICAO");
+
+                    b.ToTable("Airlines");
+                });
+
+            modelBuilder.Entity("OpenSky.API.DbModel.AirlineShareHolder", b =>
+                {
+                    b.Property<string>("AirlineICAO")
+                        .HasMaxLength(3)
+                        .HasColumnType("varchar(3)");
+
+                    b.Property<string>("UserID")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int>("Shares")
+                        .HasColumnType("int");
+
+                    b.HasKey("AirlineICAO", "UserID");
+
+                    b.HasIndex("UserID");
+
+                    b.ToTable("AirlineShareHolders");
+                });
+
+            modelBuilder.Entity("OpenSky.API.DbModel.AirlineUserPermission", b =>
+                {
+                    b.Property<string>("AirlineICAO")
+                        .HasMaxLength(3)
+                        .HasColumnType("varchar(3)");
+
+                    b.Property<string>("UserID")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int>("Permission")
+                        .HasColumnType("int");
+
+                    b.HasKey("AirlineICAO", "UserID");
+
+                    b.HasIndex("UserID");
+
+                    b.ToTable("AirlineUserPermissions");
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.Airport", b =>
@@ -483,6 +560,10 @@ namespace OpenSky.API.Migrations
                         .HasMaxLength(5)
                         .HasColumnType("varchar(5)");
 
+                    b.Property<string>("AssignedAirlinePilotID")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
                     b.Property<string>("AutoSaveLog")
                         .HasColumnType("longtext");
 
@@ -561,6 +642,10 @@ namespace OpenSky.API.Migrations
                     b.Property<bool>("OnGround")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<string>("OperatorAirlineID")
+                        .HasMaxLength(3)
+                        .HasColumnType("varchar(3)");
+
                     b.Property<string>("OperatorID")
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
@@ -597,6 +682,8 @@ namespace OpenSky.API.Migrations
                     b.HasIndex("AlternateICAO");
 
                     b.HasIndex("DestinationICAO");
+
+                    b.HasIndex("OperatorAirlineID");
 
                     b.HasIndex("OperatorID");
 
@@ -646,6 +733,19 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("varchar(255)");
 
                     b.Property<int>("AccessFailedCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("AirlineICAO")
+                        .HasMaxLength(3)
+                        .HasColumnType("varchar(3)");
+
+                    b.Property<int?>("AirlineIncomeShare")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("AirlineRank")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("AirlineSalary")
                         .HasColumnType("int");
 
                     b.Property<string>("BingMapsKey")
@@ -714,6 +814,8 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("varchar(256)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AirlineICAO");
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
@@ -870,6 +972,10 @@ namespace OpenSky.API.Migrations
 
             modelBuilder.Entity("OpenSky.API.DbModel.Aircraft", b =>
                 {
+                    b.HasOne("OpenSky.API.DbModel.Airline", "AirlineOwner")
+                        .WithMany()
+                        .HasForeignKey("AirlineOwnerID");
+
                     b.HasOne("OpenSky.API.DbModel.Airport", "Airport")
                         .WithMany()
                         .HasForeignKey("AirportICAO")
@@ -885,6 +991,8 @@ namespace OpenSky.API.Migrations
                         .HasForeignKey("TypeID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("AirlineOwner");
 
                     b.Navigation("Airport");
 
@@ -922,6 +1030,44 @@ namespace OpenSky.API.Migrations
                     b.Navigation("VariantType");
                 });
 
+            modelBuilder.Entity("OpenSky.API.DbModel.AirlineShareHolder", b =>
+                {
+                    b.HasOne("OpenSky.API.DbModel.Airline", "Airline")
+                        .WithMany("ShareHolders")
+                        .HasForeignKey("AirlineICAO")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("OpenSky.API.DbModel.OpenSkyUser", "User")
+                        .WithMany("ShareHoldings")
+                        .HasForeignKey("UserID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Airline");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("OpenSky.API.DbModel.AirlineUserPermission", b =>
+                {
+                    b.HasOne("OpenSky.API.DbModel.Airline", "Airline")
+                        .WithMany("UserPermissions")
+                        .HasForeignKey("AirlineICAO")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("OpenSky.API.DbModel.OpenSkyUser", "User")
+                        .WithMany("AirlinePermissions")
+                        .HasForeignKey("UserID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Airline");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("OpenSky.API.DbModel.Approach", b =>
                 {
                     b.HasOne("OpenSky.API.DbModel.Airport", "Airport")
@@ -947,8 +1093,12 @@ namespace OpenSky.API.Migrations
                         .WithMany()
                         .HasForeignKey("DestinationICAO");
 
+                    b.HasOne("OpenSky.API.DbModel.Airline", "OperatorAirline")
+                        .WithMany("Flights")
+                        .HasForeignKey("OperatorAirlineID");
+
                     b.HasOne("OpenSky.API.DbModel.OpenSkyUser", "Operator")
-                        .WithMany()
+                        .WithMany("Flights")
                         .HasForeignKey("OperatorID");
 
                     b.HasOne("OpenSky.API.DbModel.Airport", "Origin")
@@ -963,6 +1113,8 @@ namespace OpenSky.API.Migrations
 
                     b.Navigation("Operator");
 
+                    b.Navigation("OperatorAirline");
+
                     b.Navigation("Origin");
                 });
 
@@ -975,6 +1127,15 @@ namespace OpenSky.API.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("OpenSky.API.DbModel.OpenSkyUser", b =>
+                {
+                    b.HasOne("OpenSky.API.DbModel.Airline", "Airline")
+                        .WithMany("Members")
+                        .HasForeignKey("AirlineICAO");
+
+                    b.Navigation("Airline");
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.Runway", b =>
@@ -1004,6 +1165,17 @@ namespace OpenSky.API.Migrations
                     b.Navigation("Flights");
                 });
 
+            modelBuilder.Entity("OpenSky.API.DbModel.Airline", b =>
+                {
+                    b.Navigation("Flights");
+
+                    b.Navigation("Members");
+
+                    b.Navigation("ShareHolders");
+
+                    b.Navigation("UserPermissions");
+                });
+
             modelBuilder.Entity("OpenSky.API.DbModel.Airport", b =>
                 {
                     b.Navigation("Approaches");
@@ -1013,6 +1185,12 @@ namespace OpenSky.API.Migrations
 
             modelBuilder.Entity("OpenSky.API.DbModel.OpenSkyUser", b =>
                 {
+                    b.Navigation("AirlinePermissions");
+
+                    b.Navigation("Flights");
+
+                    b.Navigation("ShareHoldings");
+
                     b.Navigation("Tokens");
                 });
 

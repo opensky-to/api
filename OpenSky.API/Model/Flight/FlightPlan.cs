@@ -51,6 +51,16 @@ namespace OpenSky.API.Model.Flight
                 throw new Exception("Can't create flight plan for active flight.");
             }
 
+            if (string.IsNullOrEmpty(flight.OperatorID) && string.IsNullOrEmpty(flight.OperatorAirlineID))
+            {
+                throw new Exception("Flight plan operator missing.");
+            }
+
+            if (!string.IsNullOrEmpty(flight.OperatorID) && !string.IsNullOrEmpty(flight.OperatorAirlineID))
+            {
+                throw new Exception("Flight plan operator is ambiguous.");
+            }
+
             this.ID = flight.ID;
             this.FlightNumber = flight.FlightNumber;
             this.AircraftRegistry = flight.AircraftRegistry;
@@ -59,6 +69,7 @@ namespace OpenSky.API.Model.Flight
             this.AlternateICAO = flight.AlternateICAO;
             this.FuelGallons = flight.FuelGallons;
             this.UtcOffset = flight.UtcOffset;
+            this.IsAirlineFlight = !string.IsNullOrEmpty(flight.OperatorAirlineID);
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -108,6 +119,13 @@ namespace OpenSky.API.Model.Flight
         /// -------------------------------------------------------------------------------------------------
         [Required]
         public Guid ID { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets a value indicating whether this is an airline flight or a private one.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public bool IsAirlineFlight { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

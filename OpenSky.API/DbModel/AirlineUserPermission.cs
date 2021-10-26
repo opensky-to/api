@@ -12,6 +12,7 @@ namespace OpenSky.API.DbModel
 
     using Newtonsoft.Json;
 
+    using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Helpers;
 
     /// -------------------------------------------------------------------------------------------------
@@ -84,7 +85,6 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the airline ICAO code.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [Key]
         [Required]
         [StringLength(3, MinimumLength = 3)]
         [ForeignKey("Airline")]
@@ -95,7 +95,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the permission granted.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public AirlineUserPermission Permission { get; set; }
+        public AirlinePermission Permission { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -114,7 +114,6 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the identifier of the user.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [Key]
         [Required]
         [StringLength(255)]
         [ForeignKey("Founder")]

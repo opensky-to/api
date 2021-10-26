@@ -18,6 +18,7 @@ namespace OpenSky.API.Controllers
     using Microsoft.Extensions.Logging;
 
     using OpenSky.API.DbModel;
+    using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Model;
     using OpenSky.API.Model.Aircraft;
     using OpenSky.API.Model.Authentication;
@@ -84,13 +85,17 @@ namespace OpenSky.API.Controllers
         /// <param name="icaoRegistrations">
         /// The icao registration service.
         /// </param>
+        /// <param name="worldPopulator">
+        /// The world populator service.
+        /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public AircraftController(ILogger<AirportController> logger, OpenSkyDbContext db, UserManager<OpenSkyUser> userManager, IcaoRegistrationsService icaoRegistrations)
+        public AircraftController(ILogger<AirportController> logger, OpenSkyDbContext db, UserManager<OpenSkyUser> userManager, IcaoRegistrationsService icaoRegistrations, WorldPopulatorService worldPopulator)
         {
             this.logger = logger;
             this.db = db;
             this.userManager = userManager;
             this.icaoRegistrations = icaoRegistrations;
+            this.worldPopulator = worldPopulator;
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -125,11 +130,11 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<Aircraft>("Aircraft not found!") { IsError = true };
                 }
 
-                // Only return planes that are available for purchase or rent, or owned by the player
-                // todo include airline owned? or assigned?
+                // Only return planes that are available for purchase or rent, or owned by the player (or the player airline), or are currently rented by the player or airline
+                // todo include rented!
                 if (!this.User.IsInRole(UserRoles.Moderator) && !this.User.IsInRole(UserRoles.Admin))
                 {
-                    if (aircraft.OwnerID != user.Id && !aircraft.PurchasePrice.HasValue && !aircraft.RentPrice.HasValue)
+                    if (aircraft.OwnerID != user.Id && aircraft.AirlineOwnerID == user.AirlineICAO && !aircraft.PurchasePrice.HasValue && !aircraft.RentPrice.HasValue)
                     {
                         return new ApiResponse<Aircraft>("Aircraft not found!") { IsError = true };
                     }
@@ -175,19 +180,17 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<IEnumerable<Aircraft>> { Message = $"No airport with code {icao} exists!", IsError = true, Data = new List<Aircraft>() };
                 }
 
-                // todo for both queries: filter out planes with an active flight
-
                 if (this.User.IsInRole(UserRoles.Moderator) || this.User.IsInRole(UserRoles.Admin))
                 {
                     // Return all planes
-                    var aircraft = await this.db.Aircraft.Where(a => a.AirportICAO.Equals(icao)).ToListAsync();
+                    var aircraft = await this.db.Aircraft.Where(a => a.AirportICAO.Equals(icao) && !a.Flights.Any(f => f.Started.HasValue && !f.Completed.HasValue)).ToListAsync();
+
                     return new ApiResponse<IEnumerable<Aircraft>>(aircraft);
                 }
                 else
                 {
                     // Only return planes that are available for purchase or rent, or owned by the player
-                    // todo or owned by the airline? or remove them? would this not only be used to buy new planes?
-                    var aircraft = await this.db.Aircraft.Where(a => a.AirportICAO.Equals(icao) && (a.OwnerID == user.Id || a.PurchasePrice.HasValue || a.RentPrice.HasValue)).ToListAsync();
+                    var aircraft = await this.db.Aircraft.Where(a => a.AirportICAO.Equals(icao) && !a.Flights.Any(f => f.Started.HasValue && !f.Completed.HasValue) && (a.OwnerID == user.Id || a.AirlineOwnerID == user.AirlineICAO || a.PurchasePrice.HasValue || a.RentPrice.HasValue)).ToListAsync();
                     return new ApiResponse<IEnumerable<Aircraft>>(aircraft);
                 }
             }
@@ -221,8 +224,6 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<IEnumerable<Aircraft>> { Message = "Unable to find user record!", IsError = true, Data = new List<Aircraft>() };
                 }
 
-                // todo add airline aircraft? or just assigned airline aircraft?
-
                 var aircraft = await this.db.Aircraft.Where(a => a.OwnerID == user.Id).ToListAsync();
                 return new ApiResponse<IEnumerable<Aircraft>>(aircraft);
             }
@@ -243,15 +244,16 @@ namespace OpenSky.API.Controllers
         /// <param name="registry">
         /// The registry of the aircraft to purchase.
         /// </param>
+        /// <param name="forAirline">
+        /// True to purchase the aircraft for the airline and not the player.
+        /// </param>
         /// <returns>
         /// An asynchronous result that yields a string.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpPost("purchase/{registry}", Name = "PurchaseAircraft")]
-        public async Task<ActionResult<ApiResponse<string>>> PurchaseAircraft(string registry)
+        [HttpPost("purchase/{registry}/{forAirline:bool}", Name = "PurchaseAircraft")]
+        public async Task<ActionResult<ApiResponse<string>>> PurchaseAircraft(string registry, bool forAirline)
         {
-            // todo add forAirline parameter or make separate method
-
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | POST Aircraft/purchase/{registry}");
@@ -259,6 +261,16 @@ namespace OpenSky.API.Controllers
                 if (user == null)
                 {
                     return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
+                }
+
+                if (string.IsNullOrEmpty(user.AirlineICAO))
+                {
+                    return new ApiResponse<string> { Message = "Not member of an airline!", IsError = true };
+                }
+
+                if (!AirlineController.UserHasPermission(user, AirlinePermission.BuyAircraft))
+                {
+                    return new ApiResponse<string> { Message = "You don't have the permission to buy aircraft for your airline!", IsError = true };
                 }
 
                 var aircraft = await this.db.Aircraft.SingleOrDefaultAsync(a => a.Registry.Equals(registry));
@@ -272,18 +284,34 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>($"Aircraft with registry {registry} is not for sale!") { IsError = true };
                 }
 
-                if (aircraft.OwnerID == user.Id)
+                if (aircraft.OwnerID == user.Id && !forAirline)
                 {
-                    return new ApiResponse<string>("You can't purchase your own aircraft!") { IsError = true };
+                    return new ApiResponse<string>("You already own this aircraft!") { IsError = true };
                 }
 
-                // todo check if the plane is in flight - has to be on the ground and idle
+                if (aircraft.AirlineOwnerID == user.AirlineICAO && forAirline)
+                {
+                    return new ApiResponse<string>("Your airline already owns this aircraft!") { IsError = true };
+                }
 
-                // todo check if player has enough money, plus deduct purchase price from account balance
+                if (aircraft.Flights.Any(f => f.Started.HasValue && !f.Completed.HasValue))
+                {
+                    return new ApiResponse<string>("You can't buy aircraft with an active flight!") { IsError = true };
+                }
+
+                // todo check if player/airline has enough money, plus deduct purchase price from account balance
 
                 // todo create some "financial" record for this transaction
 
-                aircraft.OwnerID = user.Id;
+                if (!forAirline)
+                {
+                    aircraft.OwnerID = user.Id;
+                }
+                else
+                {
+                    aircraft.AirlineOwnerID = user.AirlineICAO;
+                }
+
                 aircraft.PurchasePrice = null;
                 aircraft.RentPrice = null;
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error purchasing aircraft");
@@ -292,7 +320,8 @@ namespace OpenSky.API.Controllers
                     throw saveEx;
                 }
 
-                // todo ask world populator to "restock" the airport by adding a new plane in place of this one
+                // Ask world populator to "restock" the airport by adding a new plane in place of this one
+                await this.worldPopulator.CheckAndGenerateAircraftForAirport(aircraft.Airport);
 
                 return new ApiResponse<string>($"Successfully purchased aircraft {registry}");
             }
@@ -302,6 +331,13 @@ namespace OpenSky.API.Controllers
                 return new ApiResponse<string>(ex);
             }
         }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The world populator service.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly WorldPopulatorService worldPopulator;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -339,7 +375,7 @@ namespace OpenSky.API.Controllers
                     {
                         // Return all matching planes
                         var aircraft = await this.db.Aircraft.Where(
-                                                     a => a.AirportICAO.StartsWith(airportPrefix) &&
+                                                     a => a.AirportICAO.StartsWith(airportPrefix) && !a.Flights.Any(f => f.Started.HasValue && !f.Completed.HasValue) &&
                                                           (!search.OnlyVanilla || a.Type.IsVanilla) &&
                                                           (!search.FilterByCategory || a.Type.Category == search.Category) &&
                                                           (string.IsNullOrEmpty(search.Manufacturer) || a.Type.Manufacturer.Contains(search.Manufacturer)) &&
@@ -349,15 +385,14 @@ namespace OpenSky.API.Controllers
                     }
                     else
                     {
-                        // Only return planes that are available for purchase or rent, or owned by the player
-                        // todo either also add owned by airline or remove this requirement, what is this used for?
+                        // Only return planes that are available for purchase or rent, or owned by the player/airline
                         var aircraft = await this.db.Aircraft.Where(
-                                                     a => a.AirportICAO.StartsWith(airportPrefix) &&
+                                                     a => a.AirportICAO.StartsWith(airportPrefix) && !a.Flights.Any(f => f.Started.HasValue && !f.Completed.HasValue) &&
                                                           (!search.OnlyVanilla || a.Type.IsVanilla) &&
                                                           (!search.FilterByCategory || a.Type.Category == search.Category) &&
                                                           (string.IsNullOrEmpty(search.Manufacturer) || a.Type.Manufacturer.Contains(search.Manufacturer)) &&
                                                           (string.IsNullOrEmpty(search.Name) || a.Type.Name.Contains(search.Name)) &&
-                                                          (a.OwnerID == user.Id || a.PurchasePrice.HasValue || a.RentPrice.HasValue))
+                                                          (a.OwnerID == user.Id || a.AirlineOwnerID == user.AirlineICAO || a.PurchasePrice.HasValue || a.RentPrice.HasValue))
                                                  .Take(search.MaxResults).ToListAsync();
                         searchResults.AddRange(aircraft);
                     }
@@ -409,12 +444,33 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("Aircraft not found!") { IsError = true };
                 }
 
+                if (!string.IsNullOrEmpty(aircraft.AirlineOwnerID))
+                {
+                    if (aircraft.AirlineOwnerID != user.AirlineICAO)
+                    {
+                        return new ApiResponse<string>("You airline doesn't own this aircraft!") { IsError = true };
+                    }
+
+                    if (!string.Equals(aircraft.Name, updateAircraft.Name) && !AirlineController.UserHasPermission(user, AirlinePermission.RenameAircraft))
+                    {
+                        return new ApiResponse<string>("You don't have the permission to rename airline aircraft!") { IsError = true };
+                    }
+
+                    if (aircraft.PurchasePrice != updateAircraft.PurchasePrice && !AirlineController.UserHasPermission(user, AirlinePermission.SellAircraft))
+                    {
+                        return new ApiResponse<string>("You don't have the permission to sell airline aircraft!") { IsError = true };
+                    }
+
+                    if (aircraft.RentPrice != updateAircraft.RentPrice && !AirlineController.UserHasPermission(user, AirlinePermission.RentOutAircraft))
+                    {
+                        return new ApiResponse<string>("You don't have the permission to rent out airline aircraft!") { IsError = true };
+                    }
+                }
+
                 if (aircraft.OwnerID != user.Id)
                 {
                     return new ApiResponse<string>("You don't own this aircraft!") { IsError = true };
                 }
-
-                // todo airline owns and user has permission
 
                 aircraft.Name = updateAircraft.Name;
                 aircraft.PurchasePrice = updateAircraft.PurchasePrice;
