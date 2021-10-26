@@ -109,19 +109,6 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the founding user.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [ForeignKey("FounderID")]
-        [JsonIgnore]
-        public OpenSkyUser Founder
-        {
-            get => this.LazyLoader.Load(this, ref this.founder);
-            set => this.founder = value;
-        }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// Gets or sets the identifier of the user that founded this airline.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------

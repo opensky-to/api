@@ -50,13 +50,6 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The assigned airline pilot.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private OpenSkyUser assignedAirlinePilot;
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// The destination airport.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -153,19 +146,6 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [StringLength(5, MinimumLength = 3)]
         public string AlternateICAO { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the assigned airline pilot (should not be set for user operated flights - will be ignored).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [ForeignKey("AssignedAirlinePilotID")]
-        [JsonIgnore]
-        public OpenSkyUser AssignedAirlinePilot
-        {
-            get => this.LazyLoader.Load(this, ref this.assignedAirlinePilot);
-            set => this.assignedAirlinePilot = value;
-        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

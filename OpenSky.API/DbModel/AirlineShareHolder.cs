@@ -84,7 +84,6 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the airline ICAO code.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [Key]
         [Required]
         [StringLength(3, MinimumLength = 3)]
         [ForeignKey("Airline")]
@@ -114,7 +113,6 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the identifier of the user.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [Key]
         [Required]
         [StringLength(255)]
         [ForeignKey("Founder")]

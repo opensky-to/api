@@ -18,6 +18,7 @@ namespace OpenSky.API.Controllers
     using Microsoft.Extensions.Logging;
 
     using OpenSky.API.DbModel;
+    using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Model;
     using OpenSky.API.Model.Authentication;
     using OpenSky.API.Model.Flight;
@@ -106,7 +107,17 @@ namespace OpenSky.API.Controllers
 
                 var plans = await this.db.Flights.Where(f => f.OperatorID == user.Id && !f.Started.HasValue).Select(f => new FlightPlan(f)).ToListAsync();
 
-                // todo also return VA plans (if dispatcher or assigned)
+                if (!string.IsNullOrEmpty(user.AirlineICAO))
+                {
+                    if (AirlineController.UserHasPermission(user, AirlinePermission.Dispatch))
+                    {
+                        plans.AddRange(await this.db.Flights.Where(f => f.OperatorAirlineID == user.AirlineICAO && !f.Started.HasValue).Select(f => new FlightPlan(f)).ToListAsync());
+                    }
+                    else
+                    {
+                        plans.AddRange(await this.db.Flights.Where(f => f.OperatorAirlineID == user.AirlineICAO && f.AssignedAirlinePilotID == user.Id).Select(f => new FlightPlan(f)).ToListAsync());
+                    }
+                }
 
                 return new ApiResponse<IEnumerable<FlightPlan>>(plans);
             }
@@ -149,12 +160,15 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string> { Message = "Unable to find flight plan!", IsError = true };
                 }
 
-                if (existingFlight.OperatorID != user.Id)
+                if (!string.IsNullOrEmpty(existingFlight.OperatorID) && existingFlight.OperatorID != user.Id)
                 {
                     return new ApiResponse<string>("You have no permission to delete this flight plan!") { IsError = true };
                 }
 
-                // todo or if dispatcher for airline
+                if (!string.IsNullOrEmpty(existingFlight.OperatorAirlineID) && (existingFlight.OperatorAirlineID != user.AirlineICAO || !AirlineController.UserHasPermission(user, AirlinePermission.Dispatch)))
+                {
+                    return new ApiResponse<string>("You have no permission to delete this flight plan!") { IsError = true };
+                }
 
                 if (existingFlight.Started.HasValue)
                 {
@@ -211,7 +225,7 @@ namespace OpenSky.API.Controllers
                         return new ApiResponse<string>("Aircraft not found!") { IsError = true };
                     }
 
-                    if (aircraft.OwnerID != user.Id) // todo check for VA and rent!
+                    if (aircraft.OwnerID != user.Id && aircraft.AirlineOwnerID != user.AirlineICAO) // todo check for rent!
                     {
                         return new ApiResponse<string>("You can only fly planes you or your airline own or rented!") { IsError = true };
                     }
@@ -279,8 +293,22 @@ namespace OpenSky.API.Controllers
                         UtcOffset = flightPlan.UtcOffset,
 
                         Created = DateTime.Now,
-                        OperatorID = user.Id
                     };
+
+                    if (flightPlan.IsAirlineFlight)
+                    {
+                        if (string.IsNullOrEmpty(user.AirlineICAO))
+                        {
+                            return new ApiResponse<string>("Can't plan airline flights without being a member of one!") { IsError = true };
+                        }
+
+                        newFlight.OperatorAirlineID = user.AirlineICAO;
+                    }
+                    else
+                    {
+                        newFlight.OperatorID = user.Id;
+                    }
+
                     await this.db.Flights.AddAsync(newFlight);
                     var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving new flight plan");
                     if (saveEx != null)
@@ -290,8 +318,12 @@ namespace OpenSky.API.Controllers
                 }
                 else
                 {
-                    // todo check va operator
-                    if (existingFlight.OperatorID != user.Id)
+                    if (!flightPlan.IsAirlineFlight && existingFlight.OperatorID != user.Id)
+                    {
+                        return new ApiResponse<string>("You have no permission to edit this flight!") { IsError = true };
+                    }
+
+                    if (flightPlan.IsAirlineFlight && (existingFlight.OperatorAirlineID != user.AirlineICAO || !AirlineController.UserHasPermission(user, AirlinePermission.Dispatch)))
                     {
                         return new ApiResponse<string>("You have no permission to edit this flight!") { IsError = true };
                     }

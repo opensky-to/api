@@ -202,6 +202,7 @@ namespace OpenSky.API
         {
             base.OnModelCreating(builder);
 
+            // Rename tables on the default identity entities
             builder.Entity<IdentityUserClaim<string>>().ToTable("UserClaims");
             builder.Entity<IdentityUserRole<string>>().ToTable("UserRoles");
             builder.Entity<IdentityUserLogin<string>>().ToTable("UserLogins");
@@ -210,6 +211,11 @@ namespace OpenSky.API
             builder.Entity<IdentityRole>().ToTable("Roles");
             builder.Entity<OpenSkyUser>().ToTable("Users");
 
+            // Composite primary keys
+            builder.Entity<AirlineShareHolder>().HasKey(sh => new { sh.AirlineICAO, sh.UserID });
+            builder.Entity<AirlineUserPermission>().HasKey(p => new { p.AirlineICAO, p.UserID });
+
+            // DateTime specifics
             var dateTimeConverter = new ValueConverter<DateTime, DateTime>(
                 v => v.ToUniversalTime(),
                 v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
