@@ -70,6 +70,10 @@ namespace OpenSky.API.Model.Flight
             this.FuelGallons = flight.FuelGallons;
             this.UtcOffset = flight.UtcOffset;
             this.IsAirlineFlight = !string.IsNullOrEmpty(flight.OperatorAirlineID);
+            this.PlannedDepartureTime = flight.PlannedDepartureTime;
+            this.DispatcherID = flight.DispatcherID;
+            this.DispatcherName = flight.Dispatcher?.UserName ?? "";
+            this.DispatcherRemarks = flight.DispatcherRemarks;
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -79,6 +83,20 @@ namespace OpenSky.API.Model.Flight
         /// -------------------------------------------------------------------------------------------------
         [StringLength(10, MinimumLength = 5)]
         public string AircraftRegistry { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the name of the aircraft (read only, for display in list view, not for editing!).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string AircraftName { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the type of the aircraft (read only, for display in list view, not for editing!).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string AircraftType { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -98,12 +116,32 @@ namespace OpenSky.API.Model.Flight
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the flight number.
+        /// Gets or sets the identifier of the dispatcher.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [StringLength(7, MinimumLength = 1)]
-        [Required]
-        public string FlightNumber { get; set; }
+        [StringLength(255)]
+        public string DispatcherID { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the name of the dispatcher (read only, for display in list view, not for editing!).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string DispatcherName { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the dispatcher remarks.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string DispatcherRemarks { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the flight number (1-9999).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int FlightNumber { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -134,6 +172,13 @@ namespace OpenSky.API.Model.Flight
         /// -------------------------------------------------------------------------------------------------
         [StringLength(5, MinimumLength = 3)]
         public string OriginICAO { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the planned departure time.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public DateTime PlannedDepartureTime { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

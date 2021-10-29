@@ -44,6 +44,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The dispatches (flight plans).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<Flight> dispatches;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The user operated flights (not airline).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -155,10 +162,24 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the dispatches (flight plans).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        [InverseProperty("Dispatcher")]
+        public ICollection<Flight> Dispatches
+        {
+            get => this.LazyLoader.Load(this, ref this.dispatches);
+            set => this.dispatches = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the user operated flights (not airline).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [JsonIgnore]
+        [InverseProperty("Operator")]
         public ICollection<Flight> Flights
         {
             get => this.LazyLoader.Load(this, ref this.flights);
