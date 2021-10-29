@@ -63,7 +63,7 @@ namespace OpenSky.API.Model.Flight
 
             this.ID = flight.ID;
             this.FlightNumber = flight.FlightNumber;
-            this.AircraftRegistry = flight.AircraftRegistry;
+            this.Aircraft = flight.Aircraft;
             this.OriginICAO = flight.OriginICAO;
             this.DestinationICAO = flight.DestinationICAO;
             this.AlternateICAO = flight.AlternateICAO;
@@ -78,25 +78,10 @@ namespace OpenSky.API.Model.Flight
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the aircraft registry.
+        /// Gets or sets the aircraft.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [StringLength(10, MinimumLength = 5)]
-        public string AircraftRegistry { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the name of the aircraft (read only, for display in list view, not for editing!).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public string AircraftName { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the type of the aircraft (read only, for display in list view, not for editing!).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public string AircraftType { get; set; }
+        public Aircraft Aircraft { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
