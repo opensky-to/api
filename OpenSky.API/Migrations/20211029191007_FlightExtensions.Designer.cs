@@ -9,8 +9,8 @@ using OpenSky.API;
 namespace OpenSky.API.Migrations
 {
     [DbContext(typeof(OpenSkyDbContext))]
-    [Migration("20211026161008_AirlinesAndFlights")]
-    partial class AirlinesAndFlights
+    [Migration("20211029191007_FlightExtensions")]
+    partial class FlightExtensions
     {
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -582,13 +582,18 @@ namespace OpenSky.API.Migrations
                         .HasMaxLength(5)
                         .HasColumnType("varchar(5)");
 
+                    b.Property<string>("DispatcherID")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("DispatcherRemarks")
+                        .HasColumnType("longtext");
+
                     b.Property<string>("FlightLog")
                         .HasColumnType("longtext");
 
-                    b.Property<string>("FlightNumber")
-                        .IsRequired()
-                        .HasMaxLength(7)
-                        .HasColumnType("varchar(7)");
+                    b.Property<int>("FlightNumber")
+                        .HasColumnType("int");
 
                     b.Property<int>("FlightPhase")
                         .HasColumnType("int");
@@ -665,6 +670,9 @@ namespace OpenSky.API.Migrations
                     b.Property<double>("PitchAngle")
                         .HasColumnType("double");
 
+                    b.Property<DateTime>("PlannedDepartureTime")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<double?>("RadioHeight")
                         .HasColumnType("double");
 
@@ -684,6 +692,8 @@ namespace OpenSky.API.Migrations
                     b.HasIndex("AlternateICAO");
 
                     b.HasIndex("DestinationICAO");
+
+                    b.HasIndex("DispatcherID");
 
                     b.HasIndex("OperatorAirlineID");
 
@@ -1095,6 +1105,10 @@ namespace OpenSky.API.Migrations
                         .WithMany()
                         .HasForeignKey("DestinationICAO");
 
+                    b.HasOne("OpenSky.API.DbModel.OpenSkyUser", "Dispatcher")
+                        .WithMany("Dispatches")
+                        .HasForeignKey("DispatcherID");
+
                     b.HasOne("OpenSky.API.DbModel.Airline", "OperatorAirline")
                         .WithMany("Flights")
                         .HasForeignKey("OperatorAirlineID");
@@ -1112,6 +1126,8 @@ namespace OpenSky.API.Migrations
                     b.Navigation("Alternate");
 
                     b.Navigation("Destination");
+
+                    b.Navigation("Dispatcher");
 
                     b.Navigation("Operator");
 
@@ -1188,6 +1204,8 @@ namespace OpenSky.API.Migrations
             modelBuilder.Entity("OpenSky.API.DbModel.OpenSkyUser", b =>
                 {
                     b.Navigation("AirlinePermissions");
+
+                    b.Navigation("Dispatches");
 
                     b.Navigation("Flights");
 

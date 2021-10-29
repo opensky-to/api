@@ -273,9 +273,9 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("UTC offset has to be between -12 and +14 hours!") { IsError = true };
                 }
 
-                if (string.IsNullOrEmpty(flightPlan.FlightNumber) || flightPlan.FlightNumber.Length > 7)
+                if (flightPlan.FlightNumber is < 1 or > 9999)
                 {
-                    return new ApiResponse<string>("Flight number is missing or exceeding 7 characters!") { IsError = true };
+                    return new ApiResponse<string>("Flight number is out of range (1-9999)!") { IsError = true };
                 }
 
                 var existingFlight = await this.db.Flights.SingleOrDefaultAsync(f => f.ID == flightPlan.ID);
@@ -291,6 +291,9 @@ namespace OpenSky.API.Controllers
                         AlternateICAO = flightPlan.AlternateICAO,
                         FuelGallons = flightPlan.FuelGallons,
                         UtcOffset = flightPlan.UtcOffset,
+                        DispatcherID = user.Id,
+                        DispatcherRemarks = flightPlan.DispatcherRemarks,
+                        PlannedDepartureTime = flightPlan.PlannedDepartureTime,
 
                         Created = DateTime.Now,
                     };
@@ -340,6 +343,9 @@ namespace OpenSky.API.Controllers
                     existingFlight.AlternateICAO = flightPlan.AlternateICAO;
                     existingFlight.FuelGallons = flightPlan.FuelGallons;
                     existingFlight.UtcOffset = flightPlan.UtcOffset;
+                    existingFlight.DispatcherID = user.Id;
+                    existingFlight.DispatcherRemarks = flightPlan.DispatcherRemarks;
+                    existingFlight.PlannedDepartureTime = flightPlan.PlannedDepartureTime;
                     var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error updating existing flight plan");
                     if (saveEx != null)
                     {
