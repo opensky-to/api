@@ -217,9 +217,9 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
                 }
 
-                if (!string.IsNullOrEmpty(flightPlan.AircraftRegistry))
+                if (flightPlan.Aircraft != null)
                 {
-                    var aircraft = await this.db.Aircraft.SingleOrDefaultAsync(a => a.Registry.Equals(flightPlan.AircraftRegistry));
+                    var aircraft = await this.db.Aircraft.SingleOrDefaultAsync(a => a.Registry.Equals(flightPlan.Aircraft.Registry));
                     if (aircraft == null)
                     {
                         return new ApiResponse<string>("Aircraft not found!") { IsError = true };
@@ -285,7 +285,7 @@ namespace OpenSky.API.Controllers
                     {
                         ID = flightPlan.ID,
                         FlightNumber = flightPlan.FlightNumber,
-                        AircraftRegistry = flightPlan.AircraftRegistry,
+                        AircraftRegistry = flightPlan.Aircraft?.Registry,
                         OriginICAO = flightPlan.OriginICAO,
                         DestinationICAO = flightPlan.DestinationICAO,
                         AlternateICAO = flightPlan.AlternateICAO,
@@ -337,7 +337,7 @@ namespace OpenSky.API.Controllers
                     }
 
                     existingFlight.FlightNumber = flightPlan.FlightNumber;
-                    existingFlight.AircraftRegistry = flightPlan.AircraftRegistry;
+                    existingFlight.AircraftRegistry = flightPlan.Aircraft?.Registry;
                     existingFlight.OriginICAO = flightPlan.OriginICAO;
                     existingFlight.DestinationICAO = flightPlan.DestinationICAO;
                     existingFlight.AlternateICAO = flightPlan.AlternateICAO;
