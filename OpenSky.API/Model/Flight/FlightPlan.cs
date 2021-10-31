@@ -74,6 +74,7 @@ namespace OpenSky.API.Model.Flight
             this.DispatcherID = flight.DispatcherID;
             this.DispatcherName = flight.Dispatcher?.UserName ?? "";
             this.DispatcherRemarks = flight.DispatcherRemarks;
+            this.FullFlightNumber = flight.FullFlightNumber;
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -106,6 +107,13 @@ namespace OpenSky.API.Model.Flight
         /// -------------------------------------------------------------------------------------------------
         [StringLength(255)]
         public string DispatcherID { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the full flight number (airline code and number combined)(read only, for display in list view, not for editing!).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string FullFlightNumber { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

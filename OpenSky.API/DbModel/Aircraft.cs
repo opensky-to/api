@@ -195,12 +195,12 @@ namespace OpenSky.API.DbModel
             {
                 if (!string.IsNullOrEmpty(this.OwnerID))
                 {
-                    return this.Owner.UserName;
+                    return this.Owner?.UserName ?? "???";
                 }
 
                 if (!string.IsNullOrEmpty(this.AirlineOwnerID))
                 {
-                    return this.AirlineOwner.Name;
+                    return this.AirlineOwner?.Name ?? "???";
                 }
 
                 return "[System]";
@@ -240,21 +240,26 @@ namespace OpenSky.API.DbModel
         {
             get
             {
-                // Check for active flight
-                var activeFlight = this.Flights.SingleOrDefault(f => f.Started.HasValue && !f.Completed.HasValue);
-                if (activeFlight != null)
+                if (this.Flights != null)
                 {
-                    if (activeFlight.Paused.HasValue)
+                    // Check for active flight
+                    var activeFlight = this.Flights.SingleOrDefault(f => f.Started.HasValue && !f.Completed.HasValue);
+                    if (activeFlight != null)
                     {
-                        return $"Paused ({activeFlight.FlightNumber})";
+                        if (activeFlight.Paused.HasValue)
+                        {
+                            return $"Paused ({activeFlight.FullFlightNumber})";
+                        }
+
+                        return $"{activeFlight.FlightPhase} ({activeFlight.FullFlightNumber})";
                     }
 
-                    return $"{activeFlight.FlightPhase} ({activeFlight.FlightNumber})";
+                    // todo return repair/etc. status
+
+                    return "Idle";
                 }
 
-                // todo return repair/etc. status
-
-                return "Idle";
+                return "???";
             }
         }
 
