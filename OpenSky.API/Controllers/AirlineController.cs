@@ -19,7 +19,7 @@ namespace OpenSky.API.Controllers
     using OpenSky.API.DbModel;
     using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Model;
-    using OpenSky.API.Model.AirlinePermission;
+    using OpenSky.API.Model.Airline;
     using OpenSky.API.Model.Authentication;
 
     /// -------------------------------------------------------------------------------------------------
@@ -81,6 +81,12 @@ namespace OpenSky.API.Controllers
         }
 
         // todo assign/revoke permissions methods for airline managers
+
+        [HttpGet(Name = "GetAirline")]
+        public async Task<ActionResult<ApiResponse<UserAirline>>> GetAirline()
+        {
+            return new ApiResponse<UserAirline>(new UserAirline()) { Message = "Not part of an airline!" };
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -177,7 +183,9 @@ namespace OpenSky.API.Controllers
             catch (Exception ex)
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET AllAirlinePermissions");
-                return new ApiResponse<Dictionary<AirlineMember, HashSet<AirlinePermission>>>(ex) { Data = new Dictionary<AirlineMember, HashSet<AirlinePermission>>()
+                return new ApiResponse<Dictionary<AirlineMember, HashSet<AirlinePermission>>>(ex)
+                {
+                    Data = new Dictionary<AirlineMember, HashSet<AirlinePermission>>()
                 };
             }
         }

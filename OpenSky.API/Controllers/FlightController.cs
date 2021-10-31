@@ -175,6 +175,7 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("You can't delete a flight plan once the flight has started!") { IsError = true };
                 }
 
+                var fullFlightNumber = existingFlight.FullFlightNumber;
                 this.db.Flights.Remove(existingFlight);
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error deleting flight plan");
                 if (saveEx != null)
@@ -182,7 +183,7 @@ namespace OpenSky.API.Controllers
                     throw saveEx;
                 }
 
-                return new ApiResponse<string>($"Successfully deleted flight plan {existingFlight.FullFlightNumber}");
+                return new ApiResponse<string>($"Successfully deleted flight plan {fullFlightNumber}");
             }
             catch (Exception ex)
             {
@@ -321,12 +322,12 @@ namespace OpenSky.API.Controllers
                 }
                 else
                 {
-                    if (!flightPlan.IsAirlineFlight && existingFlight.OperatorID != user.Id)
+                    if (!flightPlan.IsAirlineFlight && existingFlight.OperatorID != null && existingFlight.OperatorID != user.Id)
                     {
                         return new ApiResponse<string>("You have no permission to edit this flight!") { IsError = true };
                     }
 
-                    if (flightPlan.IsAirlineFlight && (existingFlight.OperatorAirlineID != user.AirlineICAO || !AirlineController.UserHasPermission(user, AirlinePermission.Dispatch)))
+                    if (flightPlan.IsAirlineFlight && existingFlight.OperatorAirlineID != null && (existingFlight.OperatorAirlineID != user.AirlineICAO || !AirlineController.UserHasPermission(user, AirlinePermission.Dispatch)))
                     {
                         return new ApiResponse<string>("You have no permission to edit this flight!") { IsError = true };
                     }
@@ -346,6 +347,24 @@ namespace OpenSky.API.Controllers
                     existingFlight.DispatcherID = user.Id;
                     existingFlight.DispatcherRemarks = flightPlan.DispatcherRemarks;
                     existingFlight.PlannedDepartureTime = flightPlan.PlannedDepartureTime;
+
+                    // Set these two anyway, in case flight was changed between private and airline flight
+                    if (!flightPlan.IsAirlineFlight)
+                    {
+                        existingFlight.OperatorID = user.Id;
+                        existingFlight.OperatorAirlineID = null;
+                    }
+                    else
+                    {
+                        if (string.IsNullOrEmpty(user.AirlineICAO))
+                        {
+                            return new ApiResponse<string>("Can't plan airline flights without being a member of one!") { IsError = true };
+                        }
+
+                        existingFlight.OperatorID = null;
+                        existingFlight.OperatorAirlineID = user.AirlineICAO;
+                    }
+
                     var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error updating existing flight plan");
                     if (saveEx != null)
                     {
