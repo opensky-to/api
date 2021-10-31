@@ -105,21 +105,21 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<IEnumerable<FlightPlan>>("Unable to find user record!") { IsError = true, Data = new List<FlightPlan>() };
                 }
 
-                var plans = await this.db.Flights.Where(f => f.OperatorID == user.Id && !f.Started.HasValue).Select(f => new FlightPlan(f)).ToListAsync();
+                var plans = await this.db.Flights.Where(f => f.OperatorID == user.Id && !f.Started.HasValue).ToListAsync();
 
                 if (!string.IsNullOrEmpty(user.AirlineICAO))
                 {
                     if (AirlineController.UserHasPermission(user, AirlinePermission.Dispatch))
                     {
-                        plans.AddRange(await this.db.Flights.Where(f => f.OperatorAirlineID == user.AirlineICAO && !f.Started.HasValue).Select(f => new FlightPlan(f)).ToListAsync());
+                        plans.AddRange(await this.db.Flights.Where(f => f.OperatorAirlineID == user.AirlineICAO && !f.Started.HasValue).ToListAsync());
                     }
                     else
                     {
-                        plans.AddRange(await this.db.Flights.Where(f => f.OperatorAirlineID == user.AirlineICAO && f.AssignedAirlinePilotID == user.Id).Select(f => new FlightPlan(f)).ToListAsync());
+                        plans.AddRange(await this.db.Flights.Where(f => f.OperatorAirlineID == user.AirlineICAO && f.AssignedAirlinePilotID == user.Id).ToListAsync());
                     }
                 }
 
-                return new ApiResponse<IEnumerable<FlightPlan>>(plans);
+                return new ApiResponse<IEnumerable<FlightPlan>>(plans.Select(f => new FlightPlan(f)));
             }
             catch (Exception ex)
             {
@@ -182,7 +182,7 @@ namespace OpenSky.API.Controllers
                     throw saveEx;
                 }
 
-                return new ApiResponse<string>($"Successfully deleted flight plan {existingFlight.FlightNumber}");
+                return new ApiResponse<string>($"Successfully deleted flight plan {existingFlight.FullFlightNumber}");
             }
             catch (Exception ex)
             {
@@ -268,7 +268,7 @@ namespace OpenSky.API.Controllers
                     }
                 }
 
-                if (flightPlan.UtcOffset is < 12.0 or > 14.0)
+                if (flightPlan.UtcOffset is < -12.0 or > 14.0)
                 {
                     return new ApiResponse<string>("UTC offset has to be between -12 and +14 hours!") { IsError = true };
                 }

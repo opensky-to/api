@@ -260,6 +260,30 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets the full flight number (airline code and number combined).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [NotMapped]
+        public string FullFlightNumber
+        {
+            get
+            {
+                var flightNumber = $"{this.FlightNumber}";
+                if (!string.IsNullOrEmpty(this.OperatorAirline?.IATA))
+                {
+                    flightNumber = $"{this.OperatorAirline?.IATA}{flightNumber}";
+                }
+                else if (!string.IsNullOrEmpty(this.OperatorAirlineID))
+                {
+                    flightNumber = $"{this.OperatorAirlineID}{flightNumber}";
+                }
+
+                return flightNumber;
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the flight phase (reported by the agent).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
