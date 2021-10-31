@@ -4,7 +4,7 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace OpenSky.API.Model.AirlinePermission
+namespace OpenSky.API.Model.Airline
 {
     using System.ComponentModel.DataAnnotations;
 

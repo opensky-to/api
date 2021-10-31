@@ -10,6 +10,7 @@ namespace OpenSky.API.Model.Flight
     using System.ComponentModel.DataAnnotations;
 
     using OpenSky.API.DbModel;
+    using OpenSky.API.DbModel.Enums;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -63,7 +64,23 @@ namespace OpenSky.API.Model.Flight
 
             this.ID = flight.ID;
             this.FlightNumber = flight.FlightNumber;
-            this.Aircraft = flight.Aircraft;
+            this.Aircraft = flight.Aircraft ?? new Aircraft
+            {
+                Registry = string.Empty,
+                AirportICAO = string.Empty,
+                TypeID = Guid.Empty,
+                Type = new AircraftType
+                {
+                    AtcModel = string.Empty,
+                    AtcType = string.Empty,
+                    Category = AircraftTypeCategory.SEP,
+                    EngineType = EngineType.None,
+                    Manufacturer = string.Empty,
+                    Name = string.Empty,
+                    UploaderID = string.Empty,
+                    Simulator = Simulator.MSFS
+                }
+            };
             this.OriginICAO = flight.OriginICAO;
             this.DestinationICAO = flight.DestinationICAO;
             this.AlternateICAO = flight.AlternateICAO;
