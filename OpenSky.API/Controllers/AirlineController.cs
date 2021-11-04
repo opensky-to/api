@@ -82,10 +82,41 @@ namespace OpenSky.API.Controllers
 
         // todo assign/revoke permissions methods for airline managers
 
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Get user airline.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 01/11/2021.
+        /// </remarks>
+        /// <returns>
+        /// The user's airline.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
         [HttpGet(Name = "GetAirline")]
-        public async Task<ActionResult<ApiResponse<UserAirline>>> GetAirline()
+        public async Task<ActionResult<ApiResponse<UserAirline>>> GetUserAirline()
         {
-            return new ApiResponse<UserAirline>(new UserAirline()) { Message = "Not part of an airline!" };
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Airline");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<UserAirline> { Message = "Unable to find user record!", IsError = true, Data = new UserAirline() };
+                }
+
+                if (string.IsNullOrEmpty(user.AirlineICAO))
+                {
+                    return new ApiResponse<UserAirline>(new UserAirline()) { Message = "Not part of an airline!" };
+                }
+
+                return new ApiResponse<UserAirline>(new UserAirline(user.Airline));
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET AirlinePermissions");
+                return new ApiResponse<UserAirline>(ex) { Data = new UserAirline() };
+            }
         }
 
         /// -------------------------------------------------------------------------------------------------
