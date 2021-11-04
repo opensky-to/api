@@ -7,10 +7,10 @@
 namespace OpenSky.API.DbModel
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
-
-    using Newtonsoft.Json;
+    using System.Text.Json.Serialization;
 
     using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Helpers;
@@ -61,6 +61,13 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private OpenSkyUser dispatcher;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The navlog fixes.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<FlightNavlogFix> navlogFixes;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -153,6 +160,13 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [StringLength(5, MinimumLength = 3)]
         public string AlternateICAO { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the alternate route.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string AlternateRoute { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -260,30 +274,6 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets the full flight number (airline code and number combined).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [NotMapped]
-        public string FullFlightNumber
-        {
-            get
-            {
-                var flightNumber = $"{this.FlightNumber}";
-                if (!string.IsNullOrEmpty(this.OperatorAirline?.IATA))
-                {
-                    flightNumber = $"{this.OperatorAirline?.IATA}{flightNumber}";
-                }
-                else if (!string.IsNullOrEmpty(this.OperatorAirlineID))
-                {
-                    flightNumber = $"{this.OperatorAirlineID}{flightNumber}";
-                }
-
-                return flightNumber;
-            }
-        }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// Gets or sets the flight phase (reported by the agent).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -382,6 +372,30 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets the full flight number (airline code and number combined).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [NotMapped]
+        public string FullFlightNumber
+        {
+            get
+            {
+                var flightNumber = $"{this.FlightNumber}";
+                if (!string.IsNullOrEmpty(this.OperatorAirline?.IATA))
+                {
+                    flightNumber = $"{this.OperatorAirline?.IATA}{flightNumber}";
+                }
+                else if (!string.IsNullOrEmpty(this.OperatorAirlineID))
+                {
+                    flightNumber = $"{this.OperatorAirlineID}{flightNumber}";
+                }
+
+                return flightNumber;
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The magnetic heading.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -409,6 +423,24 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public double? Longitude { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the navlog fixes.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public ICollection<FlightNavlogFix> NavlogFixes
+        {
+            get => this.LazyLoader.Load(this, ref this.navlogFixes);
+            set => this.navlogFixes = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the OFP HTML (most likely from simBrief).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string OfpHtml { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -518,6 +550,13 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public double? RadioHeight { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the route.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string Route { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

@@ -7,6 +7,7 @@
 namespace OpenSky.API.Model.Flight
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
 
     using OpenSky.API.DbModel;
@@ -32,6 +33,7 @@ namespace OpenSky.API.Model.Flight
         /// -------------------------------------------------------------------------------------------------
         public FlightPlan()
         {
+            this.NavlogFixes = new List<FlightNavlogFix>();
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -92,7 +94,39 @@ namespace OpenSky.API.Model.Flight
             this.DispatcherName = flight.Dispatcher?.UserName ?? "";
             this.DispatcherRemarks = flight.DispatcherRemarks;
             this.FullFlightNumber = flight.FullFlightNumber;
+            this.Route = flight.Route;
+            this.AlternateRoute = flight.AlternateRoute;
+            this.OfpHtml = flight.OfpHtml;
+            this.NavlogFixes = flight.NavlogFixes ?? new List<FlightNavlogFix>();
         }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the navlog fixes.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public ICollection<FlightNavlogFix> NavlogFixes { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the OFP HTML (most likely from simBrief).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string OfpHtml { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the route.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string Route { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the alternate route.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string AlternateRoute { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

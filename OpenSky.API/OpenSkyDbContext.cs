@@ -214,6 +214,7 @@ namespace OpenSky.API
             // Composite primary keys
             builder.Entity<AirlineShareHolder>().HasKey(sh => new { sh.AirlineICAO, sh.UserID });
             builder.Entity<AirlineUserPermission>().HasKey(p => new { p.AirlineICAO, p.UserID });
+            builder.Entity<FlightNavlogFix>().HasKey(nf => new { nf.FlightID, nf.FixNumber });
 
             // DateTime specifics
             var dateTimeConverter = new ValueConverter<DateTime, DateTime>(

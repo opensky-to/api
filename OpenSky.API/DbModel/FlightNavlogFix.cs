@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="AirlineUserPermission.cs" company="OpenSky">
+// <copyright file="FlightNavlogFix.cs" company="OpenSky">
 // OpenSky project 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
@@ -11,112 +11,111 @@ namespace OpenSky.API.DbModel
     using System.ComponentModel.DataAnnotations.Schema;
     using System.Text.Json.Serialization;
 
-    using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Helpers;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Airline user permission model.
+    /// Flight navigation log fix model.
     /// </summary>
     /// <remarks>
-    /// sushi.at, 15/10/2021.
+    /// sushi.at, 04/11/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class AirlineUserPermission
+    public class FlightNavlogFix
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The airline.
+        /// The flight.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private Airline airline;
+        private Flight flight;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The user.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private OpenSkyUser user;
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Initializes a new instance of the <see cref="AirlineUserPermission"/> class.
+        /// Initializes a new instance of the <see cref="FlightNavlogFix"/> class.
         /// </summary>
         /// <remarks>
-        /// sushi.at, 15/10/2021.
+        /// sushi.at, 04/11/2021.
         /// </remarks>
         /// -------------------------------------------------------------------------------------------------
-        public AirlineUserPermission()
+        public FlightNavlogFix()
         {
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="AirlineUserPermission"/> class.
+        /// Initializes a new instance of the <see cref="FlightNavlogFix"/> class.
         /// </summary>
         /// <remarks>
-        /// sushi.at, 15/10/2021.
+        /// sushi.at, 04/11/2021.
         /// </remarks>
         /// <param name="lazyLoader">
         /// The lazy loader.
         /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public AirlineUserPermission(Action<object, string> lazyLoader)
+        public FlightNavlogFix(Action<object, string> lazyLoader)
         {
             this.LazyLoader = lazyLoader;
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the airline.
+        /// Gets or sets the fix number.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int FixNumber { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the flight.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [JsonIgnore]
-        [ForeignKey("AirlineICAO")]
-        public Airline Airline
+        [ForeignKey("FlightID")]
+        public Flight Flight
         {
-            get => this.LazyLoader.Load(this, ref this.airline);
-            set => this.airline = value;
+            get => this.LazyLoader.Load(this, ref this.flight);
+            set => this.flight = value;
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the airline ICAO code.
+        /// Gets or sets the identifier of the flight.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [Required]
-        [StringLength(3, MinimumLength = 3)]
-        [ForeignKey("Airline")]
-        public string AirlineICAO { get; set; }
+        [ForeignKey("Flight")]
+        public Guid FlightID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the permission granted.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public AirlinePermission Permission { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the user.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [JsonIgnore]
-        public OpenSkyUser User
-        {
-            get => this.LazyLoader.Load(this, ref this.user);
-            set => this.user = value;
-        }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the identifier of the user.
+        /// Gets or sets the ident of the fix.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [Required]
-        [StringLength(255)]
-        [ForeignKey("Founder")]
-        public string UserID { get; set; }
+        public string Ident { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the latitude.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double Latitude { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the longitude.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double Longitude { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the type of the fix.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [Required]
+        public string Type { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
