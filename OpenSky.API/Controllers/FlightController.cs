@@ -295,6 +295,9 @@ namespace OpenSky.API.Controllers
                         DispatcherID = user.Id,
                         DispatcherRemarks = flightPlan.DispatcherRemarks,
                         PlannedDepartureTime = flightPlan.PlannedDepartureTime,
+                        Route = flightPlan.Route,
+                        AlternateRoute = flightPlan.AlternateRoute,
+                        OfpHtml = flightPlan.OfpHtml,
 
                         Created = DateTime.Now,
                     };
@@ -347,6 +350,9 @@ namespace OpenSky.API.Controllers
                     existingFlight.DispatcherID = user.Id;
                     existingFlight.DispatcherRemarks = flightPlan.DispatcherRemarks;
                     existingFlight.PlannedDepartureTime = flightPlan.PlannedDepartureTime;
+                    existingFlight.Route = flightPlan.Route;
+                    existingFlight.AlternateRoute = flightPlan.AlternateRoute;
+                    existingFlight.OfpHtml = flightPlan.OfpHtml;
 
                     // Set these two anyway, in case flight was changed between private and airline flight
                     if (!flightPlan.IsAirlineFlight)
