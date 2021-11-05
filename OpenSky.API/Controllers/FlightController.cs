@@ -317,6 +317,7 @@ namespace OpenSky.API.Controllers
                     }
 
                     await this.db.Flights.AddAsync(newFlight);
+                    await this.db.FlightNavlogFixes.AddRangeAsync(flightPlan.NavlogFixes);
                     var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving new flight plan");
                     if (saveEx != null)
                     {
@@ -353,6 +354,9 @@ namespace OpenSky.API.Controllers
                     existingFlight.Route = flightPlan.Route;
                     existingFlight.AlternateRoute = flightPlan.AlternateRoute;
                     existingFlight.OfpHtml = flightPlan.OfpHtml;
+
+                    this.db.FlightNavlogFixes.RemoveRange(existingFlight.NavlogFixes);
+                    await this.db.FlightNavlogFixes.AddRangeAsync(flightPlan.NavlogFixes);
 
                     // Set these two anyway, in case flight was changed between private and airline flight
                     if (!flightPlan.IsAirlineFlight)

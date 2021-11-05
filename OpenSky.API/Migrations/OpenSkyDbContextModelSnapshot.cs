@@ -733,7 +733,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasKey("FlightID", "FixNumber");
 
-                    b.ToTable("FlightNavlogFix");
+                    b.ToTable("FlightNavlogFixes");
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.OpenSkyToken", b =>

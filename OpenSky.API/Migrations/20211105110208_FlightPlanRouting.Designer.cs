@@ -9,12 +9,10 @@ using OpenSky.API;
 namespace OpenSky.API.Migrations
 {
     [DbContext(typeof(OpenSkyDbContext))]
-    [Migration("20211104124831_FlightPlanRouting")]
+    [Migration("20211105110208_FlightPlanRouting")]
     partial class FlightPlanRouting
     {
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
-#pragma warning restore CS1591 // Missing XML comment for publicly
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -737,7 +735,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasKey("FlightID", "FixNumber");
 
-                    b.ToTable("FlightNavlogFix");
+                    b.ToTable("FlightNavlogFixes");
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.OpenSkyToken", b =>
