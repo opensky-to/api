@@ -84,52 +84,6 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Get flight plans.
-        /// </summary>
-        /// <remarks>
-        /// sushi.at, 03/10/2021.
-        /// </remarks>
-        /// <returns>
-        /// An asynchronous result that yields the flight plans for the current user.
-        /// </returns>
-        /// -------------------------------------------------------------------------------------------------
-        [HttpGet("getFlightPlans")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<FlightPlan>>>> GetFlightPlans()
-        {
-            try
-            {
-                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Flight/getFlightPlans");
-                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
-                if (user == null)
-                {
-                    return new ApiResponse<IEnumerable<FlightPlan>>("Unable to find user record!") { IsError = true, Data = new List<FlightPlan>() };
-                }
-
-                var plans = await this.db.Flights.Where(f => f.OperatorID == user.Id && !f.Started.HasValue).ToListAsync();
-
-                if (!string.IsNullOrEmpty(user.AirlineICAO))
-                {
-                    if (AirlineController.UserHasPermission(user, AirlinePermission.Dispatch))
-                    {
-                        plans.AddRange(await this.db.Flights.Where(f => f.OperatorAirlineID == user.AirlineICAO && !f.Started.HasValue).ToListAsync());
-                    }
-                    else
-                    {
-                        plans.AddRange(await this.db.Flights.Where(f => f.OperatorAirlineID == user.AirlineICAO && f.AssignedAirlinePilotID == user.Id).ToListAsync());
-                    }
-                }
-
-                return new ApiResponse<IEnumerable<FlightPlan>>(plans.Select(f => new FlightPlan(f)));
-            }
-            catch (Exception ex)
-            {
-                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Flight/getFlightPlans");
-                return new ApiResponse<IEnumerable<FlightPlan>>(ex) { Data = new List<FlightPlan>() };
-            }
-        }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// Delete the specified flight plan.
         /// </summary>
         /// <remarks>
@@ -189,6 +143,52 @@ namespace OpenSky.API.Controllers
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | DELETE Flight/deleteFlightPlan/{flightID}");
                 return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Get flight plans.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 03/10/2021.
+        /// </remarks>
+        /// <returns>
+        /// An asynchronous result that yields the flight plans for the current user.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet("getFlightPlans")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<FlightPlan>>>> GetFlightPlans()
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Flight/getFlightPlans");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<IEnumerable<FlightPlan>>("Unable to find user record!") { IsError = true, Data = new List<FlightPlan>() };
+                }
+
+                var plans = await this.db.Flights.Where(f => f.OperatorID == user.Id && !f.Started.HasValue).ToListAsync();
+
+                if (!string.IsNullOrEmpty(user.AirlineICAO))
+                {
+                    if (AirlineController.UserHasPermission(user, AirlinePermission.Dispatch))
+                    {
+                        plans.AddRange(await this.db.Flights.Where(f => f.OperatorAirlineID == user.AirlineICAO && !f.Started.HasValue).ToListAsync());
+                    }
+                    else
+                    {
+                        plans.AddRange(await this.db.Flights.Where(f => f.OperatorAirlineID == user.AirlineICAO && f.AssignedAirlinePilotID == user.Id).ToListAsync());
+                    }
+                }
+
+                return new ApiResponse<IEnumerable<FlightPlan>>(plans.Select(f => new FlightPlan(f)));
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Flight/getFlightPlans");
+                return new ApiResponse<IEnumerable<FlightPlan>>(ex) { Data = new List<FlightPlan>() };
             }
         }
 
