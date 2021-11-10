@@ -194,6 +194,154 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Start flight.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 10/11/2021.
+        /// </remarks>
+        /// <param name="flightID">
+        /// Identifier for the flight plan to start.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields an ActionResult&lt;ApiResponse&lt;string&gt;&gt;
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPost("startFlight/{flightID:guid}")]
+        public async Task<ActionResult<ApiResponse<string>>> StartFlight(Guid flightID)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Flight/startFlight/{flightID}");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string>("Unable to find user record!") { IsError = true };
+                }
+
+                var plan = await this.db.Flights.SingleOrDefaultAsync(f => f.ID == flightID);
+                if (plan == null)
+                {
+                    return new ApiResponse<string>("No flight plan with that ID was found!") { IsError = true };
+                }
+
+                // User operated flight, but not the current user?
+                if (!string.IsNullOrEmpty(plan.OperatorID) && !plan.OperatorID.Equals(user.Id))
+                {
+                    return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                }
+
+                // Airline flight, but not the assigned pilot?
+                if (!string.IsNullOrEmpty(plan.OperatorAirlineID))
+                {
+                    if (!plan.OperatorAirlineID.Equals(user.AirlineICAO))
+                    {
+                        return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                    }
+
+                    if (string.IsNullOrEmpty(plan.AssignedAirlinePilotID))
+                    {
+                        return new ApiResponse<string>("This airline flight plan has no assigned pilot!") { IsError = true };
+                    }
+
+                    if (!plan.AssignedAirlinePilotID.Equals(user.Id))
+                    {
+                        return new ApiResponse<string>("This flight is assigned to another pilot in your airline!") { IsError = true };
+                    }
+                }
+
+                // Origin or destination missing?
+                if (string.IsNullOrEmpty(plan.OriginICAO))
+                {
+                    return new ApiResponse<string>("Flight plan has no origin airport!") { IsError = true };
+                }
+
+                if (string.IsNullOrEmpty(plan.DestinationICAO))
+                {
+                    return new ApiResponse<string>("Flight plan has no destination airport!") { IsError = true };
+                }
+
+                // Aircraft not selected?
+                if (string.IsNullOrEmpty(plan.AircraftRegistry))
+                {
+                    return new ApiResponse<string>("Flight plan has no assigned aircraft!") { IsError = true };
+                }
+
+                // Invalid UTC offset
+                if (plan.UtcOffset is < -12.0 or > 14.0)
+                {
+                    return new ApiResponse<string>("UTC offset has to be between -12 and +14 hours!") { IsError = true };
+                }
+
+                // Invalid flight number
+                if (plan.FlightNumber is < 1 or > 9999)
+                {
+                    return new ApiResponse<string>("Flight number is out of range (1-9999)!") { IsError = true };
+                }
+
+                // No fuel
+                if (!plan.FuelGallons.HasValue)
+                {
+                    return new ApiResponse<string>("Flight plan has no fuel value!") { IsError = true };
+                }
+
+                // Has the flight started already?
+                if (plan.Started.HasValue)
+                {
+                    return new ApiResponse<string>("Can't start flight already in progress!") { IsError = true };
+                }
+
+                // Another flight in progress?
+                var otherFlightInProgress = await this.db.Flights.AnyAsync(f => (f.OperatorID == user.Id || f.AssignedAirlinePilotID == user.Id) && f.Started.HasValue && !(f.Paused.HasValue || f.Completed.HasValue));
+                if (otherFlightInProgress)
+                {
+                    return new ApiResponse<string>("You already have another flight in progress! Please complete or pause the other flight before starting a new one.") { IsError = true };
+                }
+
+                // Is the aircraft at the origin airport and idle?
+                if (!plan.OriginICAO.Equals(plan.Aircraft?.AirportICAO))
+                {
+                    return new ApiResponse<string>("The selected aircraft is not at the departure airport!") { IsError = true };
+                }
+
+                if (plan.Aircraft?.Status != "Idle")
+                {
+                    return new ApiResponse<string>("The selected aircraft must be idle!") { IsError = true };
+                }
+
+                // All checks passed, start the flight and calculate the payload and fuel loading times
+                plan.Started = DateTime.Now;
+
+                // todo maybe adjust those fuel loading times with some kind of realism multiplier in the future
+                var gallonsPerMinute = plan.Aircraft.Type.FuelType switch
+                {
+                    FuelType.JetFuel => 6000,
+                    FuelType.AvGas => 15,
+                    FuelType.None => 0,
+                    _ => 0.0
+                };
+                var gallonsToTransfer = Math.Abs(plan.Aircraft.Fuel - plan.FuelGallons.Value);
+                plan.FuelLoadingComplete = gallonsPerMinute > 0 && gallonsToTransfer > 0 ? DateTime.Now.AddMinutes(1 + gallonsToTransfer / gallonsPerMinute) : DateTime.Now;
+
+                // todo add payload calculation once we have that
+                plan.PayloadLoadingComplete = DateTime.Now;
+
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, $"Error starting flight {flightID}.");
+                if (saveEx != null)
+                {
+                    return new ApiResponse<string>("Error starting flight.", saveEx);
+                }
+
+                return new ApiResponse<string>($"Flight {plan.FullFlightNumber} started successfully, remember to keep the rubber on the runway and your troubles on the ground!");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Flight/startFlight/{flightID}");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Save a new or existing flight plan.
         /// </summary>
         /// <remarks>
