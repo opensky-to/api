@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="FlightPlan.cs" company="OpenSky">
+// <copyright file="Flight.cs" company="OpenSky">
 // OpenSky project 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
@@ -8,96 +8,46 @@ namespace OpenSky.API.Model.Flight
 {
     using System;
     using System.Collections.Generic;
-    using System.ComponentModel.DataAnnotations;
 
     using OpenSky.API.DbModel;
-    using OpenSky.API.DbModel.Enums;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Flight plan model.
+    /// Flight model.
     /// </summary>
     /// <remarks>
-    /// sushi.at, 03/10/2021.
+    /// sushi.at, 10/11/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class FlightPlan
+    public class Flight
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="FlightPlan"/> class.
+        /// Initializes a new instance of the <see cref="Flight"/> class.
         /// </summary>
         /// <remarks>
-        /// sushi.at, 03/10/2021.
+        /// sushi.at, 10/11/2021.
         /// </remarks>
         /// -------------------------------------------------------------------------------------------------
-        public FlightPlan()
+        public Flight()
         {
-            this.NavlogFixes = new List<FlightNavlogFix>();
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="FlightPlan"/> class.
+        /// Initializes a new instance of the <see cref="Flight"/> class.
         /// </summary>
         /// <remarks>
-        /// sushi.at, 03/10/2021.
+        /// sushi.at, 10/11/2021.
         /// </remarks>
         /// <param name="flight">
         /// The flight from the database.
         /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public FlightPlan(DbModel.Flight flight)
+        public Flight(DbModel.Flight flight)
         {
-            if (flight.Started.HasValue)
-            {
-                throw new Exception("Can't create flight plan for active flight.");
-            }
-
-            if (string.IsNullOrEmpty(flight.OperatorID) && string.IsNullOrEmpty(flight.OperatorAirlineID))
-            {
-                throw new Exception("Flight plan operator missing.");
-            }
-
-            if (!string.IsNullOrEmpty(flight.OperatorID) && !string.IsNullOrEmpty(flight.OperatorAirlineID))
-            {
-                throw new Exception("Flight plan operator is ambiguous.");
-            }
-
-            this.ID = flight.ID;
-            this.FlightNumber = flight.FlightNumber;
-            this.Aircraft = flight.Aircraft ?? new Aircraft
-            {
-                Registry = string.Empty,
-                AirportICAO = string.Empty,
-                TypeID = Guid.Empty,
-                Type = new AircraftType
-                {
-                    AtcModel = string.Empty,
-                    AtcType = string.Empty,
-                    Category = AircraftTypeCategory.SEP,
-                    EngineType = EngineType.None,
-                    Manufacturer = string.Empty,
-                    Name = string.Empty,
-                    UploaderID = string.Empty,
-                    Simulator = Simulator.MSFS
-                }
-            };
-            this.OriginICAO = flight.OriginICAO;
-            this.DestinationICAO = flight.DestinationICAO;
-            this.AlternateICAO = flight.AlternateICAO;
-            this.FuelGallons = flight.FuelGallons;
-            this.UtcOffset = flight.UtcOffset;
-            this.IsAirlineFlight = !string.IsNullOrEmpty(flight.OperatorAirlineID);
-            this.PlannedDepartureTime = flight.PlannedDepartureTime;
-            this.DispatcherID = flight.DispatcherID;
-            this.DispatcherName = flight.Dispatcher?.UserName ?? "";
-            this.DispatcherRemarks = flight.DispatcherRemarks;
-            this.FullFlightNumber = flight.FullFlightNumber;
-            this.Route = flight.Route;
-            this.AlternateRoute = flight.AlternateRoute;
-            this.OfpHtml = flight.OfpHtml;
-            this.NavlogFixes = flight.NavlogFixes ?? new List<FlightNavlogFix>();
+            // todo transfer values from db model
+            // todo decide if we also should include the flight parameters needed for resume? guess yes, null values would mean no resume (or by boolean flag)
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -109,11 +59,10 @@ namespace OpenSky.API.Model.Flight
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the alternate airport ICAO code.
+        /// Gets or sets the alternate airport.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [StringLength(5, MinimumLength = 3)]
-        public string AlternateICAO { get; set; }
+        public Airport Alternate { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -124,23 +73,14 @@ namespace OpenSky.API.Model.Flight
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets destination airport ICAO code.
+        /// Gets or sets the destination airport.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [StringLength(5, MinimumLength = 3)]
-        public string DestinationICAO { get; set; }
+        public Airport Destination { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the identifier of the dispatcher.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [StringLength(255)]
-        public string DispatcherID { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the name of the dispatcher (read only, for display in list view, not for editing!).
+        /// Gets or sets the name of the dispatcher.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string DispatcherName { get; set; }
@@ -154,21 +94,21 @@ namespace OpenSky.API.Model.Flight
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the flight number (1-9999).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public int FlightNumber { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// Gets or sets the fuel in gallons.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public double? FuelGallons { get; set; }
+        public double FuelGallons { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets the full flight number (airline code and number combined)(read only, for display in list view, not for editing!).
+        /// Gets or sets the Date/Time when fuel loading will be complete.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public DateTime FuelLoadingComplete { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the full flight number (airline code and number combined).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string FullFlightNumber { get; set; }
@@ -178,15 +118,7 @@ namespace OpenSky.API.Model.Flight
         /// Gets or sets the identifier for the flight.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [Required]
         public Guid ID { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets a value indicating whether this is an airline flight or a private one.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public bool IsAirlineFlight { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -204,11 +136,24 @@ namespace OpenSky.API.Model.Flight
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the origin airport ICAO code.
+        /// Gets or sets the operator.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [StringLength(5, MinimumLength = 3)]
-        public string OriginICAO { get; set; }
+        public string Operator { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the origin airport.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public Airport Origin { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the Date/Time when payload loading will be complete.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public DateTime PayloadLoadingComplete { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

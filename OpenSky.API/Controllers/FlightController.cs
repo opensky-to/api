@@ -23,6 +23,8 @@ namespace OpenSky.API.Controllers
     using OpenSky.API.Model.Authentication;
     using OpenSky.API.Model.Flight;
 
+    using Flight = OpenSky.API.DbModel.Flight;
+
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
     /// Flight controller.
@@ -84,6 +86,32 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Get active flights.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 10/11/2021.
+        /// </remarks>
+        /// <returns>
+        /// An asynchronous result that yields the flights.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet]
+        public async Task<ActionResult<ApiResponse<IEnumerable<Model.Flight.Flight>>>> GetFlights()
+        {
+            try
+            {
+
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+            return new ApiResponse<IEnumerable<Model.Flight.Flight>>();
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Delete the specified flight plan.
         /// </summary>
         /// <remarks>
@@ -96,7 +124,7 @@ namespace OpenSky.API.Controllers
         /// An asynchronous result that yields a string.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpDelete("deleteFlightPlan/{flightID}")]
+        [HttpDelete("flightPlan/{flightID}", Name = "DeleteFlightPlan")]
         public async Task<ActionResult<ApiResponse<string>>> DeleteFlightPlan(Guid flightID)
         {
             try
@@ -157,7 +185,7 @@ namespace OpenSky.API.Controllers
         /// An asynchronous result that yields the flight plans for the current user.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpGet("getFlightPlans")]
+        [HttpGet("flightPlans", Name = "GetFlightPlans")]
         public async Task<ActionResult<ApiResponse<IEnumerable<FlightPlan>>>> GetFlightPlans()
         {
             try
@@ -206,7 +234,7 @@ namespace OpenSky.API.Controllers
         /// An asynchronous result that yields an ActionResult&lt;ApiResponse&lt;string&gt;&gt;
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpPost("startFlight/{flightID:guid}")]
+        [HttpPost("start/{flightID:guid}", Name = "StartFlight")]
         public async Task<ActionResult<ApiResponse<string>>> StartFlight(Guid flightID)
         {
             try
@@ -300,7 +328,7 @@ namespace OpenSky.API.Controllers
                 // Is the aircraft at the origin airport and idle?
                 if (!plan.OriginICAO.Equals(plan.Aircraft?.AirportICAO))
                 {
-                    return new ApiResponse<string>("The selected aircraft is not at the departure airport!") { IsError = true };
+                    return new ApiResponse<string>("The selected aircraft is not at the departure airport!") { IsError = true, Data = "AircraftNotAtOrigin" };
                 }
 
                 if (plan.Aircraft?.Status != "Idle")
@@ -314,13 +342,13 @@ namespace OpenSky.API.Controllers
                 // todo maybe adjust those fuel loading times with some kind of realism multiplier in the future
                 var gallonsPerMinute = plan.Aircraft.Type.FuelType switch
                 {
-                    FuelType.JetFuel => 6000,
-                    FuelType.AvGas => 15,
+                    FuelType.JetFuel => 500,
+                    FuelType.AvGas => 8,
                     FuelType.None => 0,
                     _ => 0.0
                 };
                 var gallonsToTransfer = Math.Abs(plan.Aircraft.Fuel - plan.FuelGallons.Value);
-                plan.FuelLoadingComplete = gallonsPerMinute > 0 && gallonsToTransfer > 0 ? DateTime.Now.AddMinutes(1 + gallonsToTransfer / gallonsPerMinute) : DateTime.Now;
+                plan.FuelLoadingComplete = gallonsPerMinute > 0 && gallonsToTransfer > 0 ? DateTime.Now.AddMinutes(3 + gallonsToTransfer / gallonsPerMinute) : DateTime.Now;
 
                 // todo add payload calculation once we have that
                 plan.PayloadLoadingComplete = DateTime.Now;
@@ -354,7 +382,7 @@ namespace OpenSky.API.Controllers
         /// An asynchronous result that yields a string.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpPost("saveFlightPlan")]
+        [HttpPost("flightPlan", Name = "SaveFlightPlan")]
         public async Task<ActionResult<ApiResponse<string>>> SaveFlightPlan([FromBody] FlightPlan flightPlan)
         {
             try
