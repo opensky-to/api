@@ -561,7 +561,6 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the Date/Time of when the flight was paused (so it can be resumed later).
         /// </summary>
         /// 
-        [JsonIgnore]
         public DateTime? Paused { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
