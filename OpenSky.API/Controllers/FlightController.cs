@@ -157,7 +157,7 @@ namespace OpenSky.API.Controllers
         /// An asynchronous result that yields the flight or NULL if there is no active flight.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpGet]
+        [HttpGet(Name = "GetFlight")]
         public async Task<ActionResult<ApiResponse<Flight>>> GetFlight()
         {
             try
