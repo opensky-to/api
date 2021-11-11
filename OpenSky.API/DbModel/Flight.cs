@@ -117,7 +117,6 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("AircraftRegistry")]
-        [JsonIgnore]
         public Aircraft Aircraft
         {
             get => this.LazyLoader.Load(this, ref this.aircraft);
@@ -131,6 +130,7 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("Aircraft")]
         [StringLength(10, MinimumLength = 5)]
+        [JsonIgnore]
         public string AircraftRegistry { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -145,7 +145,6 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the alternate airport.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [JsonIgnore]
         [ForeignKey("AlternateICAO")]
         public Airport Alternate
         {
@@ -159,6 +158,7 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [StringLength(5, MinimumLength = 3)]
+        [JsonIgnore]
         public string AlternateICAO { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -175,6 +175,7 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("AssignedAirlinePilot")]
         [StringLength(255)]
+        [JsonIgnore]
         public string AssignedAirlinePilotID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -197,6 +198,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the Date/Time of when the flight was completed (landed, crashed, aborted or otherwise).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
         public DateTime? Completed { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -205,6 +207,7 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [Required]
+        [JsonIgnore]
         public DateTime Created { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -212,7 +215,6 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the destination airport.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [JsonIgnore]
         [ForeignKey("DestinationICAO")]
         public Airport Destination
         {
@@ -226,6 +228,7 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [StringLength(5, MinimumLength = 3)]
+        [JsonIgnore]
         public string DestinationICAO { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -248,7 +251,16 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("Dispatcher")]
         [StringLength(255)]
+        [JsonIgnore]
         public string DispatcherID { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the name of the dispatcher.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [NotMapped]
+        public string DispatcherName => this.Dispatcher?.UserName ?? "";
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -396,6 +408,14 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets a value indicating whether this flight has an auto-saved log.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [NotMapped]
+        public bool HasAutoSaveLog => !string.IsNullOrEmpty(this.AutoSaveLog);
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The magnetic heading.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -483,6 +503,7 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("OperatorAirline")]
         [StringLength(3)]
+        [JsonIgnore]
         public string OperatorAirlineID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -493,14 +514,32 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("Operator")]
         [StringLength(255)]
+        [JsonIgnore]
         public string OperatorID { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the name of the flight operator.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string OperatorName
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(this.OperatorAirlineID))
+                {
+                    return this.OperatorAirline?.Name ?? this.OperatorAirlineID;
+                }
+
+                return this.Operator?.UserName ?? "Unknown";
+            }
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
         /// Gets or sets the origin airport.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [JsonIgnore]
         [ForeignKey("OriginICAO")]
         public Airport Origin
         {
@@ -514,6 +553,7 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [StringLength(5, MinimumLength = 3)]
+        [JsonIgnore]
         public string OriginICAO { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -521,6 +561,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the Date/Time of when the flight was paused (so it can be resumed later).
         /// </summary>
         /// 
+        [JsonIgnore]
         public DateTime? Paused { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -563,6 +604,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the Date/Time of when the flight was started (left planning phase).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
         public DateTime? Started { get; set; }
 
         /// -------------------------------------------------------------------------------------------------

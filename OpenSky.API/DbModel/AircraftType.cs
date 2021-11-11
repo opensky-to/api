@@ -210,7 +210,7 @@ namespace OpenSky.API.DbModel
                         case FuelType.AvGas:
                             return 6;
                         case FuelType.JetFuel:
-                            return 6.66;
+                            return 6.7;
                         case FuelType.None:
                             return 0;
                         default:
