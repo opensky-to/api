@@ -47,7 +47,7 @@ namespace OpenSky.API.Model.Flight
         /// The flight from the database.
         /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public FlightPlan(DbModel.Flight flight)
+        public FlightPlan(Flight flight)
         {
             if (flight.Started.HasValue)
             {
@@ -91,7 +91,7 @@ namespace OpenSky.API.Model.Flight
             this.IsAirlineFlight = !string.IsNullOrEmpty(flight.OperatorAirlineID);
             this.PlannedDepartureTime = flight.PlannedDepartureTime;
             this.DispatcherID = flight.DispatcherID;
-            this.DispatcherName = flight.Dispatcher?.UserName ?? "";
+            this.DispatcherName = flight.DispatcherName;
             this.DispatcherRemarks = flight.DispatcherRemarks;
             this.FullFlightNumber = flight.FullFlightNumber;
             this.Route = flight.Route;
