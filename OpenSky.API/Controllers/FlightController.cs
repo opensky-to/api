@@ -84,6 +84,127 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Abort flight, return to planning stage (with potential penalties depending on flight phase
+        /// and location)
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 13/11/2021.
+        /// </remarks>
+        /// <param name="flightID">
+        /// Identifier for the flight (plan).
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields an ActionResult&lt;ApiResponse&lt;string&gt;&gt;
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPost("abort/{flightID:guid}", Name = "AbortFlight")]
+        public async Task<ActionResult<ApiResponse<string>>> AbortFlight(Guid flightID)
+        {
+            this.logger.LogInformation($"{this.User.Identity?.Name} | POST Flight/abort/{flightID}");
+            try
+            {
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string>("Unable to find user record!") { IsError = true };
+                }
+
+                var flight = await this.db.Flights.SingleOrDefaultAsync(f => f.ID == flightID);
+                if (flight == null)
+                {
+                    return new ApiResponse<string>("No flight with that ID was found!") { IsError = true };
+                }
+
+                // User operated flight, but not the current user?
+                if (!string.IsNullOrEmpty(flight.OperatorID) && !flight.OperatorID.Equals(user.Id))
+                {
+                    return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                }
+
+                // Airline flight, but not the assigned pilot?
+                if (!string.IsNullOrEmpty(flight.OperatorAirlineID))
+                {
+                    if (!flight.OperatorAirlineID.Equals(user.AirlineICAO))
+                    {
+                        return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                    }
+
+                    if (!flight.AssignedAirlinePilotID.Equals(user.Id))
+                    {
+                        return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                    }
+                }
+
+                if (!flight.Started.HasValue)
+                {
+                    return new ApiResponse<string>("Can't abort flights that haven't started!") { IsError = true };
+                }
+
+                if (flight.Completed.HasValue)
+                {
+                    return new ApiResponse<string>("Can't abort flights that have been completed!") { IsError = true };
+                }
+
+                // Check if/what penalties to apply
+                if (flight.OnGround)
+                {
+                    // What's the closes airport to the current location?
+                    if (flight.Latitude.HasValue && flight.Longitude.HasValue)
+                    {
+                        // todo what's the closes airport, move the aircraft there
+                        // todo also apply any time-warp to the aircraft
+
+                        flight.Started = null;
+                        flight.PayloadLoadingComplete = null;
+                        flight.FuelLoadingComplete = null;
+                        flight.AutoSaveLog = null;
+
+                        flight.FlightPhase = FlightPhase.Briefing;
+                        flight.Latitude = null; // We can leave the rest of the properties as this is now invalid for resume
+                        flight.Longitude = null;
+                    }
+                    else
+                    {
+                        // Flight never report a position, so never started moving, easiest abort, no punishment, simply revert back to plan
+                        flight.Started = null;
+                        flight.PayloadLoadingComplete = null;
+                        flight.FuelLoadingComplete = null;
+                        flight.AutoSaveLog = null;
+                    }
+                }
+                else
+                {
+                    // Now it should get expensive, return flight, etc.
+                    // todo penalties (lock plane in time-warp, money cost, reputation impact)
+
+                    // Return aircraft back to Origin airport
+                    flight.Started = null;
+                    flight.PayloadLoadingComplete = null;
+                    flight.FuelLoadingComplete = null;
+                    flight.AutoSaveLog = null;
+
+                    flight.FlightPhase = FlightPhase.Briefing;
+                    flight.Latitude = null; // We can leave the rest of the properties as this is now invalid for resume
+                    flight.Longitude = null;
+                }
+
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error aborting flight");
+                if (saveEx != null)
+                {
+                    throw saveEx;
+                }
+
+                return new ApiResponse<string>($"Successfully aborted flight {flightID}");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Flight/abort/{flightID}");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Delete the specified flight plan.
         /// </summary>
         /// <remarks>
@@ -276,6 +397,288 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Pause the flight with the specified ID, does not save position or save file - upload these
+        /// before calling pause if they should be preserved.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 13/11/2021.
+        /// </remarks>
+        /// <param name="flightID">
+        /// Identifier for the flight.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields an ActionResult&lt;ApiResponse&lt;string&gt;&gt;
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPost("pause/{flightID:guid}", Name = "PauseFlight")]
+        public async Task<ActionResult<ApiResponse<string>>> PauseFlight(Guid flightID)
+        {
+            this.logger.LogInformation($"{this.User.Identity?.Name} | POST Flight/pause/{flightID}");
+            try
+            {
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string>("Unable to find user record!") { IsError = true };
+                }
+
+                var flight = await this.db.Flights.SingleOrDefaultAsync(f => f.ID == flightID);
+                if (flight == null)
+                {
+                    return new ApiResponse<string>("No flight with that ID was found!") { IsError = true };
+                }
+
+                // User operated flight, but not the current user?
+                if (!string.IsNullOrEmpty(flight.OperatorID) && !flight.OperatorID.Equals(user.Id))
+                {
+                    return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                }
+
+                // Airline flight, but not the assigned pilot?
+                if (!string.IsNullOrEmpty(flight.OperatorAirlineID))
+                {
+                    if (!flight.OperatorAirlineID.Equals(user.AirlineICAO))
+                    {
+                        return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                    }
+
+                    if (!flight.AssignedAirlinePilotID.Equals(user.Id))
+                    {
+                        return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                    }
+                }
+
+                if (!flight.Started.HasValue)
+                {
+                    return new ApiResponse<string>("Can't pause flights that haven't started!") { IsError = true };
+                }
+
+                if (flight.Completed.HasValue)
+                {
+                    return new ApiResponse<string>("Can't pause flights that have been completed!") { IsError = true };
+                }
+
+                if (flight.Paused.HasValue)
+                {
+                    return new ApiResponse<string>("Flight is already paused!") { IsError = true };
+                }
+
+                flight.Paused = DateTime.Now;
+
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error pausing flight");
+                if (saveEx != null)
+                {
+                    throw saveEx;
+                }
+
+                return new ApiResponse<string>($"Successfully paused flight {flightID}");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Flight/pause/{flightID}");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Flight position report.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 13/11/2021.
+        /// </remarks>
+        /// <param name="report">
+        /// The position report.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields an ActionResult&lt;ApiResponse&lt;string&gt;&gt;
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPost("posReport", Name = "PositionReport")]
+        public async Task<ActionResult<ApiResponse<string>>> PositionReport([FromBody] PositionReport report)
+        {
+            this.logger.LogInformation($"{this.User.Identity?.Name} | POST Flight/posReport:{report.ID}");
+            try
+            {
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string>("Unable to find user record!") { IsError = true };
+                }
+
+                var flight = await this.db.Flights.SingleOrDefaultAsync(f => f.ID == report.ID);
+                if (flight == null)
+                {
+                    return new ApiResponse<string>("No flight with that ID was found!") { IsError = true };
+                }
+
+                // User operated flight, but not the current user?
+                if (!string.IsNullOrEmpty(flight.OperatorID) && !flight.OperatorID.Equals(user.Id))
+                {
+                    return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                }
+
+                // Airline flight, but not the assigned pilot?
+                if (!string.IsNullOrEmpty(flight.OperatorAirlineID))
+                {
+                    if (!flight.OperatorAirlineID.Equals(user.AirlineICAO))
+                    {
+                        return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                    }
+
+                    if (!flight.AssignedAirlinePilotID.Equals(user.Id))
+                    {
+                        return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                    }
+                }
+
+                if (!flight.Started.HasValue)
+                {
+                    return new ApiResponse<string>("Can't add position reports to flights that haven't started!") { IsError = true };
+                }
+
+                if (flight.Paused.HasValue)
+                {
+                    return new ApiResponse<string>("Can't add position reports to flights that have been paused!") { IsError = true };
+                }
+
+                if (flight.Completed.HasValue)
+                {
+                    return new ApiResponse<string>("Can't add position reports to flights that have been completed!") { IsError = true };
+                }
+
+                flight.AirspeedTrue = report.AirspeedTrue;
+                flight.Altitude = report.Altitude;
+                flight.BankAngle = report.BankAngle;
+                flight.FlightPhase = report.FlightPhase;
+                flight.GroundSpeed = report.GroundSpeed;
+                flight.Heading = report.Heading;
+                flight.Latitude = report.Latitude;
+                flight.Longitude = report.Longitude;
+                flight.OnGround = report.OnGround;
+                flight.PitchAngle = report.PitchAngle;
+                flight.RadioHeight = report.RadioHeight;
+                flight.VerticalSpeedSeconds = report.VerticalSpeedSeconds;
+
+                flight.FuelTankCenterQuantity = report.FuelTankCenterQuantity;
+                flight.FuelTankCenter2Quantity = report.FuelTankCenter2Quantity;
+                flight.FuelTankCenter3Quantity = report.FuelTankCenter3Quantity;
+                flight.FuelTankLeftMainQuantity = report.FuelTankLeftMainQuantity;
+                flight.FuelTankLeftAuxQuantity = report.FuelTankLeftAuxQuantity;
+                flight.FuelTankLeftTipQuantity = report.FuelTankLeftTipQuantity;
+                flight.FuelTankRightMainQuantity = report.FuelTankRightMainQuantity;
+                flight.FuelTankRightAuxQuantity = report.FuelTankRightAuxQuantity;
+                flight.FuelTankRightTipQuantity = report.FuelTankRightTipQuantity;
+                flight.FuelTankExternal1Quantity = report.FuelTankExternal1Quantity;
+                flight.FuelTankExternal2Quantity = report.FuelTankExternal2Quantity;
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving flight position report");
+                if (saveEx != null)
+                {
+                    throw saveEx;
+                }
+
+                return new ApiResponse<string>($"Successfully saved position report for {report.ID}");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Flight/posReport:{report.ID}");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Resume the flight with the specified ID, only works if there is no other active flight.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 13/11/2021.
+        /// </remarks>
+        /// <param name="flightID">
+        /// Identifier for the flight.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields an ActionResult&lt;ApiResponse&lt;string&gt;&gt;
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPost("resume/{flightID:guid}", Name = "ResumeFlight")]
+        public async Task<ActionResult<ApiResponse<string>>> ResumeFlight(Guid flightID)
+        {
+            this.logger.LogInformation($"{this.User.Identity?.Name} | POST Flight/resume/{flightID}");
+            try
+            {
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string>("Unable to find user record!") { IsError = true };
+                }
+
+                var flight = await this.db.Flights.SingleOrDefaultAsync(f => f.ID == flightID);
+                if (flight == null)
+                {
+                    return new ApiResponse<string>("No flight with that ID was found!") { IsError = true };
+                }
+
+                // User operated flight, but not the current user?
+                if (!string.IsNullOrEmpty(flight.OperatorID) && !flight.OperatorID.Equals(user.Id))
+                {
+                    return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                }
+
+                // Airline flight, but not the assigned pilot?
+                if (!string.IsNullOrEmpty(flight.OperatorAirlineID))
+                {
+                    if (!flight.OperatorAirlineID.Equals(user.AirlineICAO))
+                    {
+                        return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                    }
+
+                    if (!flight.AssignedAirlinePilotID.Equals(user.Id))
+                    {
+                        return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                    }
+                }
+
+                if (!flight.Started.HasValue)
+                {
+                    return new ApiResponse<string>("Can't resume flights that haven't started!") { IsError = true };
+                }
+
+                if (flight.Completed.HasValue)
+                {
+                    return new ApiResponse<string>("Can't resume flights that have been completed!") { IsError = true };
+                }
+
+                if (!flight.Paused.HasValue)
+                {
+                    return new ApiResponse<string>("Flight is not paused!") { IsError = true };
+                }
+
+                // Another flight in progress?
+                var otherFlightInProgress = await this.db.Flights.AnyAsync(f => (f.OperatorID == user.Id || f.AssignedAirlinePilotID == user.Id) && f.Started.HasValue && !(f.Paused.HasValue || f.Completed.HasValue));
+                if (otherFlightInProgress)
+                {
+                    return new ApiResponse<string>("You already have another flight in progress! Please complete or pause the other flight before resuming this one.") { IsError = true };
+                }
+
+                flight.Paused = null;
+
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error resuming flight");
+                if (saveEx != null)
+                {
+                    throw saveEx;
+                }
+
+                return new ApiResponse<string>($"Successfully resumed flight {flightID}");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Flight/resume/{flightID}");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Save a new or existing flight plan.
         /// </summary>
         /// <remarks>
@@ -381,6 +784,7 @@ namespace OpenSky.API.Controllers
                         AlternateRoute = flightPlan.AlternateRoute,
                         OfpHtml = flightPlan.OfpHtml,
 
+                        OnGround = true,
                         Created = DateTime.Now,
                     };
 
@@ -592,7 +996,6 @@ namespace OpenSky.API.Controllers
                 // All checks passed, start the flight and calculate the payload and fuel loading times
                 plan.Started = DateTime.Now;
 
-                // todo maybe adjust those fuel loading times with some kind of realism multiplier in the future
                 var gallonsPerMinute = plan.Aircraft.Type.FuelType switch
                 {
                     FuelType.JetFuel => 500,
@@ -606,6 +1009,12 @@ namespace OpenSky.API.Controllers
                 // todo add payload calculation once we have that
                 plan.PayloadLoadingComplete = DateTime.Now;
 
+                // No alternate set?, set to origin (return to base)
+                if (string.IsNullOrEmpty(plan.AlternateICAO))
+                {
+                    plan.AlternateICAO = plan.OriginICAO;
+                }
+
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, $"Error starting flight {flightID}.");
                 if (saveEx != null)
                 {
@@ -617,6 +1026,93 @@ namespace OpenSky.API.Controllers
             catch (Exception ex)
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Flight/startFlight/{flightID}");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Upload auto-save flight log for the specified flight.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 13/11/2021.
+        /// </remarks>
+        /// <param name="flightID">
+        /// Identifier for the flight.
+        /// </param>
+        /// <param name="autoSave">
+        /// The auto-save (base64 encoded).
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields an ActionResult&lt;ApiResponse&lt;string&gt;&gt;
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPost("autoSave/{flightID:guid}")]
+        public async Task<ActionResult<ApiResponse<string>>> UploadFlightAutoSave(Guid flightID, [FromBody] string autoSave)
+        {
+            this.logger.LogInformation($"{this.User.Identity?.Name} | POST Flight/autoSave/{flightID}");
+            try
+            {
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string>("Unable to find user record!") { IsError = true };
+                }
+
+                var flight = await this.db.Flights.SingleOrDefaultAsync(f => f.ID == flightID);
+                if (flight == null)
+                {
+                    return new ApiResponse<string>("No flight with that ID was found!") { IsError = true };
+                }
+
+                // User operated flight, but not the current user?
+                if (!string.IsNullOrEmpty(flight.OperatorID) && !flight.OperatorID.Equals(user.Id))
+                {
+                    return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                }
+
+                // Airline flight, but not the assigned pilot?
+                if (!string.IsNullOrEmpty(flight.OperatorAirlineID))
+                {
+                    if (!flight.OperatorAirlineID.Equals(user.AirlineICAO))
+                    {
+                        return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                    }
+
+                    if (!flight.AssignedAirlinePilotID.Equals(user.Id))
+                    {
+                        return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                    }
+                }
+
+                if (!flight.Started.HasValue)
+                {
+                    return new ApiResponse<string>("Can't auto-save flights that haven't started!") { IsError = true };
+                }
+
+                if (flight.Paused.HasValue)
+                {
+                    return new ApiResponse<string>("Can't auto-save flights that have been paused!") { IsError = true };
+                }
+
+                if (flight.Completed.HasValue)
+                {
+                    return new ApiResponse<string>("Can't auto-save flights that have been completed!") { IsError = true };
+                }
+
+                flight.AutoSaveLog = autoSave;
+
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving flight auto-save");
+                if (saveEx != null)
+                {
+                    throw saveEx;
+                }
+
+                return new ApiResponse<string>($"Successfully auto-saved flight {flightID}");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Flight/autoSave/{flightID}");
                 return new ApiResponse<string>(ex);
             }
         }
