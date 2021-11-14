@@ -324,6 +324,9 @@ namespace OpenSky.API.Controllers
 
                 flight.LastPositionReport = DateTime.UtcNow;
 
+                // We can also delete the navlog fixes now, they aren't being used anymore
+                this.db.FlightNavlogFixes.RemoveRange(flight.NavlogFixes);
+
                 // todo complete jobs and pay out
                 // todo calculate wear and tear on the aircraft
                 // todo check final log for signs of cheating?
