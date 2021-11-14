@@ -228,9 +228,6 @@ namespace OpenSky.API.Controllers
         /// <remarks>
         /// sushi.at, 14/11/2021.
         /// </remarks>
-        /// <param name="flightID">
-        /// Identifier for the flight (plan).
-        /// </param>
         /// <param name="finalReport">
         /// The final report.
         /// </param>
@@ -238,10 +235,10 @@ namespace OpenSky.API.Controllers
         /// An asynchronous result that yields an ActionResult&lt;ApiResponse&lt;string&gt;&gt;
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpPost("complete/{flightID:guid}", Name = "CompleteFlight")]
-        public async Task<ActionResult<ApiResponse<string>>> CompleteFlight(Guid flightID, [FromBody] FinalReport finalReport)
+        [HttpPost("complete", Name = "CompleteFlight")]
+        public async Task<ActionResult<ApiResponse<string>>> CompleteFlight([FromBody] FinalReport finalReport)
         {
-            this.logger.LogInformation($"{this.User.Identity?.Name} | POST Flight/complete/{flightID}");
+            this.logger.LogInformation($"{this.User.Identity?.Name} | POST Flight/complete/{finalReport.FinalPositionReport.ID}");
             try
             {
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
@@ -250,7 +247,7 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("Unable to find user record!") { IsError = true };
                 }
 
-                var flight = await this.db.Flights.SingleOrDefaultAsync(f => f.ID == flightID);
+                var flight = await this.db.Flights.SingleOrDefaultAsync(f => f.ID == finalReport.FinalPositionReport.ID);
                 if (flight == null)
                 {
                     return new ApiResponse<string>("No flight with that ID was found!") { IsError = true };
@@ -338,11 +335,11 @@ namespace OpenSky.API.Controllers
                     throw saveEx;
                 }
 
-                return new ApiResponse<string>($"Successfully completed flight {flightID}");
+                return new ApiResponse<string>($"Successfully completed flight {finalReport.FinalPositionReport.ID}");
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Flight/complete/{flightID}");
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Flight/complete/{finalReport.FinalPositionReport.ID}");
                 return new ApiResponse<string>(ex);
             }
         }
