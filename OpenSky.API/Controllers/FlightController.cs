@@ -164,6 +164,10 @@ namespace OpenSky.API.Controllers
                         flight.Latitude = null; // We can leave the rest of the properties as this is now invalid for resume
                         flight.Longitude = null;
                         flight.LastPositionReport = null;
+                        flight.OnGround = true;
+                        flight.Altitude = null;
+                        flight.GroundSpeed = null;
+                        flight.Heading = null;
                     }
                     else
                     {
@@ -174,6 +178,10 @@ namespace OpenSky.API.Controllers
                         flight.AutoSaveLog = null;
                         flight.LastAutoSave = null;
                         flight.LastPositionReport = null;
+                        flight.OnGround = true;
+                        flight.Altitude = null;
+                        flight.GroundSpeed = null;
+                        flight.Heading = null;
                     }
                 }
                 else
@@ -192,6 +200,10 @@ namespace OpenSky.API.Controllers
                     flight.Latitude = null; // We can leave the rest of the properties as this is now invalid for resume
                     flight.Longitude = null;
                     flight.LastPositionReport = null;
+                    flight.OnGround = true;
+                    flight.Altitude = null;
+                    flight.GroundSpeed = null;
+                    flight.Heading = null;
                 }
 
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error aborting flight");
@@ -205,6 +217,132 @@ namespace OpenSky.API.Controllers
             catch (Exception ex)
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Flight/abort/{flightID}");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Upload final save and complete flight.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 14/11/2021.
+        /// </remarks>
+        /// <param name="flightID">
+        /// Identifier for the flight (plan).
+        /// </param>
+        /// <param name="finalReport">
+        /// The final report.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields an ActionResult&lt;ApiResponse&lt;string&gt;&gt;
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPost("complete/{flightID:guid}", Name = "CompleteFlight")]
+        public async Task<ActionResult<ApiResponse<string>>> CompleteFlight(Guid flightID, [FromBody] FinalReport finalReport)
+        {
+            this.logger.LogInformation($"{this.User.Identity?.Name} | POST Flight/complete/{flightID}");
+            try
+            {
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string>("Unable to find user record!") { IsError = true };
+                }
+
+                var flight = await this.db.Flights.SingleOrDefaultAsync(f => f.ID == flightID);
+                if (flight == null)
+                {
+                    return new ApiResponse<string>("No flight with that ID was found!") { IsError = true };
+                }
+
+                // User operated flight, but not the current user?
+                if (!string.IsNullOrEmpty(flight.OperatorID) && !flight.OperatorID.Equals(user.Id))
+                {
+                    return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                }
+
+                // Airline flight, but not the assigned pilot?
+                if (!string.IsNullOrEmpty(flight.OperatorAirlineID))
+                {
+                    if (!flight.OperatorAirlineID.Equals(user.AirlineICAO))
+                    {
+                        return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                    }
+
+                    if (!flight.AssignedAirlinePilotID.Equals(user.Id))
+                    {
+                        return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                    }
+                }
+
+                if (!flight.Started.HasValue)
+                {
+                    return new ApiResponse<string>("Can't complete flights that haven't started!") { IsError = true };
+                }
+
+                if (flight.Paused.HasValue)
+                {
+                    return new ApiResponse<string>("Can't complete flights that have been paused!") { IsError = true };
+                }
+
+                if (flight.Completed.HasValue)
+                {
+                    return new ApiResponse<string>("This flight is already completed!") { IsError = true };
+                }
+
+                flight.FlightLog = finalReport.FlightLog;
+                flight.AutoSaveLog = null;
+                flight.Completed = DateTime.UtcNow;
+
+                flight.AirspeedTrue = finalReport.FinalPositionReport.AirspeedTrue;
+                flight.Altitude = finalReport.FinalPositionReport.Altitude;
+                flight.BankAngle = finalReport.FinalPositionReport.BankAngle;
+                flight.FlightPhase = finalReport.FinalPositionReport.FlightPhase;
+                flight.GroundSpeed = finalReport.FinalPositionReport.GroundSpeed;
+                flight.Heading = finalReport.FinalPositionReport.Heading;
+                flight.Latitude = finalReport.FinalPositionReport.Latitude;
+                flight.Longitude = finalReport.FinalPositionReport.Longitude;
+                flight.OnGround = finalReport.FinalPositionReport.OnGround;
+                flight.PitchAngle = finalReport.FinalPositionReport.PitchAngle;
+                flight.RadioHeight = finalReport.FinalPositionReport.RadioHeight;
+                flight.VerticalSpeedSeconds = finalReport.FinalPositionReport.VerticalSpeedSeconds;
+                flight.TimeWarpTimeSavedSeconds = finalReport.FinalPositionReport.TimeWarpTimeSavedSeconds;
+                if (flight.TimeWarpTimeSavedSeconds > 0)
+                {
+                    flight.Aircraft.WarpingUntil = DateTime.UtcNow.AddSeconds(flight.TimeWarpTimeSavedSeconds);
+                }
+
+                flight.FuelTankCenterQuantity = finalReport.FinalPositionReport.FuelTankCenterQuantity;
+                flight.FuelTankCenter2Quantity = finalReport.FinalPositionReport.FuelTankCenter2Quantity;
+                flight.FuelTankCenter3Quantity = finalReport.FinalPositionReport.FuelTankCenter3Quantity;
+                flight.FuelTankLeftMainQuantity = finalReport.FinalPositionReport.FuelTankLeftMainQuantity;
+                flight.FuelTankLeftAuxQuantity = finalReport.FinalPositionReport.FuelTankLeftAuxQuantity;
+                flight.FuelTankLeftTipQuantity = finalReport.FinalPositionReport.FuelTankLeftTipQuantity;
+                flight.FuelTankRightMainQuantity = finalReport.FinalPositionReport.FuelTankRightMainQuantity;
+                flight.FuelTankRightAuxQuantity = finalReport.FinalPositionReport.FuelTankRightAuxQuantity;
+                flight.FuelTankRightTipQuantity = finalReport.FinalPositionReport.FuelTankRightTipQuantity;
+                flight.FuelTankExternal1Quantity = finalReport.FinalPositionReport.FuelTankExternal1Quantity;
+                flight.FuelTankExternal2Quantity = finalReport.FinalPositionReport.FuelTankExternal2Quantity;
+
+                flight.LastPositionReport = DateTime.UtcNow;
+
+                // todo complete jobs and pay out
+                // todo calculate wear and tear on the aircraft
+                // todo check final log for signs of cheating?
+                // todo calculate final reputation/xp/whatever based on flight
+
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error completing flight");
+                if (saveEx != null)
+                {
+                    throw saveEx;
+                }
+
+                return new ApiResponse<string>($"Successfully completed flight {flightID}");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Flight/complete/{flightID}");
                 return new ApiResponse<string>(ex);
             }
         }
