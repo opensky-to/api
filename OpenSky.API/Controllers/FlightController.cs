@@ -275,6 +275,67 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Download flight auto-save.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 14/11/2021.
+        /// </remarks>
+        /// <param name="flightID">
+        /// Identifier for the flight (plan).
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields an ActionResult&lt;ApiResponse&lt;string&gt;&gt;
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet("autoSave/{flightID:guid}", Name = "DownloadFlightAutoSave")]
+        public async Task<ActionResult<ApiResponse<string>>> DownloadFlightAutoSave(Guid flightID)
+        {
+            this.logger.LogInformation($"{this.User.Identity?.Name} | GET Flight/autoSave/{flightID}");
+            try
+            {
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string>("Unable to find user record!") { IsError = true };
+                }
+
+                var flight = await this.db.Flights.SingleOrDefaultAsync(f => f.ID == flightID);
+                if (flight == null)
+                {
+                    return new ApiResponse<string>("No flight with that ID was found!") { IsError = true };
+                }
+
+                // User operated flight, but not the current user?
+                if (!string.IsNullOrEmpty(flight.OperatorID) && !flight.OperatorID.Equals(user.Id))
+                {
+                    return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                }
+
+                // Airline flight, but not the assigned pilot?
+                if (!string.IsNullOrEmpty(flight.OperatorAirlineID))
+                {
+                    if (!flight.OperatorAirlineID.Equals(user.AirlineICAO))
+                    {
+                        return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                    }
+
+                    if (!flight.AssignedAirlinePilotID.Equals(user.Id))
+                    {
+                        return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                    }
+                }
+
+                return new ApiResponse<string>(string.Empty) { Data = flight.AutoSaveLog };
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Flight/autoSave/{flightID}");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Get currently active flight for tracking.
         /// </summary>
         /// <remarks>
@@ -1057,7 +1118,7 @@ namespace OpenSky.API.Controllers
         /// An asynchronous result that yields an ActionResult&lt;ApiResponse&lt;string&gt;&gt;
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpPost("autoSave/{flightID:guid}")]
+        [HttpPost("autoSave/{flightID:guid}", Name = "UploadFlightAutoSave")]
         public async Task<ActionResult<ApiResponse<string>>> UploadFlightAutoSave(Guid flightID, [FromBody] string autoSave)
         {
             this.logger.LogInformation($"{this.User.Identity?.Name} | POST Flight/autoSave/{flightID}");
