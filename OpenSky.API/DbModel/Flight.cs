@@ -113,6 +113,21 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets the valid empty model (no data, but valid for JSON deserialization of "required" attributes).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public static Flight ValidEmptyModel =>
+            new()
+            {
+                ID = Guid.Empty,
+                Aircraft = Aircraft.ValidEmptyModel,
+                Origin = Airport.ValidEmptyModel,
+                Destination = Airport.ValidEmptyModel,
+                Alternate = Airport.ValidEmptyModel,
+            };
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the aircraft.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -446,6 +461,20 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the Date/Time of the last auto-save.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public DateTime? LastAutoSave { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the Date/Time of the last position report.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public DateTime? LastPositionReport { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The latitude in degrees.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -619,6 +648,13 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [JsonIgnore]
         public DateTime? Started { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the time-warp time saved (in seconds).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int TimeWarpTimeSavedSeconds { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

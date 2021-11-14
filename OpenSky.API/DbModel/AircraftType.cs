@@ -24,6 +24,11 @@ namespace OpenSky.API.DbModel
     /// -------------------------------------------------------------------------------------------------
     public class AircraftType
     {
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The fuel weight per gallon.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
         private double fuelWeightPerGallon;
 
         /// -------------------------------------------------------------------------------------------------
@@ -81,6 +86,21 @@ namespace OpenSky.API.DbModel
         {
             this.LazyLoader = lazyLoader;
         }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the valid empty model (no data, but valid for JSON deserialization of "required" attributes).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public static AircraftType ValidEmptyModel =>
+            new()
+            {
+                AtcModel = "XXXX",
+                AtcType = "XXXX",
+                Manufacturer = "XXXX",
+                Name = "XXXX",
+                UploaderID = "XXXX"
+            };
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

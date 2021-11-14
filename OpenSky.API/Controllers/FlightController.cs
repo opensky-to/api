@@ -158,10 +158,12 @@ namespace OpenSky.API.Controllers
                         flight.PayloadLoadingComplete = null;
                         flight.FuelLoadingComplete = null;
                         flight.AutoSaveLog = null;
+                        flight.LastAutoSave = null;
 
                         flight.FlightPhase = FlightPhase.Briefing;
                         flight.Latitude = null; // We can leave the rest of the properties as this is now invalid for resume
                         flight.Longitude = null;
+                        flight.LastPositionReport = null;
                     }
                     else
                     {
@@ -170,6 +172,8 @@ namespace OpenSky.API.Controllers
                         flight.PayloadLoadingComplete = null;
                         flight.FuelLoadingComplete = null;
                         flight.AutoSaveLog = null;
+                        flight.LastAutoSave = null;
+                        flight.LastPositionReport = null;
                     }
                 }
                 else
@@ -182,10 +186,12 @@ namespace OpenSky.API.Controllers
                     flight.PayloadLoadingComplete = null;
                     flight.FuelLoadingComplete = null;
                     flight.AutoSaveLog = null;
+                    flight.LastAutoSave = null;
 
                     flight.FlightPhase = FlightPhase.Briefing;
                     flight.Latitude = null; // We can leave the rest of the properties as this is now invalid for resume
                     flight.Longitude = null;
+                    flight.LastPositionReport = null;
                 }
 
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error aborting flight");
@@ -287,7 +293,7 @@ namespace OpenSky.API.Controllers
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
-                    return new ApiResponse<Flight>("Unable to find user record!") { IsError = true, Data = new Flight() };
+                    return new ApiResponse<Flight>("Unable to find user record!") { IsError = true, Data = Flight.ValidEmptyModel };
                 }
 
                 var flight = await this.db.Flights.SingleOrDefaultAsync(f => f.OperatorID == user.Id && f.Started.HasValue && !f.Paused.HasValue && !f.Completed.HasValue);
@@ -301,12 +307,12 @@ namespace OpenSky.API.Controllers
                     flight = await this.db.Flights.SingleOrDefaultAsync(f => f.OperatorAirlineID == user.AirlineICAO && f.AssignedAirlinePilotID == user.Id && f.Started.HasValue && !f.Paused.HasValue && !f.Completed.HasValue);
                 }
 
-                return new ApiResponse<Flight>(flight);
+                return new ApiResponse<Flight>(flight ?? Flight.ValidEmptyModel);
             }
             catch (Exception ex)
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Flight");
-                return new ApiResponse<Flight>(ex) { Data = new Flight() };
+                return new ApiResponse<Flight>(ex) { Data = Flight.ValidEmptyModel };
             }
         }
 
@@ -463,7 +469,7 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("Flight is already paused!") { IsError = true };
                 }
 
-                flight.Paused = DateTime.Now;
+                flight.Paused = DateTime.UtcNow;
 
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error pausing flight");
                 if (saveEx != null)
@@ -559,6 +565,7 @@ namespace OpenSky.API.Controllers
                 flight.PitchAngle = report.PitchAngle;
                 flight.RadioHeight = report.RadioHeight;
                 flight.VerticalSpeedSeconds = report.VerticalSpeedSeconds;
+                flight.TimeWarpTimeSavedSeconds = report.TimeWarpTimeSavedSeconds;
 
                 flight.FuelTankCenterQuantity = report.FuelTankCenterQuantity;
                 flight.FuelTankCenter2Quantity = report.FuelTankCenter2Quantity;
@@ -571,6 +578,9 @@ namespace OpenSky.API.Controllers
                 flight.FuelTankRightTipQuantity = report.FuelTankRightTipQuantity;
                 flight.FuelTankExternal1Quantity = report.FuelTankExternal1Quantity;
                 flight.FuelTankExternal2Quantity = report.FuelTankExternal2Quantity;
+
+                flight.LastPositionReport = DateTime.UtcNow;
+
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving flight position report");
                 if (saveEx != null)
                 {
@@ -785,7 +795,7 @@ namespace OpenSky.API.Controllers
                         OfpHtml = flightPlan.OfpHtml,
 
                         OnGround = true,
-                        Created = DateTime.Now,
+                        Created = DateTime.UtcNow,
                     };
 
                     if (flightPlan.IsAirlineFlight)
@@ -994,7 +1004,7 @@ namespace OpenSky.API.Controllers
                 }
 
                 // All checks passed, start the flight and calculate the payload and fuel loading times
-                plan.Started = DateTime.Now;
+                plan.Started = DateTime.UtcNow;
 
                 var gallonsPerMinute = plan.Aircraft.Type.FuelType switch
                 {
@@ -1004,10 +1014,10 @@ namespace OpenSky.API.Controllers
                     _ => 0.0
                 };
                 var gallonsToTransfer = Math.Abs(plan.Aircraft.Fuel - plan.FuelGallons.Value);
-                plan.FuelLoadingComplete = gallonsPerMinute > 0 && gallonsToTransfer > 0 ? DateTime.Now.AddMinutes(3 + gallonsToTransfer / gallonsPerMinute) : DateTime.Now;
+                plan.FuelLoadingComplete = gallonsPerMinute > 0 && gallonsToTransfer > 0 ? DateTime.UtcNow.AddMinutes(3 + gallonsToTransfer / gallonsPerMinute) : DateTime.UtcNow;
 
                 // todo add payload calculation once we have that
-                plan.PayloadLoadingComplete = DateTime.Now;
+                plan.PayloadLoadingComplete = DateTime.UtcNow;
 
                 // No alternate set?, set to origin (return to base)
                 if (string.IsNullOrEmpty(plan.AlternateICAO))
@@ -1101,6 +1111,7 @@ namespace OpenSky.API.Controllers
                 }
 
                 flight.AutoSaveLog = autoSave;
+                flight.LastAutoSave = DateTime.UtcNow;
 
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving flight auto-save");
                 if (saveEx != null)
