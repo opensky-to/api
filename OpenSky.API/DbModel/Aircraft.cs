@@ -27,6 +27,13 @@ namespace OpenSky.API.DbModel
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The airline owner of the aircraft (or NULL if no airline owner).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private Airline airlineOwner;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The airport (current or origin if aircraft currently in flight).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -41,24 +48,17 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The aircraft type.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private AircraftType type;
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// The airline owner of the aircraft (or NULL if no airline owner).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private Airline airlineOwner;
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// The owner of the aircraft (or NULL if no user owner).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private OpenSkyUser owner;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The aircraft type.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private AircraftType type;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -87,6 +87,41 @@ namespace OpenSky.API.DbModel
         {
             this.LazyLoader = lazyLoader;
         }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the valid empty model (no data, but valid for JSON deserialization of "required" attributes).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public static Aircraft ValidEmptyModel =>
+            new()
+            {
+                AirportICAO = "XXXX",
+                Registry = "XXXX",
+                Type = AircraftType.ValidEmptyModel
+            };
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the airline owner (NULL if no airline owner).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("AirlineOwnerID")]
+        [JsonIgnore]
+        public Airline AirlineOwner
+        {
+            get => this.LazyLoader.Load(this, ref this.airlineOwner);
+            set => this.airlineOwner = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the identifier of the airline owner (NULL if no airline owner).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("AirlineOwnerID")]
+        [StringLength(3)]
+        public string AirlineOwnerID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -163,28 +198,6 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the airline owner (NULL if no airline owner).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [ForeignKey("AirlineOwnerID")]
-        [JsonIgnore]
-        public Airline AirlineOwner
-        {
-            get => this.LazyLoader.Load(this, ref this.airlineOwner);
-            set => this.airlineOwner = value;
-        }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the identifier of the airline owner (NULL if no airline owner).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [ForeignKey("AirlineOwnerID")]
-        [StringLength(3)]
-        public string AirlineOwnerID { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// Gets the owner name.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -255,6 +268,11 @@ namespace OpenSky.API.DbModel
                         return $"{activeFlight.FlightPhase} ({activeFlight.FullFlightNumber})";
                     }
 
+                    if (this.WarpingUntil.HasValue && this.WarpingUntil.Value > DateTime.UtcNow)
+                    {
+                        return $"Warping T-{(DateTime.UtcNow - this.WarpingUntil.Value):HH:mm}";
+                    }
+
                     // todo return repair/etc. status
 
                     return "Idle";
@@ -284,6 +302,13 @@ namespace OpenSky.API.DbModel
         [ForeignKey("Type")]
         [Required]
         public Guid TypeID { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the Date/Time until the aircraft is warping.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public DateTime? WarpingUntil { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

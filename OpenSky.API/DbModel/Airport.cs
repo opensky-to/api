@@ -79,6 +79,19 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets the valid empty model (no data, but valid for JSON deserialization of "required" attributes).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public static Airport ValidEmptyModel =>
+            new()
+            {
+                ICAO = "XXXX",
+                LongestRunwaySurface = "XXXX",
+                Name = "XXXX"
+            };
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the altitude of the airport in feet.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
