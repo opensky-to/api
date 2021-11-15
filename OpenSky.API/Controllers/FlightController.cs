@@ -328,7 +328,15 @@ namespace OpenSky.API.Controllers
                 this.db.FlightNavlogFixes.RemoveRange(flight.NavlogFixes);
 
                 // todo check where we are (closes airport)
-                flight.Aircraft.AirportICAO = flight.DestinationICAO; // todo only for now while testing!
+                if (flight.FlightPhase != FlightPhase.Crashed)
+                {
+                    flight.Aircraft.AirportICAO = flight.DestinationICAO; // todo only for now while testing!
+                }
+
+                flight.Aircraft.Fuel = finalReport.FinalPositionReport.FuelTankCenterQuantity + finalReport.FinalPositionReport.FuelTankCenter2Quantity + finalReport.FinalPositionReport.FuelTankCenter3Quantity +
+                                       finalReport.FinalPositionReport.FuelTankLeftMainQuantity + finalReport.FinalPositionReport.FuelTankLeftAuxQuantity + finalReport.FinalPositionReport.FuelTankLeftTipQuantity +
+                                       finalReport.FinalPositionReport.FuelTankRightMainQuantity + finalReport.FinalPositionReport.FuelTankRightAuxQuantity + finalReport.FinalPositionReport.FuelTankRightTipQuantity +
+                                       finalReport.FinalPositionReport.FuelTankExternal1Quantity + finalReport.FinalPositionReport.FuelTankExternal2Quantity;
 
                 // todo complete jobs and pay out (if aircraft landed at correct airport)
                 // todo calculate wear and tear on the aircraft
@@ -745,7 +753,8 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("Can't add position reports to flights that haven't started!") { IsError = true };
                 }
 
-                if (flight.Paused.HasValue)
+                // Allow position report in the first minute of pausing, to make sure we get everything saved for the user
+                if (flight.Paused.HasValue && (DateTime.UtcNow - flight.Paused.Value).TotalMinutes > 1)
                 {
                     return new ApiResponse<string>("Can't add position reports to flights that have been paused!") { IsError = true };
                 }
@@ -1302,7 +1311,8 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("Can't auto-save flights that haven't started!") { IsError = true };
                 }
 
-                if (flight.Paused.HasValue)
+                // Allow auto-save in the first minute of pausing, to make sure we get everything saved for the user
+                if (flight.Paused.HasValue && (DateTime.UtcNow - flight.Paused.Value).TotalMinutes > 1)
                 {
                     return new ApiResponse<string>("Can't auto-save flights that have been paused!") { IsError = true };
                 }
