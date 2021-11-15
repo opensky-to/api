@@ -270,7 +270,7 @@ namespace OpenSky.API.DbModel
 
                     if (this.WarpingUntil.HasValue && this.WarpingUntil.Value > DateTime.UtcNow)
                     {
-                        return $"Warping T-{(DateTime.UtcNow - this.WarpingUntil.Value):HH:mm}";
+                        return $"Warping T-{(DateTime.UtcNow - this.WarpingUntil.Value):hh\\:mm\\:ss}";
                     }
 
                     // todo return repair/etc. status
