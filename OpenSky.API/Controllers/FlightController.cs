@@ -331,6 +331,11 @@ namespace OpenSky.API.Controllers
                 if (flight.FlightPhase != FlightPhase.Crashed)
                 {
                     flight.Aircraft.AirportICAO = flight.DestinationICAO; // todo only for now while testing!
+                    flight.LandedAtICAO = flight.DestinationICAO;
+                }
+                else
+                {
+                    flight.LandedAtICAO = flight.OriginICAO;
                 }
 
                 flight.Aircraft.Fuel = finalReport.FinalPositionReport.FuelTankCenterQuantity + finalReport.FinalPositionReport.FuelTankCenter2Quantity + finalReport.FinalPositionReport.FuelTankCenter3Quantity +
@@ -569,6 +574,45 @@ namespace OpenSky.API.Controllers
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Flight/getFlightPlans");
                 return new ApiResponse<IEnumerable<FlightPlan>>(ex) { Data = new List<FlightPlan>() };
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Get flight logs (completed flights)
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 15/11/2021.
+        /// </remarks>
+        /// <returns>
+        /// An asynchronous result that yields my flight logs.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet("myFlightLogs", Name = "GetMyFlightLogs")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<FlightLog>>>> GetMyFlightLogs()
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Flight/myFlightLogs");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<IEnumerable<FlightLog>>("Unable to find user record!") { IsError = true, Data = new List<FlightLog>() };
+                }
+
+                var flights = await this.db.Flights.Where(f => f.OperatorID == user.Id && f.Completed.HasValue).ToListAsync();
+
+                if (!string.IsNullOrEmpty(user.AirlineICAO))
+                {
+                    flights.AddRange(await this.db.Flights.Where(f => f.OperatorAirlineID == user.AirlineICAO && f.AssignedAirlinePilotID == user.Id && f.Completed.HasValue).ToListAsync());
+                }
+
+                return new ApiResponse<IEnumerable<FlightLog>>(flights.OrderByDescending(f => f.Completed).Take(50).Select(f => new FlightLog(f)));
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Flight/myFlightLogs");
+                return new ApiResponse<IEnumerable<FlightLog>>(ex) { Data = new List<FlightLog>() };
             }
         }
 
