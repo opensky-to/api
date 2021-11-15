@@ -327,7 +327,10 @@ namespace OpenSky.API.Controllers
                 // We can also delete the navlog fixes now, they aren't being used anymore
                 this.db.FlightNavlogFixes.RemoveRange(flight.NavlogFixes);
 
-                // todo complete jobs and pay out
+                // todo check where we are (closes airport)
+                flight.Aircraft.AirportICAO = flight.DestinationICAO; // todo only for now while testing!
+
+                // todo complete jobs and pay out (if aircraft landed at correct airport)
                 // todo calculate wear and tear on the aircraft
                 // todo check final log for signs of cheating?
                 // todo calculate final reputation/xp/whatever based on flight
