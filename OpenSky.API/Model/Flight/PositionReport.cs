@@ -95,7 +95,7 @@ namespace OpenSky.API.Model.Flight
         /// Gets or sets the fuel tank left main quantity.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public double? FuelTankLeftMainQuantity { get; set; }
+        public double FuelTankLeftMainQuantity { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
