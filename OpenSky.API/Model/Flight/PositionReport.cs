@@ -50,6 +50,13 @@ namespace OpenSky.API.Model.Flight
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the type of the flight tracking event (NOT ACTUALLY USED, just to force swagger to expose the enum in the OpenApi definition).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public FlightTrackingEventType? FlightTrackingEventType { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the fuel tank center 2 quantity.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
