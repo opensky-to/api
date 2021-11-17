@@ -533,6 +533,72 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets the flight log details (final log xml file and ofp)
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 17/11/2021.
+        /// </remarks>
+        /// <param name="flightID">
+        /// Identifier for the flight.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields the flight log details.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet("flightLogDetails/{flightID:guid}", Name = "GetFlightLogDetails")]
+        public async Task<ActionResult<ApiResponse<FlightLogDetails>>> GetFlightLogDetails(Guid flightID)
+        {
+            this.logger.LogInformation($"{this.User.Identity?.Name} | GET Flight/flightLogDetails/{flightID}");
+            try
+            {
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<FlightLogDetails>("Unable to find user record!") { IsError = true };
+                }
+
+                var flight = await this.db.Flights.SingleOrDefaultAsync(f => f.ID == flightID);
+                if (flight == null)
+                {
+                    return new ApiResponse<FlightLogDetails>("No flight with that ID was found!") { IsError = true };
+                }
+
+                // User operated flight, but not the current user?
+                if (!string.IsNullOrEmpty(flight.OperatorID) && !flight.OperatorID.Equals(user.Id))
+                {
+                    return new ApiResponse<FlightLogDetails>("Unauthorized request!") { IsError = true };
+                }
+
+                // Airline flight, but not the assigned pilot?
+                if (!string.IsNullOrEmpty(flight.OperatorAirlineID))
+                {
+                    if (!flight.OperatorAirlineID.Equals(user.AirlineICAO))
+                    {
+                        return new ApiResponse<FlightLogDetails>("Unauthorized request!") { IsError = true };
+                    }
+
+                    if (!flight.AssignedAirlinePilotID.Equals(user.Id))
+                    {
+                        return new ApiResponse<FlightLogDetails>("Unauthorized request!") { IsError = true };
+                    }
+                }
+
+                if (!flight.Completed.HasValue)
+                {
+                    return new ApiResponse<FlightLogDetails>("Flight not completed!") { IsError = true };
+                }
+
+                return new ApiResponse<FlightLogDetails>(new FlightLogDetails { FlightLog = flight.FlightLog, OfpHtml = flight.OfpHtml });
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Flight/flightLogDetails/{flightID}");
+                return new ApiResponse<FlightLogDetails>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Get flight plans.
         /// </summary>
         /// <remarks>
@@ -607,7 +673,7 @@ namespace OpenSky.API.Controllers
                     flights.AddRange(await this.db.Flights.Where(f => f.OperatorAirlineID == user.AirlineICAO && f.AssignedAirlinePilotID == user.Id && f.Completed.HasValue).ToListAsync());
                 }
 
-                return new ApiResponse<IEnumerable<FlightLog>>(flights.OrderByDescending(f => f.Completed).Take(50).Select(f => new FlightLog(f)));
+                return new ApiResponse<IEnumerable<FlightLog>>(flights.OrderByDescending(f => f.Completed).Take(50).Select(f => new FlightLog(f, this.userManager)));
             }
             catch (Exception ex)
             {
