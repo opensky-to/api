@@ -8,6 +8,8 @@ namespace OpenSky.API.Model.Flight
 {
     using System;
 
+    using Microsoft.AspNetCore.Identity;
+
     using OpenSky.API.DbModel;
     using OpenSky.API.DbModel.Enums;
 
@@ -43,16 +45,23 @@ namespace OpenSky.API.Model.Flight
         /// <param name="flight">
         /// The flight from the db.
         /// </param>
+        /// <param name="userManager">
+        /// The API user manager.
+        /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public FlightLog(Flight flight)
+        public FlightLog(Flight flight, UserManager<OpenSkyUser> userManager)
         {
             this.ID = flight.ID;
             this.FullFlightNumber = flight.FullFlightNumber;
             this.AircraftRegistry = flight.AircraftRegistry;
             this.OriginICAO = flight.OriginICAO;
+            this.Origin = flight.Origin.Name;
             this.DestinationICAO = flight.DestinationICAO;
+            this.Destination = flight.Destination.Name;
             this.AlternateICAO = flight.AlternateICAO;
+            this.Alternate = flight.Alternate.Name;
             this.LandedAtICAO = flight.LandedAtICAO;
+            this.LandedAt = flight.LandedAt.Name;
             this.PlannedDepartureTime = flight.PlannedDepartureTime;
             if (flight.Started != null)
             {
@@ -69,13 +78,31 @@ namespace OpenSky.API.Model.Flight
             this.IsAirlineFlight = !string.IsNullOrEmpty(flight.OperatorAirlineID);
             this.Crashed = flight.FlightPhase == FlightPhase.Crashed;
 
+            this.OffBlockFuel = flight.FuelGallons ?? 0;
             var finalFuel = flight.FuelTankCenterQuantity + flight.FuelTankCenter2Quantity + flight.FuelTankCenter3Quantity +
                             flight.FuelTankLeftMainQuantity + flight.FuelTankLeftAuxQuantity + flight.FuelTankLeftTipQuantity +
                             flight.FuelTankRightMainQuantity + flight.FuelTankRightAuxQuantity + flight.FuelTankRightTipQuantity +
                             flight.FuelTankExternal1Quantity + flight.FuelTankExternal2Quantity;
+            this.OnBlockFuel = finalFuel ?? 0;
 
             this.FuelConsumption = (flight.FuelGallons ?? 0.0) - (finalFuel ?? 0);
-            this.FuelConsumedWeight = this.FuelConsumption * flight.Aircraft.Type.FuelWeightPerGallon;
+            this.FuelWeightPerGallon = flight.Aircraft.Type.FuelWeightPerGallon;
+            this.UtcOffset = flight.UtcOffset;
+            this.TimeWarpTimeSavedSeconds = flight.TimeWarpTimeSavedSeconds;
+            this.Route = flight.Route;
+            this.AlternateRoute = flight.AlternateRoute;
+            this.Operator = flight.OperatorName;
+            this.Pilot = flight.Operator?.UserName ?? "Unknown";
+            if (!string.IsNullOrEmpty(flight.OperatorAirlineID))
+            {
+                var pilotUser = userManager.FindByIdAsync(flight.AssignedAirlinePilotID).Result;
+                this.Pilot = pilotUser != null ? pilotUser.UserName : "Unknown";
+            }
+
+            this.Dispatcher = flight.DispatcherName;
+            this.DispatcherRemarks = flight.DispatcherRemarks;
+            this.PayloadWeight = 0; // todo add payload info once we have that
+            this.Payload = "None";
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -87,10 +114,24 @@ namespace OpenSky.API.Model.Flight
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the alternate.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string Alternate { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the alternate airport ICAO code.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string AlternateICAO { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the alternate route.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string AlternateRoute { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -108,6 +149,13 @@ namespace OpenSky.API.Model.Flight
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the Destination for the.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string Destination { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets destination airport ICAO code.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -115,10 +163,17 @@ namespace OpenSky.API.Model.Flight
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the fuel consumed weight.
+        /// Gets or sets the dispatcher.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public double FuelConsumedWeight { get; set; }
+        public string Dispatcher { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the dispatcher remarks.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string DispatcherRemarks { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -126,6 +181,13 @@ namespace OpenSky.API.Model.Flight
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public double FuelConsumption { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the fuel weight per gallon.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double FuelWeightPerGallon { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -150,10 +212,45 @@ namespace OpenSky.API.Model.Flight
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the landed at.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string LandedAt { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the "landed at" airport ICAO code.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string LandedAtICAO { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the off block fuel.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double OffBlockFuel { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the on block fuel.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double OnBlockFuel { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the operator.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string Operator { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the origin.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string Origin { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -164,6 +261,27 @@ namespace OpenSky.API.Model.Flight
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the payload.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string Payload { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the payload weight.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double PayloadWeight { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the pilot.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string Pilot { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the planned departure time.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -171,9 +289,30 @@ namespace OpenSky.API.Model.Flight
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the route.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string Route { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the Date/Time of when the flight was started.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public DateTime Started { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the time-warp time saved (in seconds).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int TimeWarpTimeSavedSeconds { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the UTC offset for the flight.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double UtcOffset { get; set; }
     }
 }
