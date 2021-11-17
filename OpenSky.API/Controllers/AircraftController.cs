@@ -68,6 +68,13 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The world populator service.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly WorldPopulatorService worldPopulator;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Initializes a new instance of the <see cref="AircraftController"/> class.
         /// </summary>
         /// <remarks>
@@ -190,7 +197,10 @@ namespace OpenSky.API.Controllers
                 else
                 {
                     // Only return planes that are available for purchase or rent, or owned by the player
-                    var aircraft = await this.db.Aircraft.Where(a => a.AirportICAO.Equals(icao) && !a.Flights.Any(f => f.Started.HasValue && !f.Completed.HasValue) && (a.OwnerID == user.Id || a.AirlineOwnerID == user.AirlineICAO || a.PurchasePrice.HasValue || a.RentPrice.HasValue)).ToListAsync();
+                    var aircraft = await this.db.Aircraft.Where(
+                                                 a => a.AirportICAO.Equals(icao) && !a.Flights.Any(f => f.Started.HasValue && !f.Completed.HasValue) &&
+                                                      (a.OwnerID == user.Id || a.AirlineOwnerID == user.AirlineICAO || a.PurchasePrice.HasValue || a.RentPrice.HasValue))
+                                             .ToListAsync();
                     return new ApiResponse<IEnumerable<Aircraft>>(aircraft);
                 }
             }
@@ -263,12 +273,12 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
                 }
 
-                if (string.IsNullOrEmpty(user.AirlineICAO))
+                if (string.IsNullOrEmpty(user.AirlineICAO) && forAirline)
                 {
                     return new ApiResponse<string> { Message = "Not member of an airline!", IsError = true };
                 }
 
-                if (!AirlineController.UserHasPermission(user, AirlinePermission.BuyAircraft))
+                if (!AirlineController.UserHasPermission(user, AirlinePermission.BuyAircraft) && forAirline)
                 {
                     return new ApiResponse<string> { Message = "You don't have the permission to buy aircraft for your airline!", IsError = true };
                 }
@@ -331,13 +341,6 @@ namespace OpenSky.API.Controllers
                 return new ApiResponse<string>(ex);
             }
         }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// The world populator service.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private readonly WorldPopulatorService worldPopulator;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
