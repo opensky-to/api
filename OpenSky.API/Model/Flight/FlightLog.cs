@@ -60,6 +60,7 @@ namespace OpenSky.API.Model.Flight
             }
 
             this.AircraftType = flight.Aircraft.Type.Name;
+            this.AircraftEngineType = flight.Aircraft.Type.EngineType;
             this.OriginICAO = flight.OriginICAO;
             this.Origin = flight.Origin.Name;
             this.DestinationICAO = flight.DestinationICAO;
@@ -110,6 +111,13 @@ namespace OpenSky.API.Model.Flight
             this.PayloadWeight = 0; // todo add payload info once we have that
             this.Payload = "None";
         }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the type of the aircraft engine.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public EngineType AircraftEngineType { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
