@@ -2,15 +2,19 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OpenSky.API;
 
 namespace OpenSky.API.Migrations
 {
     [DbContext(typeof(OpenSkyDbContext))]
-    partial class OpenSkyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20211114140107_WarpAndSaveTimes")]
+    partial class WarpAndSaveTimes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+#pragma warning restore CS1591 // Missing XML comment for publicly
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -651,10 +655,6 @@ namespace OpenSky.API.Migrations
                     b.Property<double?>("Heading")
                         .HasColumnType("double");
 
-                    b.Property<string>("LandedAtICAO")
-                        .HasMaxLength(5)
-                        .HasColumnType("varchar(5)");
-
                     b.Property<DateTime?>("LastAutoSave")
                         .HasColumnType("datetime(6)");
 
@@ -724,8 +724,6 @@ namespace OpenSky.API.Migrations
                     b.HasIndex("DestinationICAO");
 
                     b.HasIndex("DispatcherID");
-
-                    b.HasIndex("LandedAtICAO");
 
                     b.HasIndex("OperatorAirlineID");
 
@@ -1168,10 +1166,6 @@ namespace OpenSky.API.Migrations
                         .WithMany("Dispatches")
                         .HasForeignKey("DispatcherID");
 
-                    b.HasOne("OpenSky.API.DbModel.Airport", "LandedAt")
-                        .WithMany()
-                        .HasForeignKey("LandedAtICAO");
-
                     b.HasOne("OpenSky.API.DbModel.Airline", "OperatorAirline")
                         .WithMany("Flights")
                         .HasForeignKey("OperatorAirlineID");
@@ -1191,8 +1185,6 @@ namespace OpenSky.API.Migrations
                     b.Navigation("Destination");
 
                     b.Navigation("Dispatcher");
-
-                    b.Navigation("LandedAt");
 
                     b.Navigation("Operator");
 

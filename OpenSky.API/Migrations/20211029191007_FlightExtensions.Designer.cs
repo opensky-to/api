@@ -2,15 +2,19 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OpenSky.API;
 
 namespace OpenSky.API.Migrations
 {
     [DbContext(typeof(OpenSkyDbContext))]
-    partial class OpenSkyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20211029191007_FlightExtensions")]
+    partial class FlightExtensions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+#pragma warning restore CS1591 // Missing XML comment for publicly
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -180,9 +184,6 @@ namespace OpenSky.API.Migrations
                     b.Property<Guid>("TypeID")
                         .HasColumnType("char(36)");
 
-                    b.Property<DateTime?>("WarpingUntil")
-                        .HasColumnType("datetime(6)");
-
                     b.HasKey("Registry");
 
                     b.HasIndex("AirlineOwnerID");
@@ -237,9 +238,6 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("tinyint(1)");
 
                     b.Property<double>("FuelTotalCapacity")
-                        .HasColumnType("double");
-
-                    b.Property<double>("FuelWeightPerGallon")
                         .HasColumnType("double");
 
                     b.Property<bool>("IncludeInWorldPopulation")
@@ -564,12 +562,6 @@ namespace OpenSky.API.Migrations
                         .HasMaxLength(5)
                         .HasColumnType("varchar(5)");
 
-                    b.Property<string>("AlternateRoute")
-                        .HasColumnType("longtext");
-
-                    b.Property<double?>("Altitude")
-                        .HasColumnType("double");
-
                     b.Property<string>("AssignedAirlinePilotID")
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
@@ -645,30 +637,14 @@ namespace OpenSky.API.Migrations
                     b.Property<double?>("FuelTankRightTipQuantity")
                         .HasColumnType("double");
 
-                    b.Property<double?>("GroundSpeed")
-                        .HasColumnType("double");
-
                     b.Property<double?>("Heading")
                         .HasColumnType("double");
-
-                    b.Property<string>("LandedAtICAO")
-                        .HasMaxLength(5)
-                        .HasColumnType("varchar(5)");
-
-                    b.Property<DateTime?>("LastAutoSave")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<DateTime?>("LastPositionReport")
-                        .HasColumnType("datetime(6)");
 
                     b.Property<double?>("Latitude")
                         .HasColumnType("double");
 
                     b.Property<double?>("Longitude")
                         .HasColumnType("double");
-
-                    b.Property<string>("OfpHtml")
-                        .HasColumnType("longtext");
 
                     b.Property<bool>("OnGround")
                         .HasColumnType("tinyint(1)");
@@ -700,14 +676,8 @@ namespace OpenSky.API.Migrations
                     b.Property<double?>("RadioHeight")
                         .HasColumnType("double");
 
-                    b.Property<string>("Route")
-                        .HasColumnType("longtext");
-
                     b.Property<DateTime?>("Started")
                         .HasColumnType("datetime(6)");
-
-                    b.Property<int>("TimeWarpTimeSavedSeconds")
-                        .HasColumnType("int");
 
                     b.Property<double>("UtcOffset")
                         .HasColumnType("double");
@@ -725,8 +695,6 @@ namespace OpenSky.API.Migrations
 
                     b.HasIndex("DispatcherID");
 
-                    b.HasIndex("LandedAtICAO");
-
                     b.HasIndex("OperatorAirlineID");
 
                     b.HasIndex("OperatorID");
@@ -734,33 +702,6 @@ namespace OpenSky.API.Migrations
                     b.HasIndex("OriginICAO");
 
                     b.ToTable("Flights");
-                });
-
-            modelBuilder.Entity("OpenSky.API.DbModel.FlightNavlogFix", b =>
-                {
-                    b.Property<Guid>("FlightID")
-                        .HasColumnType("char(36)");
-
-                    b.Property<int>("FixNumber")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Ident")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<double>("Latitude")
-                        .HasColumnType("double");
-
-                    b.Property<double>("Longitude")
-                        .HasColumnType("double");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.HasKey("FlightID", "FixNumber");
-
-                    b.ToTable("FlightNavlogFixes");
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.OpenSkyToken", b =>
@@ -1168,10 +1109,6 @@ namespace OpenSky.API.Migrations
                         .WithMany("Dispatches")
                         .HasForeignKey("DispatcherID");
 
-                    b.HasOne("OpenSky.API.DbModel.Airport", "LandedAt")
-                        .WithMany()
-                        .HasForeignKey("LandedAtICAO");
-
                     b.HasOne("OpenSky.API.DbModel.Airline", "OperatorAirline")
                         .WithMany("Flights")
                         .HasForeignKey("OperatorAirlineID");
@@ -1192,24 +1129,11 @@ namespace OpenSky.API.Migrations
 
                     b.Navigation("Dispatcher");
 
-                    b.Navigation("LandedAt");
-
                     b.Navigation("Operator");
 
                     b.Navigation("OperatorAirline");
 
                     b.Navigation("Origin");
-                });
-
-            modelBuilder.Entity("OpenSky.API.DbModel.FlightNavlogFix", b =>
-                {
-                    b.HasOne("OpenSky.API.DbModel.Flight", "Flight")
-                        .WithMany("NavlogFixes")
-                        .HasForeignKey("FlightID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Flight");
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.OpenSkyToken", b =>
@@ -1275,11 +1199,6 @@ namespace OpenSky.API.Migrations
                     b.Navigation("Approaches");
 
                     b.Navigation("Runways");
-                });
-
-            modelBuilder.Entity("OpenSky.API.DbModel.Flight", b =>
-                {
-                    b.Navigation("NavlogFixes");
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.OpenSkyUser", b =>

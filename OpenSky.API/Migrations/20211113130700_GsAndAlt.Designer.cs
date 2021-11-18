@@ -2,15 +2,19 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OpenSky.API;
 
 namespace OpenSky.API.Migrations
 {
     [DbContext(typeof(OpenSkyDbContext))]
-    partial class OpenSkyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20211113130700_GsAndAlt")]
+    partial class GsAndAlt
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+#pragma warning restore CS1591 // Missing XML comment for publicly
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -179,9 +183,6 @@ namespace OpenSky.API.Migrations
 
                     b.Property<Guid>("TypeID")
                         .HasColumnType("char(36)");
-
-                    b.Property<DateTime?>("WarpingUntil")
-                        .HasColumnType("datetime(6)");
 
                     b.HasKey("Registry");
 
@@ -651,16 +652,6 @@ namespace OpenSky.API.Migrations
                     b.Property<double?>("Heading")
                         .HasColumnType("double");
 
-                    b.Property<string>("LandedAtICAO")
-                        .HasMaxLength(5)
-                        .HasColumnType("varchar(5)");
-
-                    b.Property<DateTime?>("LastAutoSave")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<DateTime?>("LastPositionReport")
-                        .HasColumnType("datetime(6)");
-
                     b.Property<double?>("Latitude")
                         .HasColumnType("double");
 
@@ -706,9 +697,6 @@ namespace OpenSky.API.Migrations
                     b.Property<DateTime?>("Started")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int>("TimeWarpTimeSavedSeconds")
-                        .HasColumnType("int");
-
                     b.Property<double>("UtcOffset")
                         .HasColumnType("double");
 
@@ -724,8 +712,6 @@ namespace OpenSky.API.Migrations
                     b.HasIndex("DestinationICAO");
 
                     b.HasIndex("DispatcherID");
-
-                    b.HasIndex("LandedAtICAO");
 
                     b.HasIndex("OperatorAirlineID");
 
@@ -1168,10 +1154,6 @@ namespace OpenSky.API.Migrations
                         .WithMany("Dispatches")
                         .HasForeignKey("DispatcherID");
 
-                    b.HasOne("OpenSky.API.DbModel.Airport", "LandedAt")
-                        .WithMany()
-                        .HasForeignKey("LandedAtICAO");
-
                     b.HasOne("OpenSky.API.DbModel.Airline", "OperatorAirline")
                         .WithMany("Flights")
                         .HasForeignKey("OperatorAirlineID");
@@ -1191,8 +1173,6 @@ namespace OpenSky.API.Migrations
                     b.Navigation("Destination");
 
                     b.Navigation("Dispatcher");
-
-                    b.Navigation("LandedAt");
 
                     b.Navigation("Operator");
 

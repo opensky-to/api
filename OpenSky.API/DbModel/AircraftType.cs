@@ -26,6 +26,13 @@ namespace OpenSky.API.DbModel
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The fuel weight per gallon.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private double fuelWeightPerGallon;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The last edited by user.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -79,6 +86,21 @@ namespace OpenSky.API.DbModel
         {
             this.LazyLoader = lazyLoader;
         }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the valid empty model (no data, but valid for JSON deserialization of "required" attributes).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public static AircraftType ValidEmptyModel =>
+            new()
+            {
+                AtcModel = "XXXX",
+                AtcType = "XXXX",
+                Manufacturer = "XXXX",
+                Name = "XXXX",
+                UploaderID = "XXXX"
+            };
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -163,6 +185,64 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public double FuelTotalCapacity { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the type of fuel used by the aircraft type.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [NotMapped]
+        public FuelType FuelType
+        {
+            get
+            {
+                // todo Keep an eye on how FS2020 will implement electric aircraft (they are planning to release the VoloCity air taxi)
+                switch (this.EngineType)
+                {
+                    case EngineType.Piston:
+                        return FuelType.AvGas;
+                    case EngineType.Turboprop:
+                    case EngineType.Jet:
+                    case EngineType.HeloBellTurbine:
+                        return FuelType.JetFuel;
+                    case EngineType.None:
+                    case EngineType.Unsupported:
+                        return FuelType.None;
+                    default:
+                        return FuelType.None;
+                }
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the fuel weight per gallon (default values are 6 lbs/gallon avgas and 6.66 lbs/gallon jetfuel).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double FuelWeightPerGallon
+        {
+            get
+            {
+                if (this.fuelWeightPerGallon < 0)
+                {
+                    switch (this.FuelType)
+                    {
+                        case FuelType.AvGas:
+                            return 6;
+                        case FuelType.JetFuel:
+                            return 6.7;
+                        case FuelType.None:
+                            return 0;
+                        default:
+                            return 0;
+                    }
+                }
+
+                return this.fuelWeightPerGallon;
+            }
+
+            set => this.fuelWeightPerGallon = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

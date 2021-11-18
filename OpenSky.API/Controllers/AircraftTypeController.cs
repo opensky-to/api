@@ -451,6 +451,7 @@ namespace OpenSky.API.Controllers
                 existingType.MinPrice = type.MinPrice;
                 existingType.MaxPrice = type.MaxPrice;
                 existingType.Comments = type.Comments;
+                existingType.FuelWeightPerGallon = type.FuelWeightPerGallon;
 
                 // Make sure to record who edited it
                 existingType.LastEditedByID = user.Id;
