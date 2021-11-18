@@ -1,294 +1,339 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Airport.cs" company="OpenSky">
+// <copyright file="FlightLog.cs" company="OpenSky">
 // OpenSky project 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace OpenSky.API.DbModel
+namespace OpenSky.API.Model.Flight
 {
     using System;
-    using System.Collections.Generic;
-    using System.ComponentModel.DataAnnotations;
-    using System.Text.Json.Serialization;
 
+    using Microsoft.AspNetCore.Identity;
+
+    using OpenSky.API.DbModel;
     using OpenSky.API.DbModel.Enums;
-    using OpenSky.API.Helpers;
-
-    /*
-     * AIRPORT EXAMPLE RECORD FROM DB (LOWW - Vienna International)
-     *
-     * INSERT INTO `Airports` (`ICAO`, `Altitude`, `AtisFrequency`, `City`, `GaRamps`, `Gates`, `HasAvGas`, `HasJetFuel`, `IsClosed`, `IsMilitary`, `Latitude`,
-     * `LongestRunwayLength`, `LongestRunwaySurface`, `Longitude`, `Name`, `RunwayCount`, `TowerFrequency`, `UnicomFrequency`, `Size`, `MSFS`, `SupportsSuper`,
-     * `HasBeenPopulated`)
-     *
-     * VALUES ('LOWW', '0', '121730', 'Schwechat', '29', '31', '1', '1', '0', '0', '48.11007308959961',
-     * '11811', 'A', '16.569616317749023', 'Flughafen Wien-Schwechat', '2', '119400', '118525', '5', '1', '1', '0')
-     */
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Airport model.
+    /// Flight log model.
     /// </summary>
     /// <remarks>
-    /// sushi.at, 02/05/2021.
+    /// sushi.at, 15/11/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class Airport
+    public class FlightLog
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The approaches.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private ICollection<Approach> approaches;
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// The runways.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private ICollection<Runway> runways;
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Airport"/> class.
+        /// Initializes a new instance of the <see cref="FlightLog"/> class.
         /// </summary>
         /// <remarks>
-        /// sushi.at, 11/05/2021.
+        /// sushi.at, 15/11/2021.
         /// </remarks>
         /// -------------------------------------------------------------------------------------------------
-        public Airport()
+        public FlightLog()
         {
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="Airport"/> class.
+        /// Initializes a new instance of the <see cref="FlightLog"/> class.
         /// </summary>
         /// <remarks>
-        /// sushi.at, 11/05/2021.
+        /// sushi.at, 15/11/2021.
         /// </remarks>
-        /// <param name="lazyLoader">
-        /// The lazy loader.
+        /// <param name="flight">
+        /// The flight from the db.
+        /// </param>
+        /// <param name="userManager">
+        /// The API user manager.
         /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public Airport(Action<object, string> lazyLoader)
+        public FlightLog(Flight flight, UserManager<OpenSkyUser> userManager)
         {
-            this.LazyLoader = lazyLoader;
-        }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets the valid empty model (no data, but valid for JSON deserialization of "required" attributes).
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public static Airport ValidEmptyModel =>
-            new()
+            this.ID = flight.ID;
+            this.FullFlightNumber = flight.FullFlightNumber;
+            this.AircraftRegistry = flight.AircraftRegistry;
+            if (!string.IsNullOrEmpty(flight.Aircraft.Name))
             {
-                ICAO = "XXXX",
-                LongestRunwaySurface = "XXXX",
-                Name = "XXXX"
-            };
+                this.AircraftRegistry += $" ({flight.Aircraft.Name})";
+            }
 
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the altitude of the airport in feet.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public int Altitude { get; set; }
+            this.AircraftType = flight.Aircraft.Type.Name;
+            this.AircraftEngineType = flight.Aircraft.Type.EngineType;
+            this.OriginICAO = flight.OriginICAO;
+            this.Origin = flight.Origin.Name;
+            this.DestinationICAO = flight.DestinationICAO;
+            this.Destination = flight.Destination.Name;
+            this.AlternateICAO = flight.AlternateICAO;
+            this.Alternate = flight.Alternate.Name;
+            this.LandedAtICAO = flight.LandedAtICAO;
+            this.LandedAt = flight.LandedAt.Name;
+            this.PlannedDepartureTime = flight.PlannedDepartureTime;
+            if (flight.Started != null)
+            {
+                // Should always be there, but better safe than sorry
+                this.Started = flight.Started.Value;
+            }
 
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets the approaches.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [JsonIgnore]
-        public ICollection<Approach> Approaches
-        {
-            get => this.LazyLoader.Load(this, ref this.approaches);
-            set => this.approaches = value;
+            if (flight.Completed != null)
+            {
+                // Should always be there, but better safe than sorry
+                this.Completed = flight.Completed.Value;
+            }
+
+            this.IsAirlineFlight = !string.IsNullOrEmpty(flight.OperatorAirlineID);
+            this.Crashed = flight.FlightPhase == FlightPhase.Crashed;
+
+            this.OffBlockFuel = flight.FuelGallons ?? 0;
+            var finalFuel = flight.FuelTankCenterQuantity + flight.FuelTankCenter2Quantity + flight.FuelTankCenter3Quantity +
+                            flight.FuelTankLeftMainQuantity + flight.FuelTankLeftAuxQuantity + flight.FuelTankLeftTipQuantity +
+                            flight.FuelTankRightMainQuantity + flight.FuelTankRightAuxQuantity + flight.FuelTankRightTipQuantity +
+                            flight.FuelTankExternal1Quantity + flight.FuelTankExternal2Quantity;
+            this.OnBlockFuel = finalFuel ?? 0;
+
+            this.FuelConsumption = (flight.FuelGallons ?? 0.0) - (finalFuel ?? 0);
+            this.FuelWeightPerGallon = flight.Aircraft.Type.FuelWeightPerGallon;
+            this.UtcOffset = flight.UtcOffset;
+            this.TimeWarpTimeSavedSeconds = flight.TimeWarpTimeSavedSeconds;
+            this.Route = flight.Route;
+            this.AlternateRoute = flight.AlternateRoute;
+            this.Operator = flight.OperatorName;
+            this.Pilot = flight.Operator?.UserName ?? "Unknown";
+            if (!string.IsNullOrEmpty(flight.OperatorAirlineID))
+            {
+                var pilotUser = userManager.FindByIdAsync(flight.AssignedAirlinePilotID).Result;
+                this.Pilot = pilotUser != null ? pilotUser.UserName : "Unknown";
+            }
+
+            this.Dispatcher = flight.DispatcherName;
+            this.DispatcherRemarks = flight.DispatcherRemarks;
+            this.PayloadWeight = 0; // todo add payload info once we have that
+            this.Payload = "None";
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the ATIS frequency (if available).
+        /// Gets or sets the type of the aircraft engine.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public int? AtisFrequency { get; set; }
+        public EngineType AircraftEngineType { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the city.
+        /// Gets or sets the aircraft registry.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [StringLength(50)]
-        public string City { get; set; }
+        public string AircraftRegistry { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the number of GA ramps.
+        /// Gets or sets the type of the aircraft.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public int GaRamps { get; set; }
+        public string AircraftType { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the number of gates.
+        /// Gets or sets the alternate.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public int Gates { get; set; }
+        public string Alternate { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets a value indicating whether the airport has AV gas for refueling.
+        /// Gets or sets the alternate airport ICAO code.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public bool HasAvGas { get; set; }
+        public string AlternateICAO { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the HasBeenPopulated flag.
+        /// Gets or sets the alternate route.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public ProcessingStatus HasBeenPopulated { get; set; }
+        public string AlternateRoute { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets a value indicating whether the airport has jet fuel for refueling.
+        /// Gets or sets the Date/Time of when the flight was completed.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public bool HasJetFuel { get; set; }
+        public DateTime Completed { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the ICAO identifier of the airport.
+        /// Gets or sets a value indicating whether the aircraft crashed.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [Key]
-        [StringLength(5, MinimumLength = 3)]
-        [Required]
-        public string ICAO { get; set; }
+        public bool Crashed { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets a value indicating whether the airport is closed.
+        /// Gets or sets the Destination for the.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public bool IsClosed { get; set; }
+        public string Destination { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets a value indicating whether the airport is a military one.
+        /// Gets or sets destination airport ICAO code.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public bool IsMilitary { get; set; }
+        public string DestinationICAO { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the latitude of the airport.
+        /// Gets or sets the dispatcher.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public double Latitude { get; set; }
+        public string Dispatcher { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the length of the longest runway in feet.
+        /// Gets or sets the dispatcher remarks.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public int LongestRunwayLength { get; set; }
+        public string DispatcherRemarks { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the surface type of the longest runway (can be "UNKNOWN" in a few cases).
+        /// Gets or sets the fuel consumption.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [StringLength(7)]
-        [Required]
-        public string LongestRunwaySurface { get; set; }
+        public double FuelConsumption { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the longitude of the airport.
+        /// Gets or sets the fuel weight per gallon.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public double Longitude { get; set; }
+        public double FuelWeightPerGallon { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets a value indicating whether the airport if available in MSFS 2020.
+        /// Gets or sets the full flight number.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public bool MSFS { get; set; }
+        public string FullFlightNumber { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the name.
+        /// Gets or sets the identifier for the flight.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [StringLength(50)]
-        [Required]
-        public string Name { get; set; }
+        public Guid ID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the previous size of the airport (if available, used to detect size changes and
-        /// trigger other services like the plane world populator).
+        /// Gets or sets a value indicating whether this is an airline flight or a private one.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public int? PreviousSize { get; set; }
+        public bool IsAirlineFlight { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the number of runways.
+        /// Gets or sets the landed at.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public int RunwayCount { get; set; }
+        public string LandedAt { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the runways.
+        /// Gets or sets the "landed at" airport ICAO code.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [JsonIgnore]
-        public ICollection<Runway> Runways
-        {
-            get => this.LazyLoader.Load(this, ref this.runways);
-            set => this.runways = value;
-        }
+        public string LandedAtICAO { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the size of the airport (from -1 to 6, NULL means size isn't calculated yet).
+        /// Gets or sets the off block fuel.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public int? Size { get; set; }
+        public double OffBlockFuel { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets a value indicating whether the airport supports super-heavy aircraft like the Airbus A380.
+        /// Gets or sets the on block fuel.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public bool SupportsSuper { get; set; }
+        public double OnBlockFuel { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the tower frequency (if available).
+        /// Gets or sets the operator.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public int? TowerFrequency { get; set; }
+        public string Operator { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the unicom frequency (if available).
+        /// Gets or sets the origin.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public int? UnicomFrequency { get; set; }
+        public string Origin { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets the lazy loader.
+        /// Gets or sets the origin airport ICAO code.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private Action<object, string> LazyLoader { get; }
+        public string OriginICAO { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the payload.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string Payload { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the payload weight.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double PayloadWeight { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the pilot.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string Pilot { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the planned departure time.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public DateTime PlannedDepartureTime { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the route.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string Route { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the Date/Time of when the flight was started.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public DateTime Started { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the time-warp time saved (in seconds).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int TimeWarpTimeSavedSeconds { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the UTC offset for the flight.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public double UtcOffset { get; set; }
     }
 }

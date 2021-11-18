@@ -8,10 +8,13 @@ namespace OpenSky.API.DbModel
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel.DataAnnotations;
+    using System.ComponentModel.DataAnnotations.Schema;
     using System.Text.Json.Serialization;
 
     using Microsoft.AspNetCore.Identity;
 
+    using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Helpers;
 
     /// -------------------------------------------------------------------------------------------------
@@ -25,6 +28,41 @@ namespace OpenSky.API.DbModel
     /// -------------------------------------------------------------------------------------------------
     public class OpenSkyUser : IdentityUser
     {
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The airline the user belongs to (or NULL if not member of an airline).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private Airline airline;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The airline permissions for this user.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<AirlineUserPermission> airlinePermissions;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The dispatches (flight plans).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<Flight> dispatches;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The user operated flights (not airline).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<Flight> flights;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The airline share holdings for this user.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<AirlineShareHolder> shareHoldings;
+
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
         /// The access tokens of the user.
@@ -62,10 +100,91 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the airline the user belongs to (or NULL if not member of an airline).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        [ForeignKey("AirlineICAO")]
+        public Airline Airline
+        {
+            get => this.LazyLoader.Load(this, ref this.airline);
+            set => this.airline = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the airline ICAO code (or NULL if not member of an airline).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("Airline")]
+        [StringLength(3, MinimumLength = 3)]
+        public string AirlineICAO { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the airline income share (in percent, 20=>20% of job income).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int? AirlineIncomeShare { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the airline permissions for this user.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        public ICollection<AirlineUserPermission> AirlinePermissions
+        {
+            get => this.LazyLoader.Load(this, ref this.airlinePermissions);
+            set => this.airlinePermissions = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the airline rank (or NULL if not member of an airline).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public PilotRank? AirlineRank { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the airline salary (SkyBucks per flight hour).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int? AirlineSalary { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the Bing maps API key.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string BingMapsKey { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the dispatches (flight plans).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        [InverseProperty("Dispatcher")]
+        public ICollection<Flight> Dispatches
+        {
+            get => this.LazyLoader.Load(this, ref this.dispatches);
+            set => this.dispatches = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the user operated flights (not airline).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        [InverseProperty("Operator")]
+        public ICollection<Flight> Flights
+        {
+            get => this.LazyLoader.Load(this, ref this.flights);
+            set => this.flights = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -101,6 +220,18 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public DateTime RegisteredOn { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the user's airline share holdings.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        public ICollection<AirlineShareHolder> ShareHoldings
+        {
+            get => this.LazyLoader.Load(this, ref this.shareHoldings);
+            set => this.shareHoldings = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

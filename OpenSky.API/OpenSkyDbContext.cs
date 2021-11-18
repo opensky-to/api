@@ -60,6 +60,27 @@ namespace OpenSky.API
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the airlines.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public virtual DbSet<Airline> Airlines { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the airline share holders.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public virtual DbSet<AirlineShareHolder> AirlineShareHolders { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the airline user permissions.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public virtual DbSet<AirlineUserPermission> AirlineUserPermissions { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the client airport packages.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -85,6 +106,20 @@ namespace OpenSky.API
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public virtual DbSet<DataImport> DataImports { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the flight navlog fixes.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public virtual DbSet<FlightNavlogFix> FlightNavlogFixes { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the flights.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public virtual DbSet<Flight> Flights { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -174,6 +209,7 @@ namespace OpenSky.API
         {
             base.OnModelCreating(builder);
 
+            // Rename tables on the default identity entities
             builder.Entity<IdentityUserClaim<string>>().ToTable("UserClaims");
             builder.Entity<IdentityUserRole<string>>().ToTable("UserRoles");
             builder.Entity<IdentityUserLogin<string>>().ToTable("UserLogins");
@@ -182,6 +218,12 @@ namespace OpenSky.API
             builder.Entity<IdentityRole>().ToTable("Roles");
             builder.Entity<OpenSkyUser>().ToTable("Users");
 
+            // Composite primary keys
+            builder.Entity<AirlineShareHolder>().HasKey(sh => new { sh.AirlineICAO, sh.UserID });
+            builder.Entity<AirlineUserPermission>().HasKey(p => new { p.AirlineICAO, p.UserID });
+            builder.Entity<FlightNavlogFix>().HasKey(nf => new { nf.FlightID, nf.FixNumber });
+
+            // DateTime specifics
             var dateTimeConverter = new ValueConverter<DateTime, DateTime>(
                 v => v.ToUniversalTime(),
                 v => DateTime.SpecifyKind(v, DateTimeKind.Utc));

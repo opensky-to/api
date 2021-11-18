@@ -49,7 +49,7 @@ namespace OpenSky.API
                 // NSwag
                 schema.Extensions.Add("x-enumNames", array);
                 
-                // Openapi-generator
+                // OpenApi-generator
                 schema.Extensions.Add("x-enum-varnames", array);
             }
         }

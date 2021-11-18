@@ -111,7 +111,7 @@ namespace OpenSky.API.Controllers
                     // Create new client package
                     var newPackage = new AirportClientPackage
                     {
-                        CreationTime = DateTime.Now,
+                        CreationTime = DateTime.UtcNow,
                         PackageHash = hashBase64,
                         Package = jsonString.CompressToBase64()
                     };
