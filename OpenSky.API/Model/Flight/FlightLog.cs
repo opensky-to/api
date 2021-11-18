@@ -54,6 +54,12 @@ namespace OpenSky.API.Model.Flight
             this.ID = flight.ID;
             this.FullFlightNumber = flight.FullFlightNumber;
             this.AircraftRegistry = flight.AircraftRegistry;
+            if (!string.IsNullOrEmpty(flight.Aircraft.Name))
+            {
+                this.AircraftRegistry += $" ({flight.Aircraft.Name})";
+            }
+
+            this.AircraftType = flight.Aircraft.Type.Name;
             this.OriginICAO = flight.OriginICAO;
             this.Origin = flight.Origin.Name;
             this.DestinationICAO = flight.DestinationICAO;
@@ -111,6 +117,13 @@ namespace OpenSky.API.Model.Flight
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string AircraftRegistry { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the type of the aircraft.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string AircraftType { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
