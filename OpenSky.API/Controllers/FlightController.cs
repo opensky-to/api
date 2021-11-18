@@ -723,6 +723,41 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Get flights for the world map.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 18/11/2021.
+        /// </remarks>
+        /// <returns>
+        /// An asynchronous result that yields the world map flights.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet("worldMap", Name = "GetWorldMapFlights")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<WorldMapFlight>>>> GetWorldMapFlights()
+        {
+            // todo Decide in the future if certain user roles are required to see all flights and filter the rest to airline/personal flights? Or should the world map always be busy?
+
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Flight/worldMap");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<IEnumerable<WorldMapFlight>>("Unable to find user record!") { IsError = true, Data = new List<WorldMapFlight>() };
+                }
+
+                var flights = await this.db.Flights.Where(f => f.Started.HasValue && !f.Completed.HasValue).ToListAsync();
+                return new ApiResponse<IEnumerable<WorldMapFlight>>(flights.Select(f => new WorldMapFlight(f, this.userManager)));
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Flight/worldMap");
+                return new ApiResponse<IEnumerable<WorldMapFlight>>(ex) { Data = new List<WorldMapFlight>() };
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Pause the flight with the specified ID, does not save position or save file - upload these
         /// before calling pause if they should be preserved.
         /// </summary>
