@@ -25,8 +25,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <_WebToolingArtifacts Remove="Properties\PublishProfiles\dockerhub_debug.pubxml" />
-    <_WebToolingArtifacts Remove="Properties\PublishProfiles\dockerhub_release.pubxml" />
+    <_WebToolingArtifacts Remove="Properties\PublishProfiles\dockerhub_openskyto_debug.pubxml" />
+    <_WebToolingArtifacts Remove="Properties\PublishProfiles\dockerhub_openskyto_release.pubxml" />
   </ItemGroup>
 
   <ItemGroup>
