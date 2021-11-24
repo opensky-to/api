@@ -283,7 +283,8 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET AirportsWithPopulationStatus/{status}/{maxResults}");
-                var airport = await this.db.Airports.Where(a => a.HasBeenPopulated == status).Take(maxResults).ToListAsync();
+                
+                var airport = await this.db.Airports.Where(a => a.HasBeenPopulated == status).OrderBy(a => a.ICAO).Take(maxResults).ToListAsync();
 
                 // todo add country(ies) by looking up ICAO registration
                 return new ApiResponse<IEnumerable<Airport>>(airport);
