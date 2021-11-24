@@ -7,6 +7,7 @@
 namespace OpenSky.API.DbModel
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
     using System.Text.Json.Serialization;
@@ -51,6 +52,13 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private OpenSkyUser uploader;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The variants of this aircraft.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<AircraftType> variants;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -246,6 +254,29 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets a value indicating whether this aircraft type has variants.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public bool HasVariants
+        {
+            get
+            {
+                if (this.IsVariantOf.HasValue)
+                {
+                    return true;
+                }
+
+                if (this.Variants.Count > 0)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the identifier.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -426,6 +457,17 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [NotMapped]
         public string UploaderName => this.Uploader?.UserName;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the variants of this aircraft.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public ICollection<AircraftType> Variants
+        {
+            get => this.LazyLoader.Load(this, ref this.variants);
+            set => this.variants = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
