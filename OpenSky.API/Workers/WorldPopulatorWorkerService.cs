@@ -33,8 +33,7 @@ namespace OpenSky.API.Workers
     {
         /// -------------------------------------------------------------------------------------------------        
         /// <summary>
-        /// The clean up interval in milliseconds.
-        /// 1 minute
+        /// The check interval in milliseconds (1 minute).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private const int CheckInterval = 1 * 60 * 1000;
