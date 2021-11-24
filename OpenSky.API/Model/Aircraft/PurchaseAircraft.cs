@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="UpdateAircraft.cs" company="OpenSky">
+// <copyright file="PurchaseAircraft.cs" company="OpenSky">
 // OpenSky project 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
@@ -11,32 +11,24 @@ namespace OpenSky.API.Model.Aircraft
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Update aircraft model.
+    /// Purchase aircraft model.
     /// </summary>
     /// <remarks>
-    /// sushi.at, 17/09/2021.
+    /// sushi.at, 24/11/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class UpdateAircraft
+    public class PurchaseAircraft
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the user-chosen name of the aircraft.
+        /// Gets or sets a value indicating whether to purchase the aircraft for the airline or the user.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [StringLength(30)]
-        public string Name { get; set; }
+        public bool ForAirline { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the purchase price.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public int? PurchasePrice { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the registry of the aircraft to update.
+        /// Gets or sets the registry.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [Required]
@@ -44,14 +36,7 @@ namespace OpenSky.API.Model.Aircraft
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the rent price.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public int? RentPrice { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the identifier of the variant (can be set to Guid.Empty to leave unchanged).
+        /// Gets or sets the identifier of the variant (can be Guid.Empty).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public Guid VariantID { get; set; }

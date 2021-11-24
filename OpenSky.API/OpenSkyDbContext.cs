@@ -223,6 +223,9 @@ namespace OpenSky.API
             builder.Entity<AirlineUserPermission>().HasKey(p => new { p.AirlineICAO, p.UserID });
             builder.Entity<FlightNavlogFix>().HasKey(nf => new { nf.FlightID, nf.FixNumber });
 
+            // Custom relationships
+            builder.Entity<AircraftType>().HasMany(t => t.Variants).WithOne(t => t.VariantType).HasForeignKey(t => t.IsVariantOf);
+
             // DateTime specifics
             var dateTimeConverter = new ValueConverter<DateTime, DateTime>(
                 v => v.ToUniversalTime(),

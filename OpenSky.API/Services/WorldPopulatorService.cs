@@ -178,7 +178,7 @@ namespace OpenSky.API.Services
                             {
                                 var registration = this.GenerateRegistration(airport, generatedAircraft);
                                 var typeCandidates = aircraftTypes.Where(
-                                    type => type.Category == (AircraftTypeCategory)minIndex && type.Enabled && (type.IsVanilla || type.IncludeInWorldPopulation) && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToList();
+                                    type => type.Category == (AircraftTypeCategory)minIndex && type.Enabled && !type.IsVariantOf.HasValue && (type.IsVanilla || type.IncludeInWorldPopulation) && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToList();
 
                                 var alternateIndex = minIndex;
                                 while (typeCandidates.Count == 0 && alternateIndex > 0)
@@ -328,7 +328,7 @@ namespace OpenSky.API.Services
 
                         // Get enabled vanilla/popular types of needed category and matching minimum runway length
                         var typeCandidates = aircraftTypes.Where(
-                            type => type.Category == (AircraftTypeCategory)minIndex && type.Enabled && (type.IsVanilla || type.IncludeInWorldPopulation) && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToList();
+                            type => type.Category == (AircraftTypeCategory)minIndex && type.Enabled && !type.IsVariantOf.HasValue && (type.IsVanilla || type.IncludeInWorldPopulation) && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToList();
 
                         var alternateIndex = minIndex;
                         while (typeCandidates.Count == 0 && alternateIndex > 0)
@@ -751,8 +751,16 @@ namespace OpenSky.API.Services
             var airportRegistrationsEntry = this.icaoRegistrations.GetIcaoRegistrationForAirport(airport);
             if (airportRegistrationsEntry == null)
             {
-                throw new Exception($"Unable to find ICAO registration for airport {airport.ICAO}.");
+                this.logger.Log(LogLevel.Error, $"Unable to find ICAO registration for airport {airport.ICAO}.");
             }
+
+            // Default to US Registration if there is no entry for a given country
+            airportRegistrationsEntry ??= new IcaoRegistration
+            {
+                AircraftPrefix = "N",
+                AirportPrefix = "K",
+                Country = "US"
+            };
 
             const int maxAttempts = 20;
             var registration = string.Empty;
@@ -763,14 +771,6 @@ namespace OpenSky.API.Services
             {
                 airportRegistrationsEntry = this.icaoRegistrations.GetRandomIcaoRegistration();
             }
-
-            // Default to US Registration if there is no entry for a given country
-            airportRegistrationsEntry ??= new IcaoRegistration
-            {
-                AircraftPrefix = "N",
-                AirportPrefix = "K",
-                Country = "United States of America"
-            };
 
             for (var i = 0; i < maxAttempts; i++)
             {
@@ -810,7 +810,7 @@ namespace OpenSky.API.Services
                         {
                             AircraftPrefix = "N",
                             AirportPrefix = "K",
-                            Country = "United States of America"
+                            Country = "US"
                         };
                     }
                     else

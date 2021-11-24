@@ -83,6 +83,45 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Get all valid variants of the specified aircraft type.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 24/11/2021.
+        /// </remarks>
+        /// <param name="type">
+        /// The new aircraft type to evaluate.
+        /// </param>
+        /// <returns>
+        /// An enumerator that allows foreach to be used to process the variants in this collection.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        public static IEnumerable<AircraftType> GetVariants(AircraftType type)
+        {
+            var variants = new List<AircraftType>();
+            var baseType = type.VariantType ?? type;
+            variants.Add(baseType);
+
+            if (baseType.Variants?.Count > 0)
+            {
+                variants.AddRange(baseType.Variants.Where(v => !v.NextVersion.HasValue));
+            }
+
+            while (baseType.NextVersion.HasValue)
+            {
+                baseType = baseType.NextVersionType;
+                variants[0] = baseType; // Replace "old" base type with next version
+
+                if (baseType.Variants?.Count > 0)
+                {
+                    variants.AddRange(baseType.Variants.Where(v => !v.NextVersion.HasValue));
+                }
+            }
+
+            return variants;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Adds a new aircraft type.
         /// </summary>
         /// <remarks>
@@ -105,6 +144,21 @@ namespace OpenSky.API.Controllers
                 if (user == null)
                 {
                     return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
+                }
+
+                // Would the new type create a variant-chain?
+                if (type.IsVariantOf.HasValue)
+                {
+                    var variantType = await this.db.AircraftTypes.SingleOrDefaultAsync(t => t.ID == type.IsVariantOf.Value);
+                    if (variantType == null)
+                    {
+                        return new ApiResponse<string> { Message = "Unable to find specified variant type!", IsError = true };
+                    }
+
+                    if (variantType.IsVariantOf.HasValue)
+                    {
+                        return new ApiResponse<string> { Message = "Not allowed to create variant chains, please set variant to base type.", IsError = true };
+                    }
                 }
 
                 // Set a few defaults that the user should not be able to set differently
@@ -401,7 +455,43 @@ namespace OpenSky.API.Controllers
             catch (Exception ex)
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET AircraftType/all");
-                return new ApiResponse<IEnumerable<AircraftType>>(ex);
+                return new ApiResponse<IEnumerable<AircraftType>>(ex) { Data = new List<AircraftType>() };
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the variants of this type (can be called with base or one of the variant sub-types)
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 23/11/2021.
+        /// </remarks>
+        /// <param name="typeID">
+        /// Identifier for the type.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields the variants of type.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet("variants/{typeID:guid}", Name = "GetVariantsOfType")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<AircraftType>>>> GetVariantsOfType(Guid typeID)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET AircraftType/variants/{typeID}");
+                var type = await this.db.AircraftTypes.SingleOrDefaultAsync(t => t.ID == typeID);
+                if (type == null)
+                {
+                    return new ApiResponse<IEnumerable<AircraftType>>("No aircraft type exists with the specified ID!") { IsError = true, Data = new List<AircraftType>() };
+                }
+
+                var variants = GetVariants(type);
+                return new ApiResponse<IEnumerable<AircraftType>>(variants);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET AircraftType/variants/{typeID}");
+                return new ApiResponse<IEnumerable<AircraftType>>(ex) { Data = new List<AircraftType>() };
             }
         }
 
@@ -437,6 +527,21 @@ namespace OpenSky.API.Controllers
                 if (existingType == null)
                 {
                     return new ApiResponse<string> { Message = "Unable to find existing aircraft type!", IsError = true };
+                }
+
+                // Would this update create a variant-chain?
+                if (type.IsVariantOf.HasValue)
+                {
+                    var variantType = await this.db.AircraftTypes.SingleOrDefaultAsync(t => t.ID == type.IsVariantOf.Value);
+                    if (variantType == null)
+                    {
+                        return new ApiResponse<string> { Message = "Unable to find specified variant type!", IsError = true };
+                    }
+
+                    if (variantType.IsVariantOf.HasValue)
+                    {
+                        return new ApiResponse<string> { Message = "Not allowed to create variant chains, please set variant to base type.", IsError = true };
+                    }
                 }
 
                 // Transfer the editable properties
