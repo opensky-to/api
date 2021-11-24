@@ -251,39 +251,36 @@ namespace OpenSky.API.Controllers
         /// <remarks>
         /// sushi.at, 19/07/2021.
         /// </remarks>
-        /// <param name="registry">
-        /// The registry of the aircraft to purchase.
-        /// </param>
-        /// <param name="forAirline">
-        /// True to purchase the aircraft for the airline and not the player.
+        /// <param name="purchase">
+        /// The purchase aircraft model.
         /// </param>
         /// <returns>
         /// An asynchronous result that yields a string.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpPost("purchase/{registry}/{forAirline:bool}", Name = "PurchaseAircraft")]
-        public async Task<ActionResult<ApiResponse<string>>> PurchaseAircraft(string registry, bool forAirline)
+        [HttpPost("purchase", Name = "PurchaseAircraft")]
+        public async Task<ActionResult<ApiResponse<string>>> PurchaseAircraft([FromBody] PurchaseAircraft purchase)
         {
             try
             {
-                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Aircraft/purchase/{registry}");
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Aircraft/purchase: {purchase.Registry}");
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
                     return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
                 }
 
-                if (string.IsNullOrEmpty(user.AirlineICAO) && forAirline)
+                if (string.IsNullOrEmpty(user.AirlineICAO) && purchase.ForAirline)
                 {
                     return new ApiResponse<string> { Message = "Not member of an airline!", IsError = true };
                 }
 
-                if (!AirlineController.UserHasPermission(user, AirlinePermission.BuyAircraft) && forAirline)
+                if (!AirlineController.UserHasPermission(user, AirlinePermission.BuyAircraft) && purchase.ForAirline)
                 {
                     return new ApiResponse<string> { Message = "You don't have the permission to buy aircraft for your airline!", IsError = true };
                 }
 
-                var aircraft = await this.db.Aircraft.SingleOrDefaultAsync(a => a.Registry.Equals(registry));
+                var aircraft = await this.db.Aircraft.SingleOrDefaultAsync(a => a.Registry.Equals(purchase.Registry));
                 if (aircraft == null)
                 {
                     return new ApiResponse<string>("Aircraft not found!") { IsError = true };
@@ -291,15 +288,15 @@ namespace OpenSky.API.Controllers
 
                 if (!aircraft.PurchasePrice.HasValue)
                 {
-                    return new ApiResponse<string>($"Aircraft with registry {registry} is not for sale!") { IsError = true };
+                    return new ApiResponse<string>($"Aircraft with registry {purchase.Registry} is not for sale!") { IsError = true };
                 }
 
-                if (aircraft.OwnerID == user.Id && !forAirline)
+                if (aircraft.OwnerID == user.Id && !purchase.ForAirline)
                 {
                     return new ApiResponse<string>("You already own this aircraft!") { IsError = true };
                 }
 
-                if (aircraft.AirlineOwnerID == user.AirlineICAO && forAirline)
+                if (aircraft.AirlineOwnerID == user.AirlineICAO && purchase.ForAirline)
                 {
                     return new ApiResponse<string>("Your airline already owns this aircraft!") { IsError = true };
                 }
@@ -309,11 +306,22 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("You can't buy aircraft with an active flight!") { IsError = true };
                 }
 
+                if (purchase.VariantID != Guid.Empty && aircraft.TypeID != purchase.VariantID)
+                {
+                    var variants = AircraftTypeController.GetVariants(aircraft.Type);
+                    if (variants.All(v => v.ID != purchase.VariantID))
+                    {
+                        return new ApiResponse<string>("Invalid variant!") { IsError = true };
+                    }
+
+                    aircraft.TypeID = purchase.VariantID;
+                }
+
                 // todo check if player/airline has enough money, plus deduct purchase price from account balance
 
                 // todo create some "financial" record for this transaction
 
-                if (!forAirline)
+                if (!purchase.ForAirline)
                 {
                     aircraft.OwnerID = user.Id;
                 }
@@ -324,6 +332,7 @@ namespace OpenSky.API.Controllers
 
                 aircraft.PurchasePrice = null;
                 aircraft.RentPrice = null;
+
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error purchasing aircraft");
                 if (saveEx != null)
                 {
@@ -333,11 +342,11 @@ namespace OpenSky.API.Controllers
                 // Ask world populator to "restock" the airport by adding a new plane in place of this one
                 await this.worldPopulator.CheckAndGenerateAircraftForAirport(aircraft.Airport);
 
-                return new ApiResponse<string>($"Successfully purchased aircraft {registry}");
+                return new ApiResponse<string>($"Successfully purchased aircraft {purchase.Registry}");
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Aircraft/purchase/{registry}");
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Aircraft/purchase/purchase: {purchase.Registry}");
                 return new ApiResponse<string>(ex);
             }
         }
@@ -473,6 +482,18 @@ namespace OpenSky.API.Controllers
                 if (aircraft.OwnerID != user.Id)
                 {
                     return new ApiResponse<string>("You don't own this aircraft!") { IsError = true };
+                }
+
+                // Check if the user wants to change the variant
+                if (updateAircraft.VariantID != Guid.Empty && updateAircraft.VariantID != aircraft.TypeID)
+                {
+                    var variants = AircraftTypeController.GetVariants(aircraft.Type);
+                    if (variants.All(v => v.ID != updateAircraft.VariantID))
+                    {
+                        return new ApiResponse<string>("Invalid variant!") { IsError = true };
+                    }
+
+                    aircraft.TypeID = updateAircraft.VariantID;
                 }
 
                 aircraft.Name = updateAircraft.Name;

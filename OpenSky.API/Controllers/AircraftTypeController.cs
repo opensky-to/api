@@ -83,6 +83,45 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Get all valid variants of the specified aircraft type.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 24/11/2021.
+        /// </remarks>
+        /// <param name="type">
+        /// The new aircraft type to evaluate.
+        /// </param>
+        /// <returns>
+        /// An enumerator that allows foreach to be used to process the variants in this collection.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        public static IEnumerable<AircraftType> GetVariants(AircraftType type)
+        {
+            var variants = new List<AircraftType>();
+            var baseType = type.VariantType ?? type;
+            variants.Add(baseType);
+
+            if (baseType.Variants?.Count > 0)
+            {
+                variants.AddRange(baseType.Variants.Where(v => !v.NextVersion.HasValue));
+            }
+
+            while (baseType.NextVersion.HasValue)
+            {
+                baseType = baseType.NextVersionType;
+                variants[0] = baseType; // Replace "old" base type with next version
+
+                if (baseType.Variants?.Count > 0)
+                {
+                    variants.AddRange(baseType.Variants.Where(v => !v.NextVersion.HasValue));
+                }
+            }
+
+            return variants;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Adds a new aircraft type.
         /// </summary>
         /// <remarks>
@@ -446,27 +485,7 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<IEnumerable<AircraftType>>("No aircraft type exists with the specified ID!") { IsError = true, Data = new List<AircraftType>() };
                 }
 
-                var variants = new List<AircraftType>();
-                var baseType = type.VariantType ?? type;
-                variants.Add(baseType);
-
-                if (baseType.Variants?.Count > 0)
-                {
-                    variants.AddRange(baseType.Variants.Where(v => !v.NextVersion.HasValue));
-                }
-
-                while (baseType.NextVersion.HasValue)
-                {
-                    baseType = baseType.NextVersionType;
-                    variants[0] = baseType; // Replace "old" base type with next version
-
-                    if (baseType.Variants?.Count > 0)
-                    {
-                        variants.AddRange(baseType.Variants.Where(v => !v.NextVersion.HasValue));
-                    }
-                }
-
-
+                var variants = GetVariants(type);
                 return new ApiResponse<IEnumerable<AircraftType>>(variants);
             }
             catch (Exception ex)
