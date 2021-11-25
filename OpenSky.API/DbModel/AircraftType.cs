@@ -266,7 +266,7 @@ namespace OpenSky.API.DbModel
                     return true;
                 }
 
-                if (this.Variants.Count > 0)
+                if (this.Variants?.Count > 0)
                 {
                     return true;
                 }
