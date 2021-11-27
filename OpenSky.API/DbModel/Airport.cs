@@ -9,7 +9,10 @@ namespace OpenSky.API.DbModel
     using System;
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
+    using System.ComponentModel.DataAnnotations.Schema;
     using System.Text.Json.Serialization;
+
+    using GeoCoordinatePortable;
 
     using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Helpers;
@@ -137,6 +140,15 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public int Gates { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the geo coordinate.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        [NotMapped]
+        public GeoCoordinate GeoCoordinate => new(this.Latitude, this.Longitude, this.Altitude);
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

@@ -7,6 +7,9 @@
 namespace OpenSky.API.Model.Flight
 {
     using System;
+    using System.Text.Json.Serialization;
+
+    using GeoCoordinatePortable;
 
     using OpenSky.API.DbModel.Enums;
 
@@ -124,6 +127,14 @@ namespace OpenSky.API.Model.Flight
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public double FuelTankRightTipQuantity { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the geo coordinate.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        public GeoCoordinate GeoCoordinate => new(this.Latitude, this.Longitude, this.Altitude);
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
