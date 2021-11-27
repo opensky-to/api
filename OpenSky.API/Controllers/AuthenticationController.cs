@@ -684,6 +684,7 @@ namespace OpenSky.API.Controllers
                         this.db.OpenSkyTokens.Remove(openSkyToken);
                         await this.db.SaveDatabaseChangesAsync(this.logger, "Error deleting old token (country changed).");
 
+                        this.logger.LogWarning("Country has changed, revoking token.");
                         throw new Exception("Country has changed, revoking token.");
                     }
 
@@ -718,6 +719,7 @@ namespace OpenSky.API.Controllers
             }
             catch (Exception ex)
             {
+                this.logger.LogError(ex, "Unable to refresh token");
                 return new ApiResponse<RefreshTokenResponse> { Message = $"Unable to refresh token: {ex.Message}", IsError = true, Data = new RefreshTokenResponse() };
             }
         }

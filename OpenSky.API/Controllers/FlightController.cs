@@ -327,14 +327,36 @@ namespace OpenSky.API.Controllers
                 // We can also delete the navlog fixes now, they aren't being used anymore
                 this.db.FlightNavlogFixes.RemoveRange(flight.NavlogFixes);
 
-                // todo check where we are (closes airport)
+                // Move aircraft to new location
                 if (flight.FlightPhase != FlightPhase.Crashed)
                 {
+                    if (finalReport.FinalPositionReport.GeoCoordinate.GetDistanceTo(flight.Destination.GeoCoordinate) < 5000)
+                    {
+                        flight.Aircraft.AirportICAO = flight.DestinationICAO;
+                        flight.LandedAtICAO = flight.DestinationICAO;
+                    }
+                    else if (finalReport.FinalPositionReport.GeoCoordinate.GetDistanceTo(flight.Alternate.GeoCoordinate) < 5000)
+                    {
+                        flight.Aircraft.AirportICAO = flight.AlternateICAO;
+                        flight.LandedAtICAO = flight.AlternateICAO;
+                    }
+                    else if (finalReport.FinalPositionReport.GeoCoordinate.GetDistanceTo(flight.Origin.GeoCoordinate) < 5000)
+                    {
+                        flight.Aircraft.AirportICAO = flight.OriginICAO;
+                        flight.LandedAtICAO = flight.OriginICAO;
+                    }
+                    else
+                    {
+                        // todo check where we are (closest airport)
+
+                    }
+
                     flight.Aircraft.AirportICAO = flight.DestinationICAO; // todo only for now while testing!
                     flight.LandedAtICAO = flight.DestinationICAO;
                 }
                 else
                 {
+                    // Crash, set it back to origin
                     flight.LandedAtICAO = flight.OriginICAO;
                 }
 
