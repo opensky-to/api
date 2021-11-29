@@ -19,6 +19,11 @@ namespace OpenSky.API.DbModel.Enums
         /// <summary>
         /// Microsoft Flight Simulator 2020.
         /// </summary>
-        MSFS = 0
+        MSFS = 0,
+
+        /// <summary>
+        /// X-Plane 11.
+        /// </summary>
+        XPlane11 = 1
     }
 }
