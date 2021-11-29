@@ -18,6 +18,7 @@ namespace OpenSky.API.Controllers
     using Microsoft.Extensions.Logging;
 
     using OpenSky.API.DbModel;
+    using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Helpers;
     using OpenSky.API.Model;
     using OpenSky.API.Model.Authentication;
@@ -434,13 +435,13 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets all aircraft types (including disabled and previous).
+        /// Gets all aircraft types (including disabled and previous versions).
         /// </summary>
         /// <remarks>
         /// sushi.at, 02/06/2021.
         /// </remarks>
         /// <returns>
-        /// All aircraft types (including disabled and previous).
+        /// All aircraft types (including disabled and previous versions).
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
         [HttpGet("all", Name = "GetAllAircraftTypes")]
@@ -455,6 +456,37 @@ namespace OpenSky.API.Controllers
             catch (Exception ex)
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET AircraftType/all");
+                return new ApiResponse<IEnumerable<AircraftType>>(ex) { Data = new List<AircraftType>() };
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets all aircraft types for the specified simulator (including disabled and previous).
+        /// versions).
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 29/11/2021.
+        /// </remarks>
+        /// <param name="simulator">
+        /// The simulator.
+        /// </param>
+        /// <returns>
+        /// All aircraft types for the specified simulator (including disabled and previous).
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet("simulator/{simulator}", Name = "GetSimulatorAircraftTypes")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<AircraftType>>>> GetSimulatorAircraftTypes(Simulator simulator)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET AircraftType/simulator/{simulator}");
+                var types = await this.db.AircraftTypes.Where(at => at.Simulator == simulator).ToListAsync();
+                return new ApiResponse<IEnumerable<AircraftType>>(types);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET AircraftType/simulator/{simulator}");
                 return new ApiResponse<IEnumerable<AircraftType>>(ex) { Data = new List<AircraftType>() };
             }
         }
