@@ -21,6 +21,7 @@ namespace OpenSky.API.Controllers
     using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Helpers;
     using OpenSky.API.Model;
+    using OpenSky.API.Model.AircraftType;
     using OpenSky.API.Model.Authentication;
 
     /// -------------------------------------------------------------------------------------------------
@@ -435,6 +436,60 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Get available aircraft upgrades.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 29/11/2021.
+        /// </remarks>
+        /// <returns>
+        /// An asynchronous result that yields the aircraft type upgrades.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet("upgrades", Name = "GetAircraftTypeUpgrades")]
+        [Roles(UserRoles.Moderator, UserRoles.Admin)]
+        public async Task<ActionResult<ApiResponse<IEnumerable<AircraftTypeUpgrade>>>> GetAircraftTypeUpgrades()
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET AircraftType/upgrades");
+                var updates = new List<AircraftTypeUpgrade>();
+                var types = await this.db.AircraftTypes.Where(t => t.NextVersion.HasValue).ToListAsync();
+                foreach (var type in types)
+                {
+                    AircraftType to = null;
+                    var aircraft = await this.db.Aircraft.CountAsync(a => a.TypeID == type.ID);
+                    if (aircraft > 0)
+                    {
+                        var copyType = type;
+                        while (copyType.NextVersionType != null)
+                        {
+                            if (type.NextVersionType.Enabled)
+                            {
+                                to = type.NextVersionType;
+                            }
+
+                            copyType = copyType.NextVersionType;
+                        }
+
+                        if (to != null)
+                        {
+                            // Found both aircraft to upgrade and a valid target
+                            updates.Add(new AircraftTypeUpgrade { From = type, To = to, AircraftCount = aircraft });
+                        }
+                    }
+                }
+
+                return new ApiResponse<IEnumerable<AircraftTypeUpgrade>>(updates);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET AircraftType/upgrades");
+                return new ApiResponse<IEnumerable<AircraftTypeUpgrade>>(ex) { Data = new List<AircraftTypeUpgrade>() };
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets all aircraft types (including disabled and previous versions).
         /// </summary>
         /// <remarks>
@@ -607,6 +662,73 @@ namespace OpenSky.API.Controllers
             catch (Exception ex)
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | PUT AircraftType");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Performs the specified aircraft type upgrade.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 29/11/2021.
+        /// </remarks>
+        /// <param name="upgrade">
+        /// The upgrade to perform (from/to type).
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields an ActionResult&lt;ApiResponse&lt;string&gt;&gt;
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPost("upgrade", Name = "UpgradeAircraftType")]
+        [Roles(UserRoles.Moderator, UserRoles.Admin)]
+        public async Task<ActionResult<ApiResponse<string>>> UpgradeAircraftType([FromBody] AircraftTypeUpgrade upgrade)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST AircraftType/upgrade");
+                var from = await this.db.AircraftTypes.SingleOrDefaultAsync(t => t.ID == upgrade.From.ID);
+                if (from == null)
+                {
+                    return new ApiResponse<string>("No such aircraft type!") { IsError = true };
+                }
+
+                var validUpdate = false;
+                while (from.NextVersionType != null)
+                {
+                    if (from.NextVersion == upgrade.To.ID && from.NextVersionType.Enabled)
+                    {
+                        validUpdate = true;
+                        break;
+                    }
+
+                    from = from.NextVersionType;
+                }
+
+                if (!validUpdate)
+                {
+                    return new ApiResponse<string>("Not a valid update path!") { IsError = true };
+                }
+
+                var aircrafts = await this.db.Aircraft.Where(a => a.TypeID == upgrade.From.ID).ToListAsync();
+                var count = 0;
+                foreach (var aircraft in aircrafts)
+                {
+                    aircraft.TypeID = upgrade.To.ID;
+                    count++;
+                }
+
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error upgrading aircraft.");
+                if (saveEx != null)
+                {
+                    return new ApiResponse<string>("Error saving aircraft upgrades", saveEx);
+                }
+
+                return new ApiResponse<string>($"Successfully upgraded {count} aircraft!");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST AircraftType/upgrade");
                 return new ApiResponse<string>(ex);
             }
         }
