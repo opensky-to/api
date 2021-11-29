@@ -421,6 +421,20 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets a value indicating whether the aircraft type requires manual fuelling.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public bool RequiresManualFuelling { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets a value indicating whether the aircraft type requires manual loading.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public bool RequiresManualLoading { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the simulator of the aircraft type.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
