@@ -261,7 +261,6 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the runways.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [JsonIgnore]
         public ICollection<Runway> Runways
         {
             get => this.LazyLoader.Load(this, ref this.runways);
