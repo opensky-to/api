@@ -94,9 +94,29 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | POST Airport/clientPackage");
-                var packageEntries = await this.db.Airports.Where(a => a.Size.HasValue).Select(a => new AirportClientPackageEntry(a)).ToListAsync();
+                var runways = await this.db.Runways.ToListAsync();
+                var runwayEnds = await this.db.RunwayEnds.ToListAsync();
+                var airports = await this.db.Airports.Where(a => a.Size.HasValue).ToListAsync();
 
-                var package = new AirportClientPackageRoot(packageEntries);
+                var airportEntries = new Dictionary<string, AirportClientPackageEntry>();
+                foreach (var airport in airports)
+                {
+                    airportEntries.Add(airport.ICAO, new AirportClientPackageEntry(airport));
+                }
+
+                var runwayEntries = new Dictionary<int, AirportClientPackageRunwayEntry>();
+                foreach (var runway in runways)
+                {
+                    runwayEntries.Add(runway.ID, new AirportClientPackageRunwayEntry(runway));
+                    airportEntries[runway.AirportICAO].Runways.Add(runwayEntries[runway.ID]);
+                }
+
+                foreach (var runwayEnd in runwayEnds)
+                {
+                    runwayEntries[runwayEnd.RunwayID].RunwayEnds.Add(new AirportClientPackageRunwayEndEntry(runwayEnd));
+                }
+
+                var package = new AirportClientPackageRoot(airportEntries.Values.ToList());
 
                 var jObject = JObject.FromObject(package);
                 var jsonString = jObject.ToString(Formatting.None);
@@ -125,10 +145,8 @@ namespace OpenSky.API.Controllers
 
                     return new ApiResponse<string>("Successfully created new client airport package.");
                 }
-                else
-                {
-                    return new ApiResponse<string>("Skipped, no changes since last airport client package.");
-                }
+
+                return new ApiResponse<string>("Skipped, no changes since last airport client package.");
             }
             catch (Exception ex)
             {

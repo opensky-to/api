@@ -6,6 +6,8 @@
 
 namespace OpenSky.API.Model.Airport
 {
+    using System.Collections.Generic;
+
     using OpenSky.API.DbModel;
 
     /// -------------------------------------------------------------------------------------------------
@@ -26,7 +28,7 @@ namespace OpenSky.API.Model.Airport
         /// sushi.at, 21/09/2021.
         /// </remarks>
         /// <param name="airport">
-        /// The airport record from the database.
+        ///     The airport record from the database.
         /// </param>
         /// -------------------------------------------------------------------------------------------------
         public AirportClientPackageEntry(Airport airport)
@@ -43,6 +45,7 @@ namespace OpenSky.API.Model.Airport
             this.IsMilitary = airport.IsMilitary;
             this.SupportsSuper = airport.SupportsSuper;
             this.MSFS = airport.MSFS;
+            this.Runways = new List<AirportClientPackageRunwayEntry>();
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -107,6 +110,13 @@ namespace OpenSky.API.Model.Airport
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string Name { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the runways.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public List<AirportClientPackageRunwayEntry> Runways { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
