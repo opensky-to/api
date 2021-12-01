@@ -6,6 +6,7 @@
 
 namespace OpenSky.API.Controllers
 {
+    using System;
     using System.Drawing;
     using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
@@ -129,22 +130,30 @@ namespace OpenSky.API.Controllers
         [HttpGet("accountOverview", Name = "GetAccountOverview")]
         public async Task<ActionResult<ApiResponse<AccountOverview>>> GetAccountOverview()
         {
-            this.logger.LogInformation($"Getting account overview for user {this.User.Identity?.Name}");
-
-            var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
-            if (user == null)
+            try
             {
-                return new ApiResponse<AccountOverview> { Message = "Unable to find user record!", IsError = true, Data = new AccountOverview() };
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Account/accountOverview");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<AccountOverview> { Message = "Unable to find user record!", IsError = true, Data = new AccountOverview() };
+                }
+
+                var accountOverview = new AccountOverview
+                {
+                    Name = user.UserName,
+                    Joined = user.RegisteredOn,
+                    ProfileImage = user.ProfileImage,
+                    TokenRenewalCountryVerification = user.TokenRenewalCountryVerification
+                };
+
+                return new ApiResponse<AccountOverview>(accountOverview);
             }
-
-            var accountOverview = new AccountOverview
+            catch (Exception ex)
             {
-                Name = user.UserName,
-                Joined = user.RegisteredOn,
-                ProfileImage = user.ProfileImage
-            };
-
-            return new ApiResponse<AccountOverview>(accountOverview);
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Account/accountOverview");
+                return new ApiResponse<AccountOverview>(ex) { Data = new AccountOverview() };
+            }
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -161,21 +170,65 @@ namespace OpenSky.API.Controllers
         [HttpGet("linkedAccounts", Name = "GetLinkedAccounts")]
         public async Task<ActionResult<ApiResponse<LinkedAccounts>>> GetLinkedAccounts()
         {
-            this.logger.LogInformation($"Getting linked accounts for user {this.User.Identity?.Name}");
-
-            var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
-            if (user == null)
+            try
             {
-                return new ApiResponse<LinkedAccounts> { Message = "Unable to find user record!", IsError = true, Data = new LinkedAccounts() };
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Account/linkedAccounts");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<LinkedAccounts> { Message = "Unable to find user record!", IsError = true, Data = new LinkedAccounts() };
+                }
+
+                var linkedAccounts = new LinkedAccounts
+                {
+                    BingMapsKey = user.BingMapsKey,
+                    SimbriefUsername = user.SimbriefUsername
+                };
+
+                return new ApiResponse<LinkedAccounts>(linkedAccounts);
             }
-
-            var linkedAccounts = new LinkedAccounts
+            catch (Exception ex)
             {
-                BingMapsKey = user.BingMapsKey,
-                SimbriefUsername = user.SimbriefUsername
-            };
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Account/linkedAccounts");
+                return new ApiResponse<LinkedAccounts>(ex) { Data = new LinkedAccounts() };
+            }
+        }
 
-            return new ApiResponse<LinkedAccounts>(linkedAccounts);
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Sets the token renewal country verification.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 30/11/2021.
+        /// </remarks>
+        /// <param name="enableVerification">
+        /// True to enable, false to disable the verification.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields a string.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPut("tokenRenewalCountryVerification/{enableVerification:bool}", Name = "SetTokenRenewalCountryVerification")]
+        public async Task<ActionResult<ApiResponse<string>>> SetTokenRenewalCountryVerification(bool enableVerification)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | PUT Account/tokenRenewalCountryVerification/{enableVerification}");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
+                }
+
+                user.TokenRenewalCountryVerification = enableVerification;
+                await this.userManager.UpdateAsync(user);
+                return new ApiResponse<string>("Successfully updated token renewal country verification setting.");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | PUT Account/tokenRenewalCountryVerification/{enableVerification}");
+                return new ApiResponse<string>(ex);
+            }
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -192,22 +245,29 @@ namespace OpenSky.API.Controllers
         /// An asynchronous result that yields a string.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpPost("linkedAccounts", Name = "UpdateLinkedAccounts")]
+        [HttpPut("linkedAccounts", Name = "UpdateLinkedAccounts")]
         public async Task<ActionResult<ApiResponse<string>>> UpdateLinkedAccounts([FromBody] LinkedAccounts linkedAccounts)
         {
-            this.logger.LogInformation($"Updating linked accounts for user {this.User.Identity?.Name}");
-
-            var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
-            if (user == null)
+            try
             {
-                return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
+                this.logger.LogInformation($"{this.User.Identity?.Name} | PUT Account/linkedAccounts");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
+                }
+
+                user.BingMapsKey = linkedAccounts.BingMapsKey;
+                user.SimbriefUsername = linkedAccounts.SimbriefUsername;
+
+                await this.userManager.UpdateAsync(user);
+                return new ApiResponse<string>("Successfully updated linked accounts and keys.");
             }
-
-            user.BingMapsKey = linkedAccounts.BingMapsKey;
-            user.SimbriefUsername = linkedAccounts.SimbriefUsername;
-
-            await this.userManager.UpdateAsync(user);
-            return new ApiResponse<string>("Successfully updated linked accounts and keys.");
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | PUT Account/linkedAccounts");
+                return new ApiResponse<string>(ex);
+            }
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -227,38 +287,45 @@ namespace OpenSky.API.Controllers
         [HttpPost("profileImage", Name = "UploadProfileImage")]
         public async Task<ActionResult<ApiResponse<string>>> UploadProfileImage(IFormFile fileUpload)
         {
-            this.logger.LogInformation($"Uploading new profile image for user {this.User.Identity?.Name}");
-
-            var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
-            if (user == null)
+            try
             {
-                return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
-            }
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Account/profileImage");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
+                }
 
-            if (fileUpload.ContentType is not "image/png" and not "image/jpeg")
+                if (fileUpload.ContentType is not "image/png" and not "image/jpeg")
+                {
+                    return new ApiResponse<string> { Message = "Image has to be JPG or PNG!", IsError = true };
+                }
+
+                if (fileUpload.Length > 1 * 1024 * 1024)
+                {
+                    return new ApiResponse<string> { Message = "Maximum image size is 1MB!", IsError = true };
+                }
+
+                var memoryStream = new MemoryStream();
+                await fileUpload.CopyToAsync(memoryStream);
+
+                var image = Image.FromStream(memoryStream);
+                if (image.Width > 300 || image.Height > 300)
+                {
+                    image = ResizeImage(image, 300, 300);
+                    memoryStream = new MemoryStream();
+                    image.Save(memoryStream, ImageFormat.Png);
+                }
+
+                user.ProfileImage = memoryStream.ToArray();
+                await this.userManager.UpdateAsync(user);
+                return new ApiResponse<string>("Successfully updated profile image.");
+            }
+            catch (Exception ex)
             {
-                return new ApiResponse<string> { Message = "Image has to be JPG or PNG!", IsError = true };
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Account/profileImage");
+                return new ApiResponse<string>(ex);
             }
-
-            if (fileUpload.Length > 1 * 1024 * 1024)
-            {
-                return new ApiResponse<string> { Message = "Maximum image size is 1MB!", IsError = true };
-            }
-
-            var memoryStream = new MemoryStream();
-            await fileUpload.CopyToAsync(memoryStream);
-
-            var image = Image.FromStream(memoryStream);
-            if (image.Width > 300 || image.Height > 300)
-            {
-                image = ResizeImage(image, 300, 300);
-                memoryStream = new MemoryStream();
-                image.Save(memoryStream, ImageFormat.Png);
-            }
-
-            user.ProfileImage = memoryStream.ToArray();
-            await this.userManager.UpdateAsync(user);
-            return new ApiResponse<string>("Successfully updated profile image.");
         }
     }
 }
