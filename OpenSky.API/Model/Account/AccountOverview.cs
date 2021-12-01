@@ -38,5 +38,12 @@ namespace OpenSky.API.Model.Account
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public byte[] ProfileImage { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets a value indicating whether the token renewal country verification is enabled.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public bool TokenRenewalCountryVerification { get; set; }
     }
 }

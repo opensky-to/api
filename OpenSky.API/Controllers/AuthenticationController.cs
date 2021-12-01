@@ -169,23 +169,31 @@ namespace OpenSky.API.Controllers
         [HttpGet("tokens", Name = "GetTokens")]
         public async Task<ActionResult<ApiResponse<IEnumerable<Token>>>> GetTokens()
         {
-            this.logger.LogInformation($"Getting tokens for user {this.User.Identity?.Name}");
 
-            var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
-            if (user == null)
+            try
             {
-                return new ApiResponse<IEnumerable<Token>> { Message = "Unable to find user record!", IsError = true, Data = new List<Token>() };
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Authentication/tokens");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<IEnumerable<Token>> { Message = "Unable to find user record!", IsError = true, Data = new List<Token>() };
+                }
+
+                var tokens = await this.db.OpenSkyTokens.Where(t => t.UserID == user.Id).Select(openSkyToken => new Token
+                {
+                    Name = openSkyToken.Name,
+                    Expiry = openSkyToken.Expiry,
+                    TokenGeo = openSkyToken.TokenGeo,
+                    TokenIP = openSkyToken.TokenIP
+                }).ToListAsync();
+
+                return new ApiResponse<IEnumerable<Token>>(tokens);
             }
-
-            var tokens = await this.db.OpenSkyTokens.Where(t => t.UserID == user.Id).Select(openSkyToken => new Token
+            catch (Exception ex)
             {
-                Name = openSkyToken.Name,
-                Expiry = openSkyToken.Expiry,
-                TokenGeo = openSkyToken.TokenGeo,
-                TokenIP = openSkyToken.TokenIP
-            }).ToListAsync();
-
-            return new ApiResponse<IEnumerable<Token>>(tokens);
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Authentication/tokens");
+                return new ApiResponse<IEnumerable<Token>>(ex) { Data = new List<Token>() };
+            }
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -206,28 +214,35 @@ namespace OpenSky.API.Controllers
         [HttpPost("changePassword")]
         public async Task<ActionResult<ApiResponse<string>>> ChangePassword([FromBody] ChangePassword changePassword)
         {
-            this.logger.LogInformation($"Changing password for user {this.User.Identity?.Name}");
-
-            var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
-            if (user == null)
+            try
             {
-                return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
-            }
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Authentication/changePassword");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
+                }
 
-            var changeResult = await this.userManager.ChangePasswordAsync(user, changePassword.Password, changePassword.NewPassword);
-            if (!changeResult.Succeeded)
+                var changeResult = await this.userManager.ChangePasswordAsync(user, changePassword.Password, changePassword.NewPassword);
+                if (!changeResult.Succeeded)
+                {
+                    var errorDetails = changeResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
+                    return new ApiResponse<string> { Message = $"Error changing password!{errorDetails}", IsError = true };
+                }
+
+                if (changePassword.ResetTokens)
+                {
+                    this.db.OpenSkyTokens.RemoveRange(user.Tokens);
+                    await this.db.SaveDatabaseChangesAsync(this.logger, "Error clearing OpenSky token.");
+                }
+
+                return new ApiResponse<string>("Your password was changed.");
+            }
+            catch (Exception ex)
             {
-                var errorDetails = changeResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
-                return new ApiResponse<string> { Message = $"Error changing password!{errorDetails}", IsError = true };
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Authentication/changePassword");
+                return new ApiResponse<string>(ex);
             }
-
-            if (changePassword.ResetTokens)
-            {
-                this.db.OpenSkyTokens.RemoveRange(user.Tokens);
-                await this.db.SaveDatabaseChangesAsync(this.logger, "Error clearing OpenSky token.");
-            }
-
-            return new ApiResponse<string>("Your password was changed.");
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -310,89 +325,96 @@ namespace OpenSky.API.Controllers
         [HttpPost("applicationToken")]
         public async Task<ActionResult<ApiResponse<LoginResponse>>> GetApplicationToken([FromBody] ApplicationToken applicationToken)
         {
-            this.logger.LogInformation($"Creating application token for user {this.User.Identity?.Name}, application name: {applicationToken.Name}");
-
-            var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
-            if (user == null)
+            try
             {
-                return new ApiResponse<LoginResponse> { Message = "Unable to find user record!", IsError = true };
-            }
-
-            // Fetch the user's roles
-            var userRoles = await this.userManager.GetRolesAsync(user);
-
-            // Check if this user is a global admin (from the config json file)
-            var globalAdmins = this.configuration["OpenSky:GlobalAdmins"].Split(',');
-            if (globalAdmins.Contains(user.Email) && !userRoles.Contains(UserRoles.Admin))
-            {
-                userRoles.Add(UserRoles.Admin);
-
-                // Make sure the admin role exists
-                if (!await this.roleManager.RoleExistsAsync(UserRoles.Admin))
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Authentication/applicationToken, application name: {applicationToken.Name}");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
                 {
-                    var roleResult = await this.roleManager.CreateAsync(new IdentityRole(UserRoles.Admin));
-                    if (!roleResult.Succeeded)
+                    return new ApiResponse<LoginResponse> { Message = "Unable to find user record!", IsError = true };
+                }
+
+                // Fetch the user's roles
+                var userRoles = await this.userManager.GetRolesAsync(user);
+
+                // Check if this user is a global admin (from the config json file)
+                var globalAdmins = this.configuration["OpenSky:GlobalAdmins"].Split(',');
+                if (globalAdmins.Contains(user.Email) && !userRoles.Contains(UserRoles.Admin))
+                {
+                    userRoles.Add(UserRoles.Admin);
+
+                    // Make sure the admin role exists
+                    if (!await this.roleManager.RoleExistsAsync(UserRoles.Admin))
                     {
-                        var errorDetails = roleResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
-                        return new ApiResponse<LoginResponse> { Message = $"Error creating Admin role!{errorDetails}", IsError = true };
+                        var roleResult = await this.roleManager.CreateAsync(new IdentityRole(UserRoles.Admin));
+                        if (!roleResult.Succeeded)
+                        {
+                            var errorDetails = roleResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
+                            return new ApiResponse<LoginResponse> { Message = $"Error creating Admin role!{errorDetails}", IsError = true };
+                        }
+                    }
+
+                    // Add the global admin user to "Admin" role
+                    if (!await this.userManager.IsInRoleAsync(user, UserRoles.Admin))
+                    {
+                        var addToRoleResult = await this.userManager.AddToRoleAsync(user, UserRoles.Admin);
+                        if (!addToRoleResult.Succeeded)
+                        {
+                            var errorDetails = addToRoleResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
+                            return new ApiResponse<LoginResponse> { Message = $"Error adding user to \"Admin\" role!{errorDetails}", IsError = true };
+                        }
                     }
                 }
 
-                // Add the global admin user to "Admin" role
-                if (!await this.userManager.IsInRoleAsync(user, UserRoles.Admin))
-                {
-                    var addToRoleResult = await this.userManager.AddToRoleAsync(user, UserRoles.Admin);
-                    if (!addToRoleResult.Succeeded)
-                    {
-                        var errorDetails = addToRoleResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
-                        return new ApiResponse<LoginResponse> { Message = $"Error adding user to \"Admin\" role!{errorDetails}", IsError = true };
-                    }
-                }
-            }
-
-            // Build claims
-            var authClaims = new List<Claim>
+                // Build claims
+                var authClaims = new List<Claim>
             {
                 new(ClaimTypes.Name, user.UserName),
                 new(ClaimTypes.Email, user.Email),
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             };
-            authClaims.AddRange(userRoles.Select(userRole => new Claim(ClaimTypes.Role, userRole)));
+                authClaims.AddRange(userRoles.Select(userRole => new Claim(ClaimTypes.Role, userRole)));
 
-            // Create JWT token
-            var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.configuration["JWT:Secret"]));
-            var token = new JwtSecurityToken(
-                this.configuration["JWT:ValidIssuer"],
-                this.configuration["JWT:ValidAudience"],
-                notBefore: DateTime.UtcNow,
-                expires: DateTime.UtcNow.AddMinutes(10),
-                claims: authClaims,
-                signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha512)
-            );
+                // Create JWT token
+                var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.configuration["JWT:Secret"]));
+                var token = new JwtSecurityToken(
+                    this.configuration["JWT:ValidIssuer"],
+                    this.configuration["JWT:ValidAudience"],
+                    notBefore: DateTime.UtcNow,
+                    expires: DateTime.UtcNow.AddMinutes(10),
+                    claims: authClaims,
+                    signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha512)
+                );
 
-            // Create OpenSky (refresh) token
-            var openSkyToken = new OpenSkyToken
-            {
-                ID = Guid.NewGuid(),
-                Name = applicationToken.Name,
-                Created = DateTime.UtcNow,
-                Expiry = DateTime.UtcNow.AddDays(90),
-                UserID = user.Id,
-                TokenIP = this.GetRemoteIPAddress(),
-                TokenGeo = await this.geoLocateIPService.Execute(this.GetRemoteIPAddress())
-            };
-            await this.db.OpenSkyTokens.AddAsync(openSkyToken);
-            var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving OpenSky token.");
-            if (saveEx != null)
-            {
-                return new ApiResponse<LoginResponse>("Error saving OpenSky access token!", saveEx) { Data = new LoginResponse() };
+                // Create OpenSky (refresh) token
+                var openSkyToken = new OpenSkyToken
+                {
+                    ID = Guid.NewGuid(),
+                    Name = applicationToken.Name,
+                    Created = DateTime.UtcNow,
+                    Expiry = DateTime.UtcNow.AddDays(90),
+                    UserID = user.Id,
+                    TokenIP = this.GetRemoteIPAddress(),
+                    TokenGeo = await this.geoLocateIPService.Execute(this.GetRemoteIPAddress())
+                };
+                await this.db.OpenSkyTokens.AddAsync(openSkyToken);
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving OpenSky token.");
+                if (saveEx != null)
+                {
+                    return new ApiResponse<LoginResponse>("Error saving OpenSky access token!", saveEx) { Data = new LoginResponse() };
+                }
+
+                // All done, return the tokens to the client
+                return new ApiResponse<LoginResponse>("Application token created successfully!")
+                {
+                    Data = new LoginResponse { Token = new JwtSecurityTokenHandler().WriteToken(token), Expiration = token.ValidTo, Username = user.UserName, RefreshToken = openSkyToken.ID.ToString("N"), RefreshTokenExpiration = openSkyToken.Expiry }
+                };
             }
-
-            // All done, return the tokens to the client
-            return new ApiResponse<LoginResponse>("Application token created successfully!")
+            catch (Exception ex)
             {
-                Data = new LoginResponse { Token = new JwtSecurityTokenHandler().WriteToken(token), Expiration = token.ValidTo, Username = user.UserName, RefreshToken = openSkyToken.ID.ToString("N"), RefreshTokenExpiration = openSkyToken.Expiry }
-            };
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Authentication/applicationToken");
+                return new ApiResponse<LoginResponse>(ex);
+            }
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -431,128 +453,135 @@ namespace OpenSky.API.Controllers
         [AllowAnonymous]
         public async Task<ActionResult<ApiResponse<LoginResponse>>> Login([FromBody] Login login)
         {
-            this.logger.LogInformation($"Processing user login for {login.Username}");
-
-            var user = await this.userManager.FindByNameAsync(login.Username) ?? await this.userManager.FindByEmailAsync(login.Username);
-            if (user != null && await this.userManager.CheckPasswordAsync(user, login.Password))
+            try
             {
-                // Check Google reCAPTCHAv3
-                if (bool.Parse(this.configuration["GoogleReCaptchaV3:Enabled"]))
+                this.logger.LogInformation($"{login.Username} | POST Authentication/login");
+                var user = await this.userManager.FindByNameAsync(login.Username) ?? await this.userManager.FindByEmailAsync(login.Username);
+                if (user != null && await this.userManager.CheckPasswordAsync(user, login.Password))
                 {
-                    var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], login.RecaptchaToken, this.GetRemoteIPAddress());
-                    var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
-                    if (!reCAPTCHAResponse.Success)
+                    // Check Google reCAPTCHAv3
+                    if (bool.Parse(this.configuration["GoogleReCaptchaV3:Enabled"]))
                     {
-                        return new ApiResponse<LoginResponse> { Message = "reCAPTCHA validation failed.", IsError = true, Data = new LoginResponse() };
-                    }
-
-                    if (reCAPTCHAResponse.Score <= 0.3)
-                    {
-                        return new ApiResponse<LoginResponse> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true, Data = new LoginResponse() };
-                    }
-                }
-
-                // If the email address isn't confirmed, deny the login
-                if (!user.EmailConfirmed)
-                {
-                    return new ApiResponse<LoginResponse> { Message = "Please validate your email address first!", IsError = true, Data = new LoginResponse() };
-                }
-
-                // Fetch the user's roles
-                var userRoles = await this.userManager.GetRolesAsync(user);
-
-                // Check if this user is a global admin (from the config json file)
-                var globalAdmins = this.configuration["OpenSky:GlobalAdmins"].Split(',');
-                if (globalAdmins.Contains(user.Email) && !userRoles.Contains(UserRoles.Admin))
-                {
-                    userRoles.Add(UserRoles.Admin);
-
-                    // Make sure the admin role exists
-                    if (!await this.roleManager.RoleExistsAsync(UserRoles.Admin))
-                    {
-                        var roleResult = await this.roleManager.CreateAsync(new IdentityRole(UserRoles.Admin));
-                        if (!roleResult.Succeeded)
+                        var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], login.RecaptchaToken, this.GetRemoteIPAddress());
+                        var reCAPTCHAResponse = await this.googleRecaptchaV3Service.Execute(reCAPTCHARequest);
+                        if (!reCAPTCHAResponse.Success)
                         {
-                            var errorDetails = roleResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
-                            return new ApiResponse<LoginResponse> { Message = $"Error creating Admin role!{errorDetails}", IsError = true };
+                            return new ApiResponse<LoginResponse> { Message = "reCAPTCHA validation failed.", IsError = true, Data = new LoginResponse() };
+                        }
+
+                        if (reCAPTCHAResponse.Score <= 0.3)
+                        {
+                            return new ApiResponse<LoginResponse> { Message = "reCAPTCHA v3 score too low, are you a bot?", IsError = true, Data = new LoginResponse() };
                         }
                     }
 
-                    // Add the global admin user to "Admin" role
-                    if (!await this.userManager.IsInRoleAsync(user, UserRoles.Admin))
+                    // If the email address isn't confirmed, deny the login
+                    if (!user.EmailConfirmed)
                     {
-                        var addToRoleResult = await this.userManager.AddToRoleAsync(user, UserRoles.Admin);
-                        if (!addToRoleResult.Succeeded)
+                        return new ApiResponse<LoginResponse> { Message = "Please validate your email address first!", IsError = true, Data = new LoginResponse() };
+                    }
+
+                    // Fetch the user's roles
+                    var userRoles = await this.userManager.GetRolesAsync(user);
+
+                    // Check if this user is a global admin (from the config json file)
+                    var globalAdmins = this.configuration["OpenSky:GlobalAdmins"].Split(',');
+                    if (globalAdmins.Contains(user.Email) && !userRoles.Contains(UserRoles.Admin))
+                    {
+                        userRoles.Add(UserRoles.Admin);
+
+                        // Make sure the admin role exists
+                        if (!await this.roleManager.RoleExistsAsync(UserRoles.Admin))
                         {
-                            var errorDetails = addToRoleResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
-                            return new ApiResponse<LoginResponse> { Message = $"Error adding user to \"Admin\" role!{errorDetails}", IsError = true };
+                            var roleResult = await this.roleManager.CreateAsync(new IdentityRole(UserRoles.Admin));
+                            if (!roleResult.Succeeded)
+                            {
+                                var errorDetails = roleResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
+                                return new ApiResponse<LoginResponse> { Message = $"Error creating Admin role!{errorDetails}", IsError = true };
+                            }
+                        }
+
+                        // Add the global admin user to "Admin" role
+                        if (!await this.userManager.IsInRoleAsync(user, UserRoles.Admin))
+                        {
+                            var addToRoleResult = await this.userManager.AddToRoleAsync(user, UserRoles.Admin);
+                            if (!addToRoleResult.Succeeded)
+                            {
+                                var errorDetails = addToRoleResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
+                                return new ApiResponse<LoginResponse> { Message = $"Error adding user to \"Admin\" role!{errorDetails}", IsError = true };
+                            }
                         }
                     }
-                }
 
-                // Build claims
-                var authClaims = new List<Claim>
+                    // Build claims
+                    var authClaims = new List<Claim>
                 {
                     new(ClaimTypes.Name, user.UserName),
                     new(ClaimTypes.Email, user.Email),
                     new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 };
-                authClaims.AddRange(userRoles.Select(userRole => new Claim(ClaimTypes.Role, userRole)));
+                    authClaims.AddRange(userRoles.Select(userRole => new Claim(ClaimTypes.Role, userRole)));
 
-                // Create JWT token
-                var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.configuration["JWT:Secret"]));
-                var token = new JwtSecurityToken(
-                    this.configuration["JWT:ValidIssuer"],
-                    this.configuration["JWT:ValidAudience"],
-                    notBefore: DateTime.UtcNow,
-                    expires: DateTime.UtcNow.AddMinutes(10),
-                    claims: authClaims,
-                    signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha512)
-                );
+                    // Create JWT token
+                    var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.configuration["JWT:Secret"]));
+                    var token = new JwtSecurityToken(
+                        this.configuration["JWT:ValidIssuer"],
+                        this.configuration["JWT:ValidAudience"],
+                        notBefore: DateTime.UtcNow,
+                        expires: DateTime.UtcNow.AddMinutes(10),
+                        claims: authClaims,
+                        signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha512)
+                    );
 
-                // Record last login details and save them
-                user.LastLogin = DateTime.UtcNow;
-                user.LastLoginIP = this.GetRemoteIPAddress();
-                user.LastLoginGeo = await this.geoLocateIPService.Execute(this.GetRemoteIPAddress());
+                    // Record last login details and save them
+                    user.LastLogin = DateTime.UtcNow;
+                    user.LastLoginIP = this.GetRemoteIPAddress();
+                    user.LastLoginGeo = await this.geoLocateIPService.Execute(this.GetRemoteIPAddress());
 
-                var updateResult = await this.userManager.UpdateAsync(user);
-                if (!updateResult.Succeeded)
-                {
-                    var errorDetails = updateResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
-                    return new ApiResponse<LoginResponse> { Message = $"Error saving login history!{errorDetails}", IsError = true, Data = new LoginResponse() };
+                    var updateResult = await this.userManager.UpdateAsync(user);
+                    if (!updateResult.Succeeded)
+                    {
+                        var errorDetails = updateResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
+                        return new ApiResponse<LoginResponse> { Message = $"Error saving login history!{errorDetails}", IsError = true, Data = new LoginResponse() };
+                    }
+
+                    // Create OpenSky (refresh) token
+                    var openSkyToken = new OpenSkyToken
+                    {
+                        ID = Guid.NewGuid(),
+                        Name = this.configuration["OpenSky:LoginTokenName"],
+                        Created = DateTime.UtcNow,
+                        Expiry = login.RememberMe ? DateTime.UtcNow.AddDays(30) : DateTime.UtcNow.AddMinutes(30),
+                        UserID = user.Id,
+                        TokenGeo = user.LastLoginGeo,
+                        TokenIP = user.LastLoginIP
+                    };
+                    await this.db.OpenSkyTokens.AddAsync(openSkyToken);
+                    var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving OpenSky token.");
+                    if (saveEx != null)
+                    {
+                        return new ApiResponse<LoginResponse>("Error saving OpenSky access token!", saveEx) { Data = new LoginResponse() };
+                    }
+
+                    // All done, return the tokens to the client
+                    return new ApiResponse<LoginResponse>("Logged in successfully!")
+                    {
+                        Data = new LoginResponse { Token = new JwtSecurityTokenHandler().WriteToken(token), Expiration = token.ValidTo, Username = user.UserName, RefreshToken = openSkyToken.ID.ToString("N"), RefreshTokenExpiration = openSkyToken.Expiry }
+                    };
                 }
 
-                // Create OpenSky (refresh) token
-                var openSkyToken = new OpenSkyToken
+                if (user != null)
                 {
-                    ID = Guid.NewGuid(),
-                    Name = this.configuration["OpenSky:LoginTokenName"],
-                    Created = DateTime.UtcNow,
-                    Expiry = login.RememberMe ? DateTime.UtcNow.AddDays(30) : DateTime.UtcNow.AddMinutes(30),
-                    UserID = user.Id,
-                    TokenGeo = user.LastLoginGeo,
-                    TokenIP = user.LastLoginIP
-                };
-                await this.db.OpenSkyTokens.AddAsync(openSkyToken);
-                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving OpenSky token.");
-                if (saveEx != null)
-                {
-                    return new ApiResponse<LoginResponse>("Error saving OpenSky access token!", saveEx) { Data = new LoginResponse() };
+                    await this.userManager.AccessFailedAsync(user);
                 }
 
-                // All done, return the tokens to the client
-                return new ApiResponse<LoginResponse>("Logged in successfully!")
-                {
-                    Data = new LoginResponse { Token = new JwtSecurityTokenHandler().WriteToken(token), Expiration = token.ValidTo, Username = user.UserName, RefreshToken = openSkyToken.ID.ToString("N"), RefreshTokenExpiration = openSkyToken.Expiry }
-                };
+                return new ApiResponse<LoginResponse> { Message = "Invalid login!", IsError = true, Data = new LoginResponse() };
             }
-
-            if (user != null)
+            catch (Exception ex)
             {
-                await this.userManager.AccessFailedAsync(user);
+                this.logger.LogError(ex, $"{login.Username} | POST Authentication/login");
+                return new ApiResponse<LoginResponse>(ex) { Data = new LoginResponse() };
             }
-
-            return new ApiResponse<LoginResponse> { Message = "Invalid login!", IsError = true, Data = new LoginResponse() };
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -589,7 +618,7 @@ namespace OpenSky.API.Controllers
                 };
 
                 var tokenHandler = new JwtSecurityTokenHandler();
-                this.logger.LogInformation($"Checking existing JWT token: {refreshToken.Token}");
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Authentication/refreshToken, checking existing JWT token: {refreshToken.Token}");
                 var principal = tokenHandler.ValidateToken(refreshToken.Token, tokenValidationParameters, out var securityToken);
 
                 if (securityToken is not JwtSecurityToken jwtSecurityToken || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha512, StringComparison.InvariantCultureIgnoreCase))
@@ -679,7 +708,7 @@ namespace OpenSky.API.Controllers
                 if (this.GetRemoteIPAddress() != openSkyToken.TokenIP)
                 {
                     var currentCountry = await this.geoLocateIPService.Execute(this.GetRemoteIPAddress());
-                    if (currentCountry != null && openSkyToken.TokenGeo != null && currentCountry != openSkyToken.TokenGeo)
+                    if (user.TokenRenewalCountryVerification && currentCountry != null && openSkyToken.TokenGeo != null && currentCountry != openSkyToken.TokenGeo)
                     {
                         this.db.OpenSkyTokens.Remove(openSkyToken);
                         await this.db.SaveDatabaseChangesAsync(this.logger, "Error deleting old token (country changed).");
@@ -719,7 +748,7 @@ namespace OpenSky.API.Controllers
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, "Unable to refresh token");
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Authentication/refreshToken");
                 return new ApiResponse<RefreshTokenResponse> { Message = $"Unable to refresh token: {ex.Message}", IsError = true, Data = new RefreshTokenResponse() };
             }
         }
@@ -995,22 +1024,29 @@ namespace OpenSky.API.Controllers
         [HttpDelete("revokeAllTokens")]
         public async Task<ActionResult<ApiResponse<string>>> RevokeAllTokens()
         {
-            this.logger.LogInformation($"Revoking all tokens for user {this.User.Identity?.Name}");
-
-            var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
-            if (user == null)
+            try
             {
-                return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
-            }
+                this.logger.LogInformation($"{this.User.Identity?.Name} | DELETE Authentication/revokeAllTokens");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
+                }
 
-            this.db.OpenSkyTokens.RemoveRange(user.Tokens);
-            var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error deleting user tokens");
-            if (saveEx != null)
+                this.db.OpenSkyTokens.RemoveRange(user.Tokens);
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error deleting user tokens");
+                if (saveEx != null)
+                {
+                    return new ApiResponse<string>("Unable to delete tokens!", saveEx);
+                }
+
+                return new ApiResponse<string>("Success");
+            }
+            catch (Exception ex)
             {
-                return new ApiResponse<string>("Unable to delete tokens!", saveEx);
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | DELETE Authentication/revokeAllTokens");
+                return new ApiResponse<string>(ex);
             }
-
-            return new ApiResponse<string>("Success");
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -1030,22 +1066,29 @@ namespace OpenSky.API.Controllers
         [HttpDelete("revokeToken")]
         public async Task<ActionResult<ApiResponse<string>>> RevokeToken([FromBody] RevokeToken revokeToken)
         {
-            this.logger.LogInformation($"Revoking token for user {this.User.Identity?.Name}, token being invalidated: {revokeToken.Token}");
-
-            var token = await this.db.OpenSkyTokens.SingleOrDefaultAsync(t => t.ID == Guid.Parse(revokeToken.Token));
-            if (token != null)
+            try
             {
-                this.db.OpenSkyTokens.Remove(token);
-                var deleteEx = await this.db.SaveDatabaseChangesAsync(this.logger, $"Error deleting OpenSky token {revokeToken.Token}");
-                if (deleteEx != null)
+                this.logger.LogInformation($"{this.User.Identity?.Name} | DELETE Authentication/revokeToken, token being invalidated: {revokeToken.Token}");
+                var token = await this.db.OpenSkyTokens.SingleOrDefaultAsync(t => t.ID == Guid.Parse(revokeToken.Token));
+                if (token != null)
                 {
-                    return new ApiResponse<string>($"Error deleting OpenSky token {revokeToken.Token}", deleteEx);
+                    this.db.OpenSkyTokens.Remove(token);
+                    var deleteEx = await this.db.SaveDatabaseChangesAsync(this.logger, $"Error deleting OpenSky token {revokeToken.Token}");
+                    if (deleteEx != null)
+                    {
+                        return new ApiResponse<string>($"Error deleting OpenSky token {revokeToken.Token}", deleteEx);
+                    }
+
+                    return new ApiResponse<string>("Success");
                 }
 
-                return new ApiResponse<string>("Success");
+                return new ApiResponse<string>("Success, token already revoked or expired");
             }
-
-            return new ApiResponse<string>("Success, token already revoked or expired");
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | DELETE Authentication/revokeToken");
+                return new ApiResponse<string>(ex);
+            }
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -1065,23 +1108,30 @@ namespace OpenSky.API.Controllers
         [HttpDelete("revokeTokenByName")]
         public async Task<ActionResult<ApiResponse<string>>> RevokeTokenByName([FromBody] RevokeTokenByName revokeTokenByName)
         {
-            this.logger.LogInformation($"Revoking token for user {this.User.Identity?.Name}, token being invalidated: {revokeTokenByName.Name}");
-
-            var token = await this.db.OpenSkyTokens.SingleOrDefaultAsync(t => t.Name == revokeTokenByName.Name && t.Expiry == revokeTokenByName.Expiry);
-            if (token != null)
+            try
             {
-                this.db.OpenSkyTokens.Remove(token);
-
-                var deleteEx = await this.db.SaveDatabaseChangesAsync(this.logger, $"Error deleting OpenSky token {revokeTokenByName.Name}");
-                if (deleteEx != null)
+                this.logger.LogInformation($"{this.User.Identity?.Name} | DELETE Authentication/revokeTokenByName, token being invalidated: {revokeTokenByName.Name}");
+                var token = await this.db.OpenSkyTokens.SingleOrDefaultAsync(t => t.Name == revokeTokenByName.Name && t.Expiry == revokeTokenByName.Expiry);
+                if (token != null)
                 {
-                    return new ApiResponse<string>($"Error deleting OpenSky token {revokeTokenByName.Name}", deleteEx);
+                    this.db.OpenSkyTokens.Remove(token);
+
+                    var deleteEx = await this.db.SaveDatabaseChangesAsync(this.logger, $"Error deleting OpenSky token {revokeTokenByName.Name}");
+                    if (deleteEx != null)
+                    {
+                        return new ApiResponse<string>($"Error deleting OpenSky token {revokeTokenByName.Name}", deleteEx);
+                    }
+
+                    return new ApiResponse<string>($"Successfully revoked token {revokeTokenByName.Name}");
                 }
 
-                return new ApiResponse<string>($"Successfully revoked token {revokeTokenByName.Name}");
+                return new ApiResponse<string>("Success, token already revoked or expired");
             }
-
-            return new ApiResponse<string>("Success, token already revoked or expired");
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | DELETE Authentication/revokeTokenByName");
+                return new ApiResponse<string>(ex);
+            }
         }
 
         /// -------------------------------------------------------------------------------------------------
