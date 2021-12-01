@@ -242,6 +242,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets a value indicating whether the token renewal country verification is enabled.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public bool TokenRenewalCountryVerification { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the access tokens of the user.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
