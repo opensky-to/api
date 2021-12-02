@@ -31,10 +31,17 @@ namespace OpenSky.API.Workers
     {
         /// -------------------------------------------------------------------------------------------------        
         /// <summary>
-        /// The clean up interval in milliseconds.
+        /// The clean up interval in milliseconds (30 minutes).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private const int CleanupInterval = 30 * 60 * 1000;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The error interval in milliseconds (1 minute).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private const int ErrorInterval = 1 * 60 * 1000;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -120,7 +127,7 @@ namespace OpenSky.API.Workers
         /// running operation(s) being performed.
         /// </summary>
         /// <remarks>
-        /// Flusinerd, 13/06/2021.
+        /// sushi.at, 02/12/2021.
         /// </remarks>
         /// <param name="stoppingToken">
         /// Triggered when
@@ -135,46 +142,91 @@ namespace OpenSky.API.Workers
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             this.logger.LogInformation("DB cleanup background service starting...");
-            await this.CleanupOpenSkyTokens(stoppingToken);
+            using var scope = this.services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<OpenSkyDbContext>();
+
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                var errorCount = 0;
+                errorCount += await this.CleanupOpenSkyTokens(db);
+                errorCount += await this.CleanupAirportClientPackages(db);
+
+                await Task.Delay(errorCount == 0 ? CleanupInterval : ErrorInterval, stoppingToken);
+            }
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Cleans up expired OpenSkyTokens from the Database. Cleanup interval can be configured via the
-        /// workers cleanupInterval.
+        /// Cleans up expired OpenSkyTokens from the database.
         /// </summary>
         /// <remarks>
         /// Flusinerd, 14/06/2021.
         /// </remarks>
-        /// <param name="stoppingToken">
-        /// Triggered when
-        /// <see cref="M:Microsoft.Extensions.Hosting.IHostedService.StopAsync(System.Threading.CancellationToken)" />
-        /// is called.
+        /// <param name="db">
+        /// The database context.
         /// </param>
         /// <returns>
-        /// An asynchronous result.
+        /// An asynchronous result that yields an int, containing the error count.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        private async Task CleanupOpenSkyTokens(CancellationToken stoppingToken)
+        private async Task<int> CleanupOpenSkyTokens(OpenSkyDbContext db)
         {
-            using var scope = this.services.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<OpenSkyDbContext>();
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                try
-                {
-                    // Delete OpenSkyTokens that are expired
-                    var tokens = db.OpenSkyTokens.Where(token => DateTime.UtcNow > token.Expiry);
-                    db.OpenSkyTokens.RemoveRange(tokens);
-                    await db.SaveChangesAsync(stoppingToken);
 
-                    await Task.Delay(CleanupInterval, stoppingToken);
-                }
-                catch (Exception ex)
+            try
+            {
+                var tokens = db.OpenSkyTokens.Where(token => DateTime.UtcNow > token.Expiry);
+                db.OpenSkyTokens.RemoveRange(tokens);
+                var saveEx = await db.SaveDatabaseChangesAsync(this.logger, "Error removing old OpenSky tokens.");
+                if (saveEx != null)
                 {
-                    this.logger.LogError(ex, "Error cleaning up OpenSky tokens.");
-                    await Task.Delay(30 * 1000, stoppingToken);
+                    throw saveEx;
                 }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Error cleaning up OpenSky tokens.");
+                return 1;
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Clean up previous airport client packages, only the most recent is required.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 02/12/2021.
+        /// </remarks>
+        /// <param name="db">
+        /// The database context.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields an int, containing the error count.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        private async Task<int> CleanupAirportClientPackages(OpenSkyDbContext db)
+        {
+            try
+            {
+                var mostRecentPackage = db.AirportClientPackages.OrderByDescending(p => p.CreationTime).FirstOrDefault();
+                if (mostRecentPackage != null)
+                {
+                    var olderPackages = db.AirportClientPackages.Where(p => p.CreationTime < mostRecentPackage.CreationTime);
+                    db.AirportClientPackages.RemoveRange(olderPackages);
+                    var saveEx = await db.SaveDatabaseChangesAsync(this.logger, "Error removing old airport client packages.");
+                    if (saveEx != null)
+                    {
+                        throw saveEx;
+                    }
+                }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Error cleaning up airport client packages.");
+                return 1;
             }
         }
     }
