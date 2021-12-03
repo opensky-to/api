@@ -9,8 +9,6 @@ namespace OpenSky.API.Controllers
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Security.Cryptography;
-    using System.Text;
     using System.Threading.Tasks;
 
     using Microsoft.AspNetCore.Authorization;
@@ -18,15 +16,11 @@ namespace OpenSky.API.Controllers
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
 
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
-
     using OpenSky.API.DbModel;
     using OpenSky.API.DbModel.Enums;
-    using OpenSky.API.Helpers;
     using OpenSky.API.Model;
-    using OpenSky.API.Model.Airport;
     using OpenSky.API.Model.Authentication;
+    using OpenSky.API.Model.Extensions.AirportsJSON;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -98,42 +92,38 @@ namespace OpenSky.API.Controllers
                 var runwayEnds = await this.db.RunwayEnds.ToListAsync();
                 var airports = await this.db.Airports.Where(a => a.Size.HasValue).ToListAsync();
 
-                var airportEntries = new Dictionary<string, AirportClientPackageEntry>();
+                var airportEntries = new Dictionary<string, AirportsJSON.Airport>();
                 foreach (var airport in airports)
                 {
-                    airportEntries.Add(airport.ICAO, new AirportClientPackageEntry(airport));
+                    airportEntries.Add(airport.ICAO, airport.ConstructAirportsJson());
                 }
 
-                var runwayEntries = new Dictionary<int, AirportClientPackageRunwayEntry>();
+                var runwayEntries = new Dictionary<int, AirportsJSON.Runway>();
                 foreach (var runway in runways)
                 {
-                    runwayEntries.Add(runway.ID, new AirportClientPackageRunwayEntry(runway));
+                    runwayEntries.Add(runway.ID, runway.ConstructAirportsJson());
                     airportEntries[runway.AirportICAO].Runways.Add(runwayEntries[runway.ID]);
                 }
 
                 foreach (var runwayEnd in runwayEnds)
                 {
-                    runwayEntries[runwayEnd.RunwayID].RunwayEnds.Add(new AirportClientPackageRunwayEndEntry(runwayEnd));
+                    runwayEntries[runwayEnd.RunwayID].RunwayEnds.Add(runwayEnd.ConstructAirportsJson());
                 }
 
-                var package = new AirportClientPackageRoot(airportEntries.Values.ToList());
+                var package = new AirportsJSON.AirportPackage();
+                package.Airports.AddRange(airportEntries.Values);
 
-                var jObject = JObject.FromObject(package);
-                var jsonString = jObject.ToString(Formatting.None);
-
-                using var sha256Hash = SHA256.Create();
-                var jsonHash = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(jsonString));
-                var hashBase64 = Convert.ToBase64String(jsonHash);
+                var compressedJson = package.CreatePackage();
 
                 var latestClientPackage = await this.db.AirportClientPackages.OrderByDescending(p => p.CreationTime).FirstOrDefaultAsync();
-                if (latestClientPackage == null || !string.Equals(latestClientPackage.PackageHash, hashBase64, StringComparison.InvariantCultureIgnoreCase))
+                if (latestClientPackage == null || !string.Equals(latestClientPackage.PackageHash, package.Hash, StringComparison.InvariantCultureIgnoreCase))
                 {
                     // Create new client package
                     var newPackage = new AirportClientPackage
                     {
                         CreationTime = DateTime.UtcNow,
-                        PackageHash = hashBase64,
-                        Package = jsonString.CompressToBase64()
+                        PackageHash = package.Hash,
+                        Package = compressedJson
                     };
 
                     await this.db.AirportClientPackages.AddAsync(newPackage);
