@@ -46,7 +46,14 @@ namespace OpenSky.API.Model.Extensions.AirportsJSON
                 IsClosed = airport.IsClosed,
                 IsMilitary = airport.IsMilitary,
                 SupportsSuper = airport.SupportsSuper,
-                MSFS = airport.MSFS
+                MSFS = airport.MSFS,
+                S2Cell3 = airport.S2Cell3,
+                S2Cell4 = airport.S2Cell4,
+                S2Cell5 = airport.S2Cell5,
+                S2Cell6 = airport.S2Cell6,
+                S2Cell7 = airport.S2Cell7,
+                S2Cell8 = airport.S2Cell8,
+                S2Cell9 = airport.S2Cell9
             };
         }
     }
