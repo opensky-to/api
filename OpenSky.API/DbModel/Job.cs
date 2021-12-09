@@ -39,7 +39,7 @@ namespace OpenSky.API.DbModel
         /// The assigned airline dispatcher.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private OpenSkyUser assignedAirlinePilot;
+        private OpenSkyUser assignedAirlineDispatcher;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -96,8 +96,8 @@ namespace OpenSky.API.DbModel
         [JsonIgnore]
         public OpenSkyUser AssignedAirlineDispatcher
         {
-            get => this.LazyLoader.Load(this, ref this.assignedAirlinePilot);
-            set => this.assignedAirlinePilot = value;
+            get => this.LazyLoader.Load(this, ref this.assignedAirlineDispatcher);
+            set => this.assignedAirlineDispatcher = value;
         }
 
         /// -------------------------------------------------------------------------------------------------
