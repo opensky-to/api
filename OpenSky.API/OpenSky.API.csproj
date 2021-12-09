@@ -43,14 +43,16 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.DynamicLinq" Version="5.2.14" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.14.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="OpenSky.AirportsJSON" Version="0.1.0" />
+    <PackageReference Include="OpenSky.AirportsJSON" Version="0.2.0" />
     <PackageReference Include="OpenSky.FlightLogXML" Version="0.1.4" />
+    <PackageReference Include="OpenSky.S2Geometry" Version="0.2.0" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="5.0.3" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
     <PackageReference Include="System.Data.SQLite.Core" Version="1.0.115.5" />
-    <PackageReference Include="Z.EntityFramework.Extensions.EFCore" Version="5.13.2" />
+    <PackageReference Include="Z.EntityFramework.Extensions.EFCore" Version="5.13.3" />
   </ItemGroup>
 
   <ItemGroup>

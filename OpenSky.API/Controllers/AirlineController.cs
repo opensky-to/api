@@ -40,6 +40,7 @@ namespace OpenSky.API.Controllers
         /// The OpenSky database context.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        // ReSharper disable once NotAccessedField.Local
         private readonly OpenSkyDbContext db;
 
         /// -------------------------------------------------------------------------------------------------
