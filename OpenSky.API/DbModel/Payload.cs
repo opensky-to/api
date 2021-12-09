@@ -38,6 +38,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The destination airport for the payload.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private Airport destination;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Initializes a new instance of the <see cref="Payload"/> class.
         /// </summary>
         /// <remarks>
@@ -113,6 +120,27 @@ namespace OpenSky.API.DbModel
         [Required]
         [StringLength(50, MinimumLength = 3)]
         public string Description { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the Destination for the payload.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("DestinationICAO")]
+        public Airport Destination
+        {
+            get => this.LazyLoader.Load(this, ref this.destination);
+            set => this.destination = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the destination icao for the payload.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("Destination")]
+        [StringLength(5, MinimumLength = 3)]
+        public string DestinationICAO { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
