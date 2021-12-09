@@ -56,6 +56,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The payloads currently stored at this airport.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<Payload> payloads;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The runways.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -249,6 +256,18 @@ namespace OpenSky.API.DbModel
         [StringLength(50)]
         [Required]
         public string Name { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the payloads currently stored at this airport.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [InverseProperty("Airport")]
+        public ICollection<Payload> Payloads
+        {
+            get => this.LazyLoader.Load(this, ref this.payloads);
+            set => this.payloads = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
