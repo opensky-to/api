@@ -282,6 +282,7 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [InverseProperty("Airport")]
+        [JsonIgnore]
         public ICollection<Payload> Payloads
         {
             get => this.LazyLoader.Load(this, ref this.payloads);
