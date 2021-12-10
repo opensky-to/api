@@ -9,6 +9,7 @@ namespace OpenSky.API.DbModel
     using System;
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
+    using System.Text.Json.Serialization;
 
     using OpenSky.API.Helpers;
 
@@ -76,6 +77,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the aircraft the payload is currently loaded on, or NULL if stored at an airport.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
         public Aircraft Aircraft
         {
             get => this.LazyLoader.Load(this, ref this.aircraft);
@@ -97,6 +99,7 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("AirportICAO")]
+        [JsonIgnore]
         public Airport Airport
         {
             get => this.LazyLoader.Load(this, ref this.airport);
@@ -127,6 +130,7 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("DestinationICAO")]
+        [JsonIgnore]
         public Airport Destination
         {
             get => this.LazyLoader.Load(this, ref this.destination);
@@ -157,6 +161,7 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("JobID")]
+        [JsonIgnore]
         public Job Job { get; set; }
 
         /// -------------------------------------------------------------------------------------------------

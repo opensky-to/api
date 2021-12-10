@@ -55,6 +55,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The payloads currently loaded onto this aircraft.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<Payload> payloads;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The aircraft type.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -222,17 +229,11 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The payloads currently loaded onto this aircraft.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private ICollection<Payload> payloads;
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// Gets or sets the payloads currently loaded onto this aircraft.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [InverseProperty("Aircraft")]
+        [JsonIgnore]
         public ICollection<Payload> Payloads
         {
             get => this.LazyLoader.Load(this, ref this.payloads);

@@ -114,7 +114,6 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("AssignedAirlineDispatcher")]
         [StringLength(255)]
-        [JsonIgnore]
         public string AssignedAirlineDispatcherID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -174,7 +173,6 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("OperatorAirline")]
         [StringLength(3)]
-        [JsonIgnore]
         public string OperatorAirlineID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -185,7 +183,6 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("Operator")]
         [StringLength(255)]
-        [JsonIgnore]
         public string OperatorID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------

@@ -68,7 +68,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the flight.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [ForeignKey("Flight")]
+        [ForeignKey("FlightID")]
         public Flight Flight
         {
             get => this.LazyLoader.Load(this, ref this.flight);
