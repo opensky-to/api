@@ -9,8 +9,8 @@ using OpenSky.API;
 namespace OpenSky.API.Migrations
 {
     [DbContext(typeof(OpenSkyDbContext))]
-    [Migration("20211209195935_JobsAndPayloads")]
-    partial class JobsAndPayloads
+    [Migration("20211210115148_JobOriginAndIdent")]
+    partial class JobOriginAndIdent
     {
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -834,8 +834,16 @@ namespace OpenSky.API.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
+                    b.Property<string>("OriginICAO")
+                        .HasMaxLength(5)
+                        .HasColumnType("varchar(5)");
+
                     b.Property<int>("Type")
                         .HasColumnType("int");
+
+                    b.Property<string>("UserIdentifier")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.Property<int>("Value")
                         .HasColumnType("int");
@@ -847,6 +855,8 @@ namespace OpenSky.API.Migrations
                     b.HasIndex("OperatorAirlineID");
 
                     b.HasIndex("OperatorID");
+
+                    b.HasIndex("OriginICAO");
 
                     b.ToTable("Job");
                 });
@@ -1368,11 +1378,17 @@ namespace OpenSky.API.Migrations
                         .WithMany("Jobs")
                         .HasForeignKey("OperatorID");
 
+                    b.HasOne("OpenSky.API.DbModel.Airport", "Origin")
+                        .WithMany("Jobs")
+                        .HasForeignKey("OriginICAO");
+
                     b.Navigation("AssignedAirlineDispatcher");
 
                     b.Navigation("Operator");
 
                     b.Navigation("OperatorAirline");
+
+                    b.Navigation("Origin");
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.OpenSkyToken", b =>
@@ -1472,6 +1488,8 @@ namespace OpenSky.API.Migrations
             modelBuilder.Entity("OpenSky.API.DbModel.Airport", b =>
                 {
                     b.Navigation("Approaches");
+
+                    b.Navigation("Jobs");
 
                     b.Navigation("Payloads");
 
