@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="WorldPopulatorService.cs" company="OpenSky">
+// <copyright file="AircraftPopulatorService.cs" company="OpenSky">
 // OpenSky project 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
@@ -28,7 +28,7 @@ namespace OpenSky.API.Services
     /// Flusinerd, 25/06/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class WorldPopulatorService
+    public class AircraftPopulatorService
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -57,7 +57,7 @@ namespace OpenSky.API.Services
         /// The logger.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private readonly ILogger<WorldPopulatorService> logger;
+        private readonly ILogger<AircraftPopulatorService> logger;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -86,7 +86,7 @@ namespace OpenSky.API.Services
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="WorldPopulatorService"/> class.
+        /// Initializes a new instance of the <see cref="AircraftPopulatorService"/> class.
         /// </summary>
         /// <remarks>
         /// Flusinerd, 16/06/2021.
@@ -101,12 +101,12 @@ namespace OpenSky.API.Services
         /// The ICAO registrations service.
         /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public WorldPopulatorService(IServiceProvider services, ILogger<WorldPopulatorService> logger, IcaoRegistrationsService icaoRegistrations)
+        public AircraftPopulatorService(IServiceProvider services, ILogger<AircraftPopulatorService> logger, IcaoRegistrationsService icaoRegistrations)
         {
             this.logger = logger;
             this.db = services.CreateScope().ServiceProvider.GetRequiredService<OpenSkyDbContext>();
             this.icaoRegistrations = icaoRegistrations;
-            this.logger.LogInformation("World populator service started");
+            this.logger.LogInformation("Aircraft populator service started");
         }
 
         /// -------------------------------------------------------------------------------------------------

@@ -20,6 +20,7 @@ namespace OpenSky.API.Controllers
     using OpenSky.API.DbModel;
     using OpenSky.API.Model;
     using OpenSky.API.Model.Authentication;
+    using OpenSky.API.Services;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -58,6 +59,13 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The job populator.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly JobPopulatorService jobPopulator;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Initializes a new instance of the <see cref="JobController"/> class.
         /// </summary>
         /// <remarks>
@@ -72,12 +80,16 @@ namespace OpenSky.API.Controllers
         /// <param name="userManager">
         /// The user manager.
         /// </param>
+        /// <param name="jobPopulator">
+        /// The job populator.
+        /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public JobController(ILogger<JobController> logger, OpenSkyDbContext db, UserManager<OpenSkyUser> userManager)
+        public JobController(ILogger<JobController> logger, OpenSkyDbContext db, UserManager<OpenSkyUser> userManager, JobPopulatorService jobPopulator)
         {
             this.logger = logger;
             this.db = db;
             this.userManager = userManager;
+            this.jobPopulator = jobPopulator;
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -105,6 +117,10 @@ namespace OpenSky.API.Controllers
                 {
                     return new ApiResponse<IEnumerable<Job>>("Unable to find user record!") { IsError = true, Data = new List<Job>() };
                 }
+
+                // Make sure there are enough jobs at this airport
+                var jobResult = await this.jobPopulator.CheckAndGenerateJobsForAirport(icao);
+                this.logger.LogInformation(jobResult);
 
                 var jobs = await this.db.Jobs.Where(j => j.OriginICAO == icao && j.OperatorID == null && j.OperatorAirlineID == null).ToListAsync();
 

@@ -292,7 +292,7 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
         /// Gets or sets the previous size of the airport (if available, used to detect size changes and
-        /// trigger other services like the plane world populator).
+        /// trigger other services like the aircraft world populator).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public int? PreviousSize { get; set; }
