@@ -170,7 +170,7 @@ namespace OpenSky.API.Workers
                     airport.Size = this.CalculateAirportSize(airport, top50Airports);
                     if (airport.PreviousSize.HasValue && airport.Size.Value != airport.PreviousSize.Value)
                     {
-                        // Size has changed, run the world populator again
+                        // Size has changed, run the aircraft populator again
                         airport.HasBeenPopulated = ProcessingStatus.NeedsHandling;
                         Status[dataImport.ID].Elements["airportSize"].New++;
                     }

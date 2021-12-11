@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="WorldPopulatorWorkerService.cs" company="OpenSky">
+// <copyright file="AircraftPopulatorWorkerService.cs" company="OpenSky">
 // OpenSky project 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
@@ -21,15 +21,15 @@ namespace OpenSky.API.Workers
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Worker that checks all airports for missing population (Flag set to false)
-    /// Then invokes the WorldPopulator for that airport.
+    /// Worker that checks all airports for missing aircraft population (Flag set to false)
+    /// Then invokes the AircraftPopulatorService for that airport.
     /// </summary>
     /// <remarks>
     /// Flusinerd, 25/06/2021.
     /// </remarks>
     /// <seealso cref="T:Microsoft.Extensions.Hosting.BackgroundService"/>
     /// -------------------------------------------------------------------------------------------------
-    public class WorldPopulatorWorkerService : BackgroundService
+    public class AircraftPopulatorWorkerService : BackgroundService
     {
         /// -------------------------------------------------------------------------------------------------        
         /// <summary>
@@ -43,7 +43,7 @@ namespace OpenSky.API.Workers
         /// The logger.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private readonly ILogger<WorldPopulatorWorkerService> logger;
+        private readonly ILogger<AircraftPopulatorWorkerService> logger;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -54,14 +54,14 @@ namespace OpenSky.API.Workers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The world populator service instance.
+        /// The aircraft populator service instance.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private readonly WorldPopulatorService worldPopulator;
+        private readonly AircraftPopulatorService aircraftPopulator;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="WorldPopulatorWorkerService"/> class.
+        /// Initializes a new instance of the <see cref="AircraftPopulatorWorkerService"/> class.
         /// </summary>
         /// <remarks>
         /// Flusinerd, 13/06/2021.
@@ -72,19 +72,19 @@ namespace OpenSky.API.Workers
         /// <param name="logger">
         /// The logger.
         /// </param>
-        /// <param name="worldPopulator">
-        /// The world populator service instance.
+        /// <param name="aircraftPopulator">
+        /// The aircraft populator service instance.
         /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public WorldPopulatorWorkerService(
+        public AircraftPopulatorWorkerService(
             IServiceProvider services,
-            ILogger<WorldPopulatorWorkerService> logger,
-            WorldPopulatorService worldPopulator
+            ILogger<AircraftPopulatorWorkerService> logger,
+            AircraftPopulatorService aircraftPopulator
         )
         {
             this.services = services;
             this.logger = logger;
-            this.worldPopulator = worldPopulator;
+            this.aircraftPopulator = aircraftPopulator;
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -104,7 +104,7 @@ namespace OpenSky.API.Workers
         /// -------------------------------------------------------------------------------------------------
         public override async Task StopAsync(CancellationToken stoppingToken)
         {
-            this.logger.LogInformation("World populator background service stopping...");
+            this.logger.LogInformation("Aircraft populator background service stopping...");
             await base.StopAsync(stoppingToken);
         }
 
@@ -129,7 +129,7 @@ namespace OpenSky.API.Workers
         /// -------------------------------------------------------------------------------------------------
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            this.logger.LogInformation("World populator background service starting...");
+            this.logger.LogInformation("Aircraft populator background service starting...");
             await this.CheckAirports(stoppingToken);
         }
 
@@ -167,7 +167,7 @@ namespace OpenSky.API.Workers
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, "Error resetting leftover queued airports during world populator background worker startup.");
+                this.logger.LogError(ex, "Error resetting leftover queued airports during aircraft populator background worker startup.");
             }
 
             var todoCount = 0;
@@ -185,20 +185,20 @@ namespace OpenSky.API.Workers
                             processed = 0;
                             todoCount = airportTodoCount;
                             runStarted = DateTime.UtcNow;
-                            this.logger.LogInformation($"World populator starting new run, found {airportTodoCount} airports to process...");
+                            this.logger.LogInformation($"Aircraft populator starting new run, found {airportTodoCount} airports to process...");
                         }
 
                         // Get the first 100 airports that need populating
                         var airports = await db.Airports.Where(airport => airport.HasBeenPopulated == ProcessingStatus.NeedsHandling && airport.Size.HasValue && airport.MSFS).Take(100).ToListAsync(stoppingToken);
-                        await this.worldPopulator.CheckAndGenerateAircaftForAirports(airports, stoppingToken);
+                        await this.aircraftPopulator.CheckAndGenerateAircaftForAirports(airports, stoppingToken);
                         processed += airports.Count;
-                        this.logger.LogInformation($"World populator processed {processed} of {todoCount} airports [{(int)((processed / (double)todoCount) * 100)} %]");
+                        this.logger.LogInformation($"Aircraft populator processed {processed} of {todoCount} airports [{(int)((processed / (double)todoCount) * 100)} %]");
                     }
                     else
                     {
                         if (processed.HasValue)
                         {
-                            this.logger.LogInformation($"World populator processed {processed} airports in {(DateTime.UtcNow - runStarted).TotalMinutes:F1} minutes.");
+                            this.logger.LogInformation($"Aircraft populator processed {processed} airports in {(DateTime.UtcNow - runStarted).TotalMinutes:F1} minutes.");
                             todoCount = 0;
                             processed = null;
                         }

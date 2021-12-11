@@ -68,10 +68,10 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The world populator service.
+        /// The aircraft populator service.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private readonly WorldPopulatorService worldPopulator;
+        private readonly AircraftPopulatorService aircraftPopulator;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -92,17 +92,17 @@ namespace OpenSky.API.Controllers
         /// <param name="icaoRegistrations">
         /// The icao registration service.
         /// </param>
-        /// <param name="worldPopulator">
-        /// The world populator service.
+        /// <param name="aircraftPopulator">
+        /// The aircraft populator service.
         /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public AircraftController(ILogger<AirportController> logger, OpenSkyDbContext db, UserManager<OpenSkyUser> userManager, IcaoRegistrationsService icaoRegistrations, WorldPopulatorService worldPopulator)
+        public AircraftController(ILogger<AirportController> logger, OpenSkyDbContext db, UserManager<OpenSkyUser> userManager, IcaoRegistrationsService icaoRegistrations, AircraftPopulatorService aircraftPopulator)
         {
             this.logger = logger;
             this.db = db;
             this.userManager = userManager;
             this.icaoRegistrations = icaoRegistrations;
-            this.worldPopulator = worldPopulator;
+            this.aircraftPopulator = aircraftPopulator;
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -339,8 +339,8 @@ namespace OpenSky.API.Controllers
                     throw saveEx;
                 }
 
-                // Ask world populator to "restock" the airport by adding a new plane in place of this one
-                await this.worldPopulator.CheckAndGenerateAircraftForAirport(aircraft.Airport);
+                // Ask aircraft populator to "restock" the airport by adding a new plane in place of this one
+                await this.aircraftPopulator.CheckAndGenerateAircraftForAirport(aircraft.Airport);
 
                 return new ApiResponse<string>($"Successfully purchased aircraft {purchase.Registry}");
             }

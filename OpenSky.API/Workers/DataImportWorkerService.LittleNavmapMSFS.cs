@@ -121,7 +121,7 @@ namespace OpenSky.API.Workers
                         else
                         {
                             Status[dataImport.ID].Elements["airport"].Updated++;
-                            var triggerWorldPopulator = existingAirport.Gates != reader.GetInt32("num_parking_gate") || existingAirport.GaRamps != reader.GetInt32("num_parking_ga_ramp") || existingAirport.LongestRunwayLength != reader.GetInt32("longest_runway_length");
+                            var triggerAircraftPopulator = existingAirport.Gates != reader.GetInt32("num_parking_gate") || existingAirport.GaRamps != reader.GetInt32("num_parking_ga_ramp") || existingAirport.LongestRunwayLength != reader.GetInt32("longest_runway_length");
 
                             existingAirport.Name = !await reader.IsDBNullAsync("name", token) ? new string(reader.GetString("name").Take(50).ToArray()) : "???";
                             existingAirport.City = !await reader.IsDBNullAsync("city", token) ? new string(reader.GetString("city").Take(50).ToArray()) : null;
@@ -144,7 +144,7 @@ namespace OpenSky.API.Workers
                             existingAirport.SupportsSuper = a380Airports.Contains(ident);
                             existingAirport.PreviousSize = existingAirport.Size; // Save that away to detect size changes
                             existingAirport.Size = null; // Re-calculate the size
-                            if (triggerWorldPopulator)
+                            if (triggerAircraftPopulator)
                             {
                                 existingAirport.HasBeenPopulated = ProcessingStatus.NeedsHandling;
                             }
