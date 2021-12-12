@@ -1,16 +1,18 @@
-﻿namespace OpenSky.API.Services
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="JobPopulatorService.cs" company="OpenSky">
+// OpenSky project 2021
+// </copyright>
+// --------------------------------------------------------------------------------------------------------------------
+
+namespace OpenSky.API.Services
 {
     using System;
-    using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
 
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
-
-    using OpenSky.API.DbModel;
-    using OpenSky.API.DbModel.Enums;
-    using OpenSky.API.Services.Models;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -20,7 +22,7 @@
     /// sushi.at, 10/12/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class JobPopulatorService
+    public partial class JobPopulatorService
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -62,6 +64,16 @@
             this.logger = logger;
             this.db = services.CreateScope().ServiceProvider.GetRequiredService<OpenSkyDbContext>();
             this.logger.LogInformation("Job populator service started");
+
+            try
+            {
+                this.cargoTypes = File.ReadAllLines("Datasets/cargo_types.txt");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Error loading cargo_types.txt file for job populator service!");
+                this.cargoTypes = new[] { "Cargo" };
+            }
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -71,11 +83,11 @@
         /// <remarks>
         /// sushi.at, 10/12/2021.
         /// </remarks>
-        /// <param name="airport">
-        /// The airport to process.
+        /// <param name="icao">
+        /// The ICAO code of the airport to process.
         /// </param>
         /// <returns>
-        /// An asynchronous result.
+        /// An asynchronous result returning an information string about what jobs were generated.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
         public async Task<string> CheckAndGenerateJobsForAirport(string icao)
@@ -99,61 +111,26 @@
                 return $"Airport {airport.ICAO} has no active simulator, not processing.";
             }
 
+            var started = DateTime.Now;
+            var infoText = $"Checking and generating jobs for airport {icao}:\r\n";
+
             // Remove expired jobs
             var expiredJobs = airport.Jobs.Where(j => j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt <= DateTime.Now);
             this.db.Jobs.RemoveRange(expiredJobs);
+            var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, $"Error removing expired jobs from airport {icao}.");
+            if (saveEx != null)
+            {
+                infoText += $"Error removing expired jobs from airport {icao}: {saveEx.Message}\r\n";
+            }
 
             // How many jobs are currently still available at this airport?
             var availableJobs = airport.Jobs.Where(j => j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now).ToList();
 
             // Create the different job types
-            var resultString = string.Empty;
-            resultString += await this.CheckAndGenerateCargoJobsForAirport(airport, availableJobs);
+            infoText += await this.CheckAndGenerateCargoJobsForAirport(airport, availableJobs);
 
-            return string.Empty;
+            infoText += $"Finished processing job creation for airport {icao} after {(DateTime.Now - started).TotalSeconds:F2} seconds.";
+            return infoText;
         }
-
-        public async Task<string> CheckAndGenerateCargoJobsForAirport(Airport airport, List<Job> availableJobs)
-        {
-            var resultString = string.Empty;
-
-            // Check job quota for each aircraft category depending on airport size
-            foreach (var category in Enum.GetValues<AircraftTypeCategory>())
-            {
-                while (availableJobs.Count(j => j.Type == JobType.Cargo && j.Category == category) < this.minCargoJobs[(airport.Size ?? -1) + 1, (int)category])
-                {
-
-                }
-            }
-
-            return resultString;
-        }
-
-        private readonly int[,] minCargoJobs =
-        {
-            // SEP, MEP, SET, MET, JET, Regional, NBAirliner, WBAirliner, Helicopter
-            { 0, 0, 0, 0, 0, 0, 0, 0, 0 }, // -1
-            { 10, 0, 0, 0, 0, 0, 0, 0, 0 }, // 1
-            { 10, 0, 0, 0, 0, 0, 0, 0, 0 }, // 2
-            { 10, 0, 0, 0, 0, 0, 0, 0, 0 }, // 3
-            { 0, 0, 0, 0, 0, 0, 0, 0, 0 }, // 4
-            { 0, 0, 0, 0, 0, 0, 0, 0, 0 }, // 5
-            { 0, 0, 0, 0, 0, 0, 0, 0, 0 } // 6
-        };
-
-        private readonly Dictionary<AircraftTypeCategory, CargoJobCategory> cargoJobValues = new()
-        {
-            {
-                AircraftTypeCategory.SEP,
-                new CargoJobCategory
-                {
-                    Payload = 600,
-                    MinDistance = 5,
-                    MaxDistance = 150,
-                    PaymentPerNM = 0.3
-                }
-            }
-        };
-
     }
 }
