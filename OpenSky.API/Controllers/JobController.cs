@@ -18,6 +18,7 @@ namespace OpenSky.API.Controllers
     using Microsoft.Extensions.Logging;
 
     using OpenSky.API.DbModel;
+    using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Model;
     using OpenSky.API.Model.Authentication;
     using OpenSky.API.Services;
@@ -45,6 +46,13 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The job populator.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly JobPopulatorService jobPopulator;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The logger.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -56,13 +64,6 @@ namespace OpenSky.API.Controllers
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private readonly UserManager<OpenSkyUser> userManager;
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// The job populator.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private readonly JobPopulatorService jobPopulator;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -90,6 +91,173 @@ namespace OpenSky.API.Controllers
             this.db = db;
             this.userManager = userManager;
             this.jobPopulator = jobPopulator;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Aborts the specified job.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 18/12/2021.
+        /// </remarks>
+        /// <param name="jobID">
+        /// Identifier for the job.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields an ActionResult&lt;ApiResponse&lt;string&gt;&gt;
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpDelete("abort/{jobID:guid}", Name = "CancelJob")]
+        public async Task<ActionResult<ApiResponse<string>>> AbortJob(Guid jobID)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Job/abort/{jobID}");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string>("Unable to find user record!") { IsError = true };
+                }
+
+                var job = await this.db.Jobs.SingleOrDefaultAsync(j => j.ID == jobID);
+                if (job == null)
+                {
+                    return new ApiResponse<string>("Job not found!") { IsError = true };
+                }
+
+                if (!string.IsNullOrEmpty(job.OperatorID))
+                {
+                    // Personal job
+                    if (!job.OperatorID.Equals(user.Id))
+                    {
+                        return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                    }
+
+                    // Deduct 30% of job value as penalty
+                    user.PersonalAccountBalance -= (int)(job.Value * 0.3);
+                }
+                else if (!string.IsNullOrEmpty(job.OperatorAirlineID))
+                {
+                    // Airline job
+                    if (!job.OperatorAirlineID.Equals(user.AirlineICAO))
+                    {
+                        return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                    }
+
+                    if (!AirlineController.UserHasPermission(user, AirlinePermission.AbortJobs))
+                    {
+                        return new ApiResponse<string> { Message = "You don't have the permission to abort jobs for your airline!", IsError = true };
+                    }
+
+                    // todo deduct cancellation fee from airline account balance
+                }
+                else
+                {
+                    return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                }
+
+                // Are any payloads currently loaded onto any aircraft?
+                if (job.Payloads.Any(p => !string.IsNullOrEmpty(p.AircraftRegistry)))
+                {
+                    return new ApiResponse<string>("One or more the job's payloads are currently loaded onto an aircraft, you have to unload them before aborting the job!") { IsError = true };
+                }
+
+                // Remove job and it's payloads
+                this.db.Payloads.RemoveRange(job.Payloads);
+                this.db.Jobs.Remove(job);
+
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error aborting job");
+                if (saveEx != null)
+                {
+                    throw saveEx;
+                }
+
+                return new ApiResponse<string>("Successfully aborted job.");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Job/abort/{jobID}");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Accept the specified job.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 18/12/2021.
+        /// </remarks>
+        /// <param name="jobID">
+        /// Identifier for the job.
+        /// </param>
+        /// <param name="forAirline">
+        /// True to accept the job for the airline, false for private job.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields an ActionResult&lt;ApiResponse&lt;string&gt;&gt;
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPost("accept/{jobID:guid}/{forAirline:bool}", Name = "AcceptJob")]
+        public async Task<ActionResult<ApiResponse<string>>> AcceptJob(Guid jobID, bool forAirline)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Job/accept/{jobID}/{forAirline}");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string>("Unable to find user record!") { IsError = true };
+                }
+
+                if (string.IsNullOrEmpty(user.AirlineICAO) && forAirline)
+                {
+                    return new ApiResponse<string>("Not member of an airline!") { IsError = true };
+                }
+
+                if (!AirlineController.UserHasPermission(user, AirlinePermission.AcceptJobs) && forAirline)
+                {
+                    return new ApiResponse<string> { Message = "You don't have the permission to accept jobs for your airline!", IsError = true };
+                }
+
+                var job = await this.db.Jobs.SingleOrDefaultAsync(j => j.ID == jobID);
+                if (job == null)
+                {
+                    return new ApiResponse<string>("Job not found!") { IsError = true };
+                }
+
+                if (DateTime.UtcNow > job.ExpiresAt)
+                {
+                    return new ApiResponse<string>("This job is no longer available!") { IsError = true };
+                }
+
+                if (!string.IsNullOrEmpty(job.OperatorID) || !string.IsNullOrEmpty(job.OperatorAirlineID))
+                {
+                    return new ApiResponse<string>("This job is no longer available!") { IsError = true };
+                }
+
+                if (!forAirline)
+                {
+                    job.OperatorID = user.Id;
+                }
+                else
+                {
+                    job.OperatorAirlineID = user.AirlineICAO;
+                }
+
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error accepting job");
+                if (saveEx != null)
+                {
+                    throw saveEx;
+                }
+
+                return new ApiResponse<string>("Successfully accepted job.");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Job/accept/{jobID}/{forAirline}");
+                return new ApiResponse<string>(ex);
+            }
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -129,6 +297,45 @@ namespace OpenSky.API.Controllers
             catch (Exception ex)
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Job/atAirport/{icao}");
+                return new ApiResponse<IEnumerable<Job>>(ex) { Data = new List<Job>() };
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Get "my" jobs, both personal and airline (active only)
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 18/12/2021.
+        /// </remarks>
+        /// <returns>
+        /// An asynchronous result that yields my jobs.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet("myJobs", Name = "GetMyJobs")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<Job>>>> GetMyJobs()
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Job/myJobs");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<IEnumerable<Job>>("Unable to find user record!") { IsError = true, Data = new List<Job>() };
+                }
+
+                var jobs = await this.db.Jobs.Where(f => f.OperatorID == user.Id).ToListAsync();
+
+                if (!string.IsNullOrEmpty(user.AirlineICAO))
+                {
+                    jobs.AddRange(await this.db.Jobs.Where(f => f.OperatorAirlineID == user.AirlineICAO).ToListAsync());
+                }
+
+                return new ApiResponse<IEnumerable<Job>>(jobs);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Job/myJobs");
                 return new ApiResponse<IEnumerable<Job>>(ex) { Data = new List<Job>() };
             }
         }
