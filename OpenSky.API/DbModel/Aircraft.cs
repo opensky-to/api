@@ -128,6 +128,7 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("AirlineOwnerID")]
         [StringLength(3)]
+        [ConcurrencyCheck]
         public string AirlineOwnerID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -201,6 +202,7 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("Owner")]
         [StringLength(255)]
+        [ConcurrencyCheck]
         public string OwnerID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------

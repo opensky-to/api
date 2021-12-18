@@ -706,7 +706,7 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Get active flights (up to one currently flying and possibly multiple paused).
+        /// Get "my" active flights (up to one currently flying and possibly multiple paused).
         /// </summary>
         /// <remarks>
         /// sushi.at, 10/11/2021.

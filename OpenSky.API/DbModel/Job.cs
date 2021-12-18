@@ -57,6 +57,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The payloads.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<Payload> payloads;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Initializes a new instance of the <see cref="Job"/> class.
         /// </summary>
         /// <remarks>
@@ -173,6 +180,7 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("OperatorAirline")]
         [StringLength(3)]
+        [ConcurrencyCheck]
         public string OperatorAirlineID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -183,6 +191,7 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("Operator")]
         [StringLength(255)]
+        [ConcurrencyCheck]
         public string OperatorID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -230,7 +239,11 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the payloads.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public ICollection<Payload> Payloads { get; set; }
+        public ICollection<Payload> Payloads
+        {
+            get => this.LazyLoader.Load(this, ref this.payloads);
+            set => this.payloads = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

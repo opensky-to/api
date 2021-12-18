@@ -34,6 +34,7 @@ namespace OpenSky.API.DbModel.Enums
         AcceptJobs = 30,
         Dispatch = 31,
         OutsourceJobs = 32,
+        AbortJobs = 33,
 
         ModifyAircraft = 40,
         MaintainAircraft = 41,
