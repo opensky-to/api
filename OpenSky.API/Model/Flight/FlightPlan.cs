@@ -34,6 +34,7 @@ namespace OpenSky.API.Model.Flight
         public FlightPlan()
         {
             this.NavlogFixes = new List<FlightNavlogFix>();
+            this.Payloads = new List<FlightPayload>();
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -98,6 +99,7 @@ namespace OpenSky.API.Model.Flight
             this.AlternateRoute = flight.AlternateRoute;
             this.OfpHtml = flight.OfpHtml;
             this.NavlogFixes = flight.NavlogFixes ?? new List<FlightNavlogFix>();
+            this.Payloads = flight.FlightPayloads ?? new List<FlightPayload>();
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -194,6 +196,13 @@ namespace OpenSky.API.Model.Flight
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public ICollection<FlightNavlogFix> NavlogFixes { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the payloads.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public ICollection<FlightPayload> Payloads { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

@@ -7,6 +7,7 @@
 namespace OpenSky.API.DbModel
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
     using System.Text.Json.Serialization;
@@ -43,6 +44,13 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private Airport destination;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The flight payloads.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<FlightPayload> flightPayloads;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -145,6 +153,18 @@ namespace OpenSky.API.DbModel
         [ForeignKey("Destination")]
         [StringLength(5, MinimumLength = 3)]
         public string DestinationICAO { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the flight payloads.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        public ICollection<FlightPayload> FlightPayloads
+        {
+            get => this.LazyLoader.Load(this, ref this.flightPayloads);
+            set => this.flightPayloads = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

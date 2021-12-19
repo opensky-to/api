@@ -21,6 +21,7 @@ namespace OpenSky.API.Controllers
     using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Model;
     using OpenSky.API.Model.Authentication;
+    using OpenSky.API.Model.Job;
     using OpenSky.API.Services;
 
     /// -------------------------------------------------------------------------------------------------
@@ -107,7 +108,7 @@ namespace OpenSky.API.Controllers
         /// An asynchronous result that yields an ActionResult&lt;ApiResponse&lt;string&gt;&gt;
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpDelete("abort/{jobID:guid}", Name = "CancelJob")]
+        [HttpDelete("abort/{jobID:guid}", Name = "AbortJob")]
         public async Task<ActionResult<ApiResponse<string>>> AbortJob(Guid jobID)
         {
             try
@@ -324,11 +325,11 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<IEnumerable<Job>>("Unable to find user record!") { IsError = true, Data = new List<Job>() };
                 }
 
-                var jobs = await this.db.Jobs.Where(f => f.OperatorID == user.Id).ToListAsync();
+                var jobs = await this.db.Jobs.Where(j => j.OperatorID == user.Id).ToListAsync();
 
-                if (!string.IsNullOrEmpty(user.AirlineICAO))
+                if (!string.IsNullOrEmpty(user.AirlineICAO) && AirlineController.UserHasPermission(user, AirlinePermission.Dispatch))
                 {
-                    jobs.AddRange(await this.db.Jobs.Where(f => f.OperatorAirlineID == user.AirlineICAO).ToListAsync());
+                    jobs.AddRange(await this.db.Jobs.Where(f => f.OperatorAirlineID == user.AirlineICAO && (f.AssignedAirlineDispatcherID == null || f.AssignedAirlineDispatcherID == user.Id)).ToListAsync());
                 }
 
                 return new ApiResponse<IEnumerable<Job>>(jobs);
@@ -337,6 +338,46 @@ namespace OpenSky.API.Controllers
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Job/myJobs");
                 return new ApiResponse<IEnumerable<Job>>(ex) { Data = new List<Job>() };
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Get plannable payloads plus basic information about flights they are already planned for.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 19/12/2021.
+        /// </remarks>
+        /// <returns>
+        /// An asynchronous result that yields the plannable payloads.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet("plannablePayloads", Name = "GetPlannablePayloads")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<PlannablePayload>>>> GetPlannablePayloads()
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Job/plannablePayloads");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<IEnumerable<PlannablePayload>>("Unable to find user record!") { IsError = true, Data = new List<PlannablePayload>() };
+                }
+
+                var jobIDs = await this.db.Jobs.Where(j => j.OperatorID == user.Id).Select(j => j.ID).ToListAsync();
+                if (!string.IsNullOrEmpty(user.AirlineICAO) && AirlineController.UserHasPermission(user, AirlinePermission.Dispatch))
+                {
+                    jobIDs.AddRange(await this.db.Jobs.Where(f => f.OperatorAirlineID == user.AirlineICAO && (f.AssignedAirlineDispatcherID == null || f.AssignedAirlineDispatcherID == user.Id)).Select(j => j.ID).ToListAsync());
+                }
+
+                var plannablePayloads = this.db.Payloads.Where(p => jobIDs.Contains(p.JobID)).ToList().Select(p => new PlannablePayload(p));
+
+                return new ApiResponse<IEnumerable<PlannablePayload>>(plannablePayloads);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Job/plannablePayloads");
+                return new ApiResponse<IEnumerable<PlannablePayload>>(ex) { Data = new List<PlannablePayload>() };
             }
         }
     }

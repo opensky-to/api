@@ -1,115 +1,108 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="FlightPayload.cs" company="OpenSky">
+// <copyright file="PlannablePayload.cs" company="OpenSky">
 // OpenSky project 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace OpenSky.API.DbModel
+namespace OpenSky.API.Model.Job
 {
     using System;
-    using System.ComponentModel.DataAnnotations.Schema;
-    using System.Text.Json.Serialization;
+    using System.Collections.Generic;
 
-    using OpenSky.API.Helpers;
+    using OpenSky.API.DbModel;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Flight payload model.
+    /// (Flight)Plannable payload.
     /// </summary>
     /// <remarks>
-    /// sushi.at, 09/12/2021.
+    /// sushi.at, 19/12/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class FlightPayload
+    public class PlannablePayload
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The flight.
+        /// Initializes a new instance of the <see cref="PlannablePayload"/> class.
         /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private Flight flight;
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
+        /// <remarks>
+        /// sushi.at, 19/12/2021.
+        /// </remarks>
+        /// <param name="payload">
         /// The payload.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private Payload payload;
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Initializes a new instance of the <see cref="FlightPayload"/> class.
-        /// </summary>
-        /// <remarks>
-        /// sushi.at, 09/12/2021.
-        /// </remarks>
-        /// -------------------------------------------------------------------------------------------------
-        public FlightPayload()
-        {
-        }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Initializes a new instance of the <see cref="FlightPayload"/> class.
-        /// </summary>
-        /// <remarks>
-        /// sushi.at, 09/12/2021.
-        /// </remarks>
-        /// <param name="lazyLoader">
-        /// The lazy loader.
         /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public FlightPayload(Action<object, string> lazyLoader)
+        public PlannablePayload(Payload payload)
         {
-            this.LazyLoader = lazyLoader;
+            this.ID = payload.ID;
+            this.DestinationICAO = payload.DestinationICAO;
+            this.Weight = payload.Weight;
+            this.Description = payload.Description;
+            this.CurrentLocation = !string.IsNullOrEmpty(payload.AirportICAO) ? payload.AirportICAO : (!string.IsNullOrEmpty(payload.AircraftRegistry) ? payload.AircraftRegistry : "???");
+            this.Flights = new Dictionary<Guid, string>();
+            this.Destinations = new List<string>();
+            foreach (var flightPayload in payload.FlightPayloads)
+            {
+                var origin = !string.IsNullOrEmpty(flightPayload.Flight.OriginICAO) ? flightPayload.Flight.OriginICAO : "??";
+                var destination = !string.IsNullOrEmpty(flightPayload.Flight.DestinationICAO) ? flightPayload.Flight.DestinationICAO : "??";
+                var aircraft = !string.IsNullOrEmpty(flightPayload.Flight.AircraftRegistry) ? flightPayload.Flight.AircraftRegistry : "??";
+                var infoString = $"{flightPayload.Flight.FullFlightNumber}: {origin} ▷ {destination} [{aircraft}]";
+                this.Flights.Add(flightPayload.FlightID, infoString);
+
+                if (!string.IsNullOrEmpty(flightPayload.Flight.DestinationICAO) && !this.Destinations.Contains(flightPayload.Flight.DestinationICAO))
+                {
+                    this.Destinations.Add(flightPayload.Flight.DestinationICAO);
+                }
+            }
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the flight.
+        /// Gets or sets the current location (airport or aircraft).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [ForeignKey("FlightID")]
-        [JsonIgnore]
-        public Flight Flight
-        {
-            get => this.LazyLoader.Load(this, ref this.flight);
-            set => this.flight = value;
-        }
+        public string CurrentLocation { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the identifier of the flight.
+        /// Gets or sets the description.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [ForeignKey("Flight")]
-        public Guid FlightID { get; set; }
+        public string Description { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the payload.
+        /// Gets or sets destination ICAO code.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [ForeignKey("PayloadID")]
-        public Payload Payload
-        {
-            get => this.LazyLoader.Load(this, ref this.payload);
-            set => this.payload = value;
-        }
+        public string DestinationICAO { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the flights the payload is planned to fly on.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public Dictionary<Guid, string> Flights { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the destinations this payload is planning to go to.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public List<string> Destinations { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
         /// Gets or sets the identifier of the payload.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [ForeignKey("Payload")]
-        public Guid PayloadID { get; set; }
+        public Guid ID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets the lazy loader.
+        /// Gets or sets the weight in lbs.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private Action<object, string> LazyLoader { get; }
+        public double Weight { get; set; }
     }
 }

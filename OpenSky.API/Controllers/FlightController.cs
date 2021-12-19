@@ -1192,6 +1192,7 @@ namespace OpenSky.API.Controllers
 
                     await this.db.Flights.AddAsync(newFlight);
                     await this.db.FlightNavlogFixes.AddRangeAsync(flightPlan.NavlogFixes);
+                    await this.db.FlightPayloads.AddRangeAsync(flightPlan.Payloads);
                     var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving new flight plan");
                     if (saveEx != null)
                     {
@@ -1231,6 +1232,9 @@ namespace OpenSky.API.Controllers
 
                     this.db.FlightNavlogFixes.RemoveRange(existingFlight.NavlogFixes);
                     await this.db.FlightNavlogFixes.AddRangeAsync(flightPlan.NavlogFixes);
+
+                    this.db.FlightPayloads.RemoveRange(existingFlight.FlightPayloads);
+                    await this.db.FlightPayloads.AddRangeAsync(flightPlan.Payloads);
 
                     // Set these two anyway, in case flight was changed between private and airline flight
                     if (!flightPlan.IsAirlineFlight)
@@ -1379,6 +1383,20 @@ namespace OpenSky.API.Controllers
                 if (plan.Aircraft?.Status != "Idle")
                 {
                     return new ApiResponse<string>("The selected aircraft must be idle!") { IsError = true };
+                }
+
+                // Are all payloads either at the origin airport or already onboard the aircraft?
+                foreach (var flightPayload in plan.FlightPayloads)
+                {
+                    if (!string.IsNullOrEmpty(flightPayload.Payload.AirportICAO) && flightPayload.Payload.AirportICAO != plan.OriginICAO)
+                    {
+                        return new ApiResponse<string>("At least one payload hasn't reached the departure airport yet!") { IsError = true };
+                    }
+
+                    if (!string.IsNullOrEmpty(flightPayload.Payload.AircraftRegistry) && flightPayload.Payload.AircraftRegistry != plan.AircraftRegistry)
+                    {
+                        return new ApiResponse<string>("At least one payload is currently loaded on another aircraft!") { IsError = true };
+                    }
                 }
 
                 // All checks passed, start the flight and calculate the payload and fuel loading times
