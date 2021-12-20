@@ -40,6 +40,13 @@ namespace OpenSky.API.Controllers
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The aircraft populator service.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly AircraftPopulatorService aircraftPopulator;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The OpenSky database context.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -65,13 +72,6 @@ namespace OpenSky.API.Controllers
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private readonly UserManager<OpenSkyUser> userManager;
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// The aircraft populator service.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private readonly AircraftPopulatorService aircraftPopulator;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -241,6 +241,174 @@ namespace OpenSky.API.Controllers
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Aircraft/myAircraft");
                 return new ApiResponse<IEnumerable<Aircraft>>(ex) { Data = new List<Aircraft>() };
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Perform ground operations for the specified aircraft.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 20/12/2021.
+        /// </remarks>
+        /// <param name="operations">
+        /// The operations to be performed (fuel and payload loading).
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields an ActionResult&lt;ApiResponse&lt;string&gt;&gt;
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPut("groundOperations", Name = "PerformGroundOperations")]
+        public async Task<ActionResult<ApiResponse<string>>> PerformGroundOperations([FromBody] GroundOperations operations)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | PUT Aircraft/groundOperations/{operations.Registry}");
+
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
+                }
+
+                var aircraft = await this.db.Aircraft.SingleOrDefaultAsync(a => a.Registry.Equals(operations.Registry));
+                if (aircraft == null)
+                {
+                    return new ApiResponse<string>("Aircraft not found!") { IsError = true };
+                }
+
+                // Can start flight only works if idle or ground operations, we have the same requirements (aka no active flights or maintenance)
+                if (!aircraft.CanStartFlight)
+                {
+                    return new ApiResponse<string>("Aircraft not available for ground operations!") { IsError = true };
+                }
+
+                if (!string.IsNullOrEmpty(aircraft.AirlineOwnerID))
+                {
+                    if (aircraft.AirlineOwnerID != user.AirlineICAO)
+                    {
+                        return new ApiResponse<string>("You airline doesn't own this aircraft!") { IsError = true };
+                    }
+
+                    // todo also check for assigned airline pilot
+                    if (!AirlineController.UserHasPermission(user, AirlinePermission.PerformGroundOperations))
+                    {
+                        return new ApiResponse<string>("You don't have the permission to perform ground operations for your airline!") { IsError = true };
+                    }
+                }
+
+                if (aircraft.OwnerID != user.Id)
+                {
+                    return new ApiResponse<string>("You don't own this aircraft!") { IsError = true };
+                }
+
+                // Any changes to these figures need to be mirrored in the FlightController.StartFlight method
+                var gallonsPerMinute = aircraft.Type.Category switch
+                {
+                    AircraftTypeCategory.SEP => 25,
+                    AircraftTypeCategory.MEP => 25,
+                    AircraftTypeCategory.SET => 50,
+                    AircraftTypeCategory.MET => 50,
+                    AircraftTypeCategory.JET => 50,
+                    AircraftTypeCategory.REG => 600,
+                    AircraftTypeCategory.NBA => 600,
+                    AircraftTypeCategory.WBA => 1200,
+                    AircraftTypeCategory.HEL => 50,
+                    _ => 0.0
+                };
+                var gallonsToTransfer = Math.Abs(aircraft.Fuel - operations.Fuel);
+                if (gallonsPerMinute > 0 && gallonsToTransfer > 0)
+                {
+                    if (aircraft.FuellingUntil.HasValue && aircraft.FuellingUntil.Value > DateTime.UtcNow)
+                    {
+                        aircraft.FuellingUntil += TimeSpan.FromMinutes(gallonsToTransfer / gallonsPerMinute);
+                    }
+                    else
+                    {
+                        // New fuelling operation, add 3 minutes for arrival of fuel truck
+                        aircraft.FuellingUntil = DateTime.UtcNow.AddMinutes(3 + (gallonsToTransfer / gallonsPerMinute));
+                    }
+                }
+
+                // Any changes to these figures need to be mirrored in the FlightController.StartFlight method
+                var lbsPerMinute = aircraft.Type.Category switch
+                {
+                    AircraftTypeCategory.SEP => 225,
+                    AircraftTypeCategory.MEP => 225,
+                    AircraftTypeCategory.SET => 225,
+                    AircraftTypeCategory.MET => 350,
+                    AircraftTypeCategory.JET => 350,
+                    AircraftTypeCategory.REG => 1500,
+                    AircraftTypeCategory.NBA => 2000,
+                    AircraftTypeCategory.WBA => 3300,
+                    AircraftTypeCategory.HEL => 350,
+                    _ => 0.0
+                };
+                var lbsToTransfer = 0.0;
+
+                // First check for payloads to be removed
+                foreach (var aircraftPayload in aircraft.Payloads.ToList())
+                {
+                    if (!operations.Payloads.Contains(aircraftPayload.ID))
+                    {
+                        lbsToTransfer += aircraftPayload.Weight;
+                        aircraftPayload.AirportICAO = aircraft.AirportICAO;
+                        aircraftPayload.AircraftRegistry = null;
+                    }
+                }
+
+                // Check for payloads to be loaded
+                foreach (var payloadID in operations.Payloads)
+                {
+                    var payload = await this.db.Payloads.SingleOrDefaultAsync(p => p.ID == payloadID);
+                    if (payload == null)
+                    {
+                        return new ApiResponse<string>("Unknown payload ID specified!") { IsError = true };
+                    }
+
+                    if (!string.IsNullOrEmpty(payload.AircraftRegistry) && payload.AircraftRegistry != aircraft.Registry)
+                    {
+                        return new ApiResponse<string>("Can't transfer payload directly between two aircraft!") { IsError = true };
+                    }
+
+                    if (!string.IsNullOrEmpty(payload.AirportICAO))
+                    {
+                        if (payload.AirportICAO != aircraft.AirportICAO)
+                        {
+                            return new ApiResponse<string>("Specified payload is not at the same airport as the aircraft!") { IsError = true };
+                        }
+
+                        lbsToTransfer += payload.Weight;
+                        payload.AircraftRegistry = aircraft.Registry;
+                        payload.AirportICAO = null;
+                    }
+                }
+
+                if (lbsPerMinute > 0 && lbsToTransfer > 0)
+                {
+                    if (aircraft.LoadingUntil.HasValue && aircraft.LoadingUntil.Value > DateTime.UtcNow)
+                    {
+                        aircraft.LoadingUntil += TimeSpan.FromMinutes(lbsToTransfer / lbsPerMinute);
+                    }
+                    else
+                    {
+                        // New loading operation, add 1 minute for arrival of cargo/pax
+                        aircraft.LoadingUntil = DateTime.UtcNow.AddMinutes(1 + (lbsToTransfer / lbsPerMinute));
+                    }
+                }
+
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error starting ground operations.");
+                if (saveEx != null)
+                {
+                    throw saveEx;
+                }
+
+                return new ApiResponse<string>($"Successfully started ground operations for aircraft {operations.Registry}");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | PUT Aircraft/groundOperations/{operations.Registry}");
+                return new ApiResponse<string>(ex);
             }
         }
 
@@ -443,7 +611,7 @@ namespace OpenSky.API.Controllers
         {
             try
             {
-                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Aircraft/update/{updateAircraft.Registry}");
+                this.logger.LogInformation($"{this.User.Identity?.Name} | PUT Aircraft/update/{updateAircraft.Registry}");
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
@@ -510,7 +678,7 @@ namespace OpenSky.API.Controllers
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Aircraft/update/{updateAircraft.Registry}");
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | PUT Aircraft/update/{updateAircraft.Registry}");
                 return new ApiResponse<string>(ex);
             }
         }

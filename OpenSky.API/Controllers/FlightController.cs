@@ -1427,6 +1427,7 @@ namespace OpenSky.API.Controllers
                 // All checks passed, start the flight and calculate the payload and fuel loading times
                 plan.Started = DateTime.UtcNow;
 
+                // Any changes to these figures need to be mirrored in the AircraftController.PerformGroundOperations method
                 var gallonsPerMinute = plan.Aircraft.Type.Category switch
                 {
                     AircraftTypeCategory.SEP => 25,
@@ -1449,6 +1450,7 @@ namespace OpenSky.API.Controllers
                     plan.Aircraft.FuellingUntil = null;
                 }
 
+                // Any changes to these figures need to be mirrored in the AircraftController.PerformGroundOperations method
                 var lbsPerMinute = plan.Aircraft.Type.Category switch
                 {
                     AircraftTypeCategory.SEP => 225,
@@ -1489,7 +1491,7 @@ namespace OpenSky.API.Controllers
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, $"Error starting flight {flightID}.");
                 if (saveEx != null)
                 {
-                    return new ApiResponse<string>("Error starting flight.", saveEx);
+                    throw saveEx;
                 }
 
                 return new ApiResponse<string>($"Flight {plan.FullFlightNumber} started successfully, remember to keep the rubber on the runway and your troubles on the ground!");
