@@ -399,6 +399,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets a value indicating whether the aircraft needs a flight engineer.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public bool NeedsFlightEngineer { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the next version of this aircraft type - to migrate existing aircraft to this
         /// new type.
         /// </summary>

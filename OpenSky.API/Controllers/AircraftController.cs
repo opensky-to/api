@@ -325,6 +325,7 @@ namespace OpenSky.API.Controllers
                 var gallonsToTransfer = Math.Abs(aircraft.Fuel - operations.Fuel);
                 if (gallonsPerMinute > 0 && gallonsToTransfer > 0)
                 {
+                    aircraft.Fuel = operations.Fuel;
                     if (aircraft.FuellingUntil.HasValue && aircraft.FuellingUntil.Value > DateTime.UtcNow)
                     {
                         aircraft.FuellingUntil += TimeSpan.FromMinutes(gallonsToTransfer / gallonsPerMinute);

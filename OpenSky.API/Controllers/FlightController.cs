@@ -150,7 +150,7 @@ namespace OpenSky.API.Controllers
                 {
                     if (flight.Aircraft.FuellingUntil.HasValue && flight.Aircraft.FuellingUntil.Value > DateTime.UtcNow)
                     {
-                        flight.Aircraft.FuellingUntil += DateTime.UtcNow - flight.FuelLoadingComplete.Value;
+                        flight.Aircraft.FuellingUntil += flight.FuelLoadingComplete.Value - DateTime.UtcNow;
                     }
                     else
                     {
@@ -161,7 +161,7 @@ namespace OpenSky.API.Controllers
                 {
                     if (flight.Aircraft.LoadingUntil.HasValue && flight.Aircraft.LoadingUntil.Value > DateTime.UtcNow)
                     {
-                        flight.Aircraft.LoadingUntil += DateTime.UtcNow - flight.PayloadLoadingComplete.Value;
+                        flight.Aircraft.LoadingUntil += flight.PayloadLoadingComplete.Value - DateTime.UtcNow;
                     }
                     else
                     {
@@ -1411,7 +1411,7 @@ namespace OpenSky.API.Controllers
                 }
 
                 // Can the aircraft start a new flight?
-                if (plan.Aircraft?.CanStartFlight == true)
+                if (plan.Aircraft?.CanStartFlight != true)
                 {
                     return new ApiResponse<string>("The selected aircraft isn't available right now!") { IsError = true };
                 }
@@ -1452,8 +1452,9 @@ namespace OpenSky.API.Controllers
                 if (plan.Aircraft.FuellingUntil.HasValue && plan.Aircraft.FuellingUntil.Value > DateTime.UtcNow)
                 {
                     // Aircraft still has fuelling time left, add to the flight and remove from aircraft
-                    plan.FuelLoadingComplete += DateTime.UtcNow - plan.Aircraft.FuellingUntil.Value;
+                    plan.FuelLoadingComplete += plan.Aircraft.FuellingUntil.Value - DateTime.UtcNow;
                     plan.Aircraft.FuellingUntil = null;
+                    plan.Aircraft.Fuel = plan.FuelGallons.Value;
                 }
 
                 // Any changes to these figures need to be mirrored in the AircraftController.PerformGroundOperations method
@@ -1484,7 +1485,7 @@ namespace OpenSky.API.Controllers
                 if (plan.Aircraft.LoadingUntil.HasValue && plan.Aircraft.LoadingUntil.Value > DateTime.UtcNow)
                 {
                     // Aircraft still has loading time left, add to the flight and remove from aircraft
-                    plan.PayloadLoadingComplete += DateTime.UtcNow - plan.Aircraft.LoadingUntil.Value;
+                    plan.PayloadLoadingComplete += plan.Aircraft.LoadingUntil.Value - DateTime.UtcNow;
                     plan.Aircraft.LoadingUntil = null;
                 }
 
