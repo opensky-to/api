@@ -337,7 +337,7 @@ namespace OpenSky.API.Controllers
                     }
                 }
 
-                // Any changes to these figures need to be mirrored in the FlightController.StartFlight method
+                // Any changes to these figures need to be mirrored in the FlightController.StartFlight and FlightController.CompleteFlight method
                 var lbsPerMinute = aircraft.Type.Category switch
                 {
                     AircraftTypeCategory.SEP => 225,
