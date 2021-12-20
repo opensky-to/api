@@ -9,6 +9,7 @@ namespace OpenSky.API.Controllers
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Linq.Dynamic.Core;
     using System.Threading.Tasks;
 
     using Microsoft.AspNetCore.Authorization;
@@ -22,6 +23,7 @@ namespace OpenSky.API.Controllers
     using OpenSky.API.Model;
     using OpenSky.API.Model.Authentication;
     using OpenSky.API.Model.Flight;
+    using OpenSky.S2Geometry.Extensions;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -371,12 +373,43 @@ namespace OpenSky.API.Controllers
                     }
                     else
                     {
-                        // todo check where we are (closest airport)
+                        // Check where we are (closest airport)
+                        var coverage = finalReport.FinalPositionReport.GeoCoordinate.CircularCoverage(10);
+                        var cells = coverage.Cells.Select(c => c.Id).ToList();
+                        var airports = await this.db.Airports.Where($"@0.Contains(S2Cell{coverage.Level})", cells).ToListAsync();
+                        if (airports.Count == 0)
+                        {
+                            // Landed at no airport, back to origin!
+                            flight.Aircraft.AirportICAO = flight.OriginICAO;
+                            flight.LandedAtICAO = flight.OriginICAO;
+                        }
+                        else
+                        {
+                            Airport closest = null;
+                            double closestDistance = 9999;
+                            foreach (var airport in airports)
+                            {
+                                var distance = airport.GeoCoordinate.GetDistanceTo(finalReport.FinalPositionReport.GeoCoordinate);
+                                if (distance < closestDistance)
+                                {
+                                    closestDistance = distance;
+                                    closest = airport;
+                                }
+                            }
 
+                            if (closest != null)
+                            {
+                                flight.Aircraft.AirportICAO = closest.ICAO;
+                                flight.LandedAtICAO = closest.ICAO;
+                            }
+                            else
+                            {
+                                // Should not happen, take first airport from list I guess?
+                                flight.Aircraft.AirportICAO = airports[0].ICAO;
+                                flight.LandedAtICAO = airports[0].ICAO;
+                            }
+                        }
                     }
-
-                    flight.Aircraft.AirportICAO = flight.DestinationICAO; // todo only for now while testing!
-                    flight.LandedAtICAO = flight.DestinationICAO;
                 }
                 else
                 {
@@ -384,12 +417,87 @@ namespace OpenSky.API.Controllers
                     flight.LandedAtICAO = flight.OriginICAO;
                 }
 
+                // Sum up final fuel values and update aircraft
                 flight.Aircraft.Fuel = finalReport.FinalPositionReport.FuelTankCenterQuantity + finalReport.FinalPositionReport.FuelTankCenter2Quantity + finalReport.FinalPositionReport.FuelTankCenter3Quantity +
                                        finalReport.FinalPositionReport.FuelTankLeftMainQuantity + finalReport.FinalPositionReport.FuelTankLeftAuxQuantity + finalReport.FinalPositionReport.FuelTankLeftTipQuantity +
                                        finalReport.FinalPositionReport.FuelTankRightMainQuantity + finalReport.FinalPositionReport.FuelTankRightAuxQuantity + finalReport.FinalPositionReport.FuelTankRightTipQuantity +
                                        finalReport.FinalPositionReport.FuelTankExternal1Quantity + finalReport.FinalPositionReport.FuelTankExternal2Quantity;
 
-                // todo complete jobs and pay out (if aircraft landed at correct airport)
+                // Did any payloads reach their destination?
+                if (!string.IsNullOrEmpty(flight.LandedAtICAO))
+                {
+                    // Any changes to these figures need to be mirrored in the AircraftController.PerformGroundOperations and FlightController.StartFlight method
+                    var lbsPerMinute = flight.Aircraft.Type.Category switch
+                    {
+                        AircraftTypeCategory.SEP => 225,
+                        AircraftTypeCategory.MEP => 225,
+                        AircraftTypeCategory.SET => 225,
+                        AircraftTypeCategory.MET => 350,
+                        AircraftTypeCategory.JET => 350,
+                        AircraftTypeCategory.REG => 1500,
+                        AircraftTypeCategory.NBA => 2000,
+                        AircraftTypeCategory.WBA => 3300,
+                        AircraftTypeCategory.HEL => 350,
+                        _ => 0.0
+                    };
+                    var lbsToTransfer = 0.0;
+                    var jobIDsToCheck = new HashSet<Guid>();
+                    var payloadsArrived = new List<Guid>();
+                    foreach (var flightPayload in flight.FlightPayloads)
+                    {
+                        if (flightPayload.Payload.DestinationICAO == flight.LandedAtICAO)
+                        {
+                            lbsToTransfer += flightPayload.Payload.Weight;
+                            flightPayload.Payload.AirportICAO = flight.LandedAtICAO;
+                            flightPayload.Payload.AircraftRegistry = null;
+                            jobIDsToCheck.Add(flightPayload.Payload.JobID);
+                            payloadsArrived.Add(flightPayload.PayloadID);
+                        }
+                    }
+
+                    if (lbsPerMinute > 0 && lbsToTransfer > 0)
+                    {
+                        // Start payload loading timer (starts after warp is complete)
+                        flight.Aircraft.LoadingUntil = DateTime.UtcNow.AddSeconds(flight.TimeWarpTimeSavedSeconds).AddMinutes(1 + (lbsToTransfer / lbsPerMinute));
+                    }
+
+                    foreach (var jobID in jobIDsToCheck)
+                    {
+                        var job = await this.db.Jobs.SingleOrDefaultAsync(j => j.ID == jobID);
+                        if (job != null)
+                        {
+                            var allPayloadsArrived = true;
+                            foreach (var payload in job.Payloads)
+                            {
+                                if (payload.AirportICAO != payload.DestinationICAO && !payloadsArrived.Contains(payload.ID))
+                                {
+                                    allPayloadsArrived = false;
+                                }
+                            }
+
+                            if (allPayloadsArrived)
+                            {
+                                // Job complete, pay out the money and then delete it
+                                var value = job.ExpiresAt > DateTime.UtcNow ? job.Value : (int)(job.Value * 0.7); // Deduct 30% if delivered late
+                                if (job.Operator != null)
+                                {
+                                    job.Operator.PersonalAccountBalance += value;
+                                }
+
+                                if (job.OperatorAirline != null)
+                                {
+                                    // todo add value to airline account balance
+                                }
+
+                                // todo also add some kind of financial record for this
+
+                                this.db.Payloads.RemoveRange(job.Payloads);
+                                this.db.Jobs.Remove(job);
+                            }
+                        }
+                    }
+                }
+
                 // todo calculate wear and tear on the aircraft
                 // todo check final log for signs of cheating?
                 // todo calculate final reputation/xp/whatever based on flight
@@ -1457,7 +1565,7 @@ namespace OpenSky.API.Controllers
                     plan.Aircraft.Fuel = plan.FuelGallons.Value;
                 }
 
-                // Any changes to these figures need to be mirrored in the AircraftController.PerformGroundOperations method
+                // Any changes to these figures need to be mirrored in the AircraftController.PerformGroundOperations and FlightController.CompleteFlight method
                 var lbsPerMinute = plan.Aircraft.Type.Category switch
                 {
                     AircraftTypeCategory.SEP => 225,
