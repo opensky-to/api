@@ -1385,6 +1385,12 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("Flight plan has no fuel value!") { IsError = true };
                 }
 
+                // Invalid fuel value?
+                if (plan.FuelGallons.Value < 0 || plan.FuelGallons.Value > plan.Aircraft.Type.FuelTotalCapacity)
+                {
+                    return new ApiResponse<string>("Invalid fuel amount!") { IsError = true };
+                }
+
                 // Has the flight started already?
                 if (plan.Started.HasValue)
                 {

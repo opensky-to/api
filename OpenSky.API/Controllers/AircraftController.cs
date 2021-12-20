@@ -302,6 +302,12 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("You don't own this aircraft!") { IsError = true };
                 }
 
+                // Invalid fuel value?
+                if (operations.Fuel < 0 || operations.Fuel > aircraft.Type.FuelTotalCapacity)
+                {
+                    return new ApiResponse<string>("Invalid fuel amount!") { IsError = true };
+                }
+
                 // Any changes to these figures need to be mirrored in the FlightController.StartFlight method
                 var gallonsPerMinute = aircraft.Type.Category switch
                 {
@@ -650,6 +656,11 @@ namespace OpenSky.API.Controllers
                 if (aircraft.OwnerID != user.Id)
                 {
                     return new ApiResponse<string>("You don't own this aircraft!") { IsError = true };
+                }
+
+                if (!aircraft.CanStartFlight)
+                {
+                    return new ApiResponse<string>("You currently can't edit this aircraft!") { IsError = true };
                 }
 
                 // Check if the user wants to change the variant
