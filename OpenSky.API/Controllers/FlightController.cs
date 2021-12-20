@@ -145,13 +145,37 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("Can't abort flights that have been completed!") { IsError = true };
                 }
 
+                // Are there any fuelling/loading times left on the flight that need to be transferred back to the aircraft?
+                if (flight.FuelLoadingComplete.HasValue && flight.FuelLoadingComplete.Value > DateTime.UtcNow)
+                {
+                    if (flight.Aircraft.FuellingUntil.HasValue && flight.Aircraft.FuellingUntil.Value > DateTime.UtcNow)
+                    {
+                        flight.Aircraft.FuellingUntil += DateTime.UtcNow - flight.FuelLoadingComplete.Value;
+                    }
+                    else
+                    {
+                        flight.Aircraft.FuellingUntil = flight.FuelLoadingComplete.Value;
+                    }
+                }
+                if (flight.PayloadLoadingComplete.HasValue && flight.PayloadLoadingComplete.Value > DateTime.UtcNow)
+                {
+                    if (flight.Aircraft.LoadingUntil.HasValue && flight.Aircraft.LoadingUntil.Value > DateTime.UtcNow)
+                    {
+                        flight.Aircraft.LoadingUntil += DateTime.UtcNow - flight.PayloadLoadingComplete.Value;
+                    }
+                    else
+                    {
+                        flight.Aircraft.LoadingUntil = flight.PayloadLoadingComplete.Value;
+                    }
+                }
+
                 // Check if/what penalties to apply
                 if (flight.OnGround)
                 {
                     // What's the closes airport to the current location?
                     if (flight.Latitude.HasValue && flight.Longitude.HasValue)
                     {
-                        // todo what's the closes airport, move the aircraft there
+                        // todo what's the closest airport, move the aircraft there
                         // todo also apply any time-warp to the aircraft
 
                         flight.Started = null;
@@ -1338,7 +1362,7 @@ namespace OpenSky.API.Controllers
                 }
 
                 // Aircraft not selected?
-                if (string.IsNullOrEmpty(plan.AircraftRegistry))
+                if (string.IsNullOrEmpty(plan.AircraftRegistry) || plan.Aircraft == null)
                 {
                     return new ApiResponse<string>("Flight plan has no assigned aircraft!") { IsError = true };
                 }
@@ -1374,15 +1398,16 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("You already have another flight in progress! Please complete or pause the other flight before starting a new one.") { IsError = true };
                 }
 
-                // Is the aircraft at the origin airport and idle?
+                // Is the aircraft at the origin airport?
                 if (!plan.OriginICAO.Equals(plan.Aircraft?.AirportICAO))
                 {
                     return new ApiResponse<string>("The selected aircraft is not at the departure airport!") { IsError = true, Data = "AircraftNotAtOrigin" };
                 }
 
-                if (plan.Aircraft?.Status != "Idle")
+                // Can the aircraft start a new flight?
+                if (plan.Aircraft?.CanStartFlight == true)
                 {
-                    return new ApiResponse<string>("The selected aircraft must be idle!") { IsError = true };
+                    return new ApiResponse<string>("The selected aircraft isn't available right now!") { IsError = true };
                 }
 
                 // Are all payloads either at the origin airport or already onboard the aircraft?
@@ -1402,18 +1427,58 @@ namespace OpenSky.API.Controllers
                 // All checks passed, start the flight and calculate the payload and fuel loading times
                 plan.Started = DateTime.UtcNow;
 
-                var gallonsPerMinute = plan.Aircraft.Type.FuelType switch
+                var gallonsPerMinute = plan.Aircraft.Type.Category switch
                 {
-                    FuelType.JetFuel => 500,
-                    FuelType.AvGas => 8,
-                    FuelType.None => 0,
+                    AircraftTypeCategory.SEP => 25,
+                    AircraftTypeCategory.MEP => 25,
+                    AircraftTypeCategory.SET => 50,
+                    AircraftTypeCategory.MET => 50,
+                    AircraftTypeCategory.JET => 50,
+                    AircraftTypeCategory.REG => 600,
+                    AircraftTypeCategory.NBA => 600,
+                    AircraftTypeCategory.WBA => 1200,
+                    AircraftTypeCategory.HEL => 50,
                     _ => 0.0
                 };
                 var gallonsToTransfer = Math.Abs(plan.Aircraft.Fuel - plan.FuelGallons.Value);
-                plan.FuelLoadingComplete = gallonsPerMinute > 0 && gallonsToTransfer > 0 ? DateTime.UtcNow.AddMinutes(3 + gallonsToTransfer / gallonsPerMinute) : DateTime.UtcNow;
+                plan.FuelLoadingComplete = gallonsPerMinute > 0 && gallonsToTransfer > 0 ? DateTime.UtcNow.AddMinutes(3 + (gallonsToTransfer / gallonsPerMinute)) : DateTime.UtcNow;
+                if (plan.Aircraft.FuellingUntil.HasValue && plan.Aircraft.FuellingUntil.Value > DateTime.UtcNow)
+                {
+                    // Aircraft still has fuelling time left, add to the flight and remove from aircraft
+                    plan.FuelLoadingComplete += DateTime.UtcNow - plan.Aircraft.FuellingUntil.Value;
+                    plan.Aircraft.FuellingUntil = null;
+                }
 
-                // todo add payload calculation once we have that
-                plan.PayloadLoadingComplete = DateTime.UtcNow;
+                var lbsPerMinute = plan.Aircraft.Type.Category switch
+                {
+                    AircraftTypeCategory.SEP => 225,
+                    AircraftTypeCategory.MEP => 225,
+                    AircraftTypeCategory.SET => 225,
+                    AircraftTypeCategory.MET => 350,
+                    AircraftTypeCategory.JET => 350,
+                    AircraftTypeCategory.REG => 1500,
+                    AircraftTypeCategory.NBA => 2000,
+                    AircraftTypeCategory.WBA => 3300,
+                    AircraftTypeCategory.HEL => 350,
+                    _ => 0.0
+                };
+                var lbsToTransfer = 0.0;
+                foreach (var flightPayload in plan.FlightPayloads)
+                {
+                    if (!string.IsNullOrEmpty(flightPayload.Payload.AirportICAO))
+                    {
+                        lbsToTransfer += flightPayload.Payload.Weight;
+                        flightPayload.Payload.AirportICAO = null;
+                        flightPayload.Payload.AircraftRegistry = plan.AircraftRegistry;
+                    }
+                }
+                plan.PayloadLoadingComplete = lbsPerMinute > 0 && lbsToTransfer > 0 ? DateTime.UtcNow.AddMinutes(1 + (lbsToTransfer / lbsPerMinute)) : DateTime.UtcNow;
+                if (plan.Aircraft.LoadingUntil.HasValue && plan.Aircraft.LoadingUntil.Value > DateTime.UtcNow)
+                {
+                    // Aircraft still has loading time left, add to the flight and remove from aircraft
+                    plan.PayloadLoadingComplete += DateTime.UtcNow - plan.Aircraft.LoadingUntil.Value;
+                    plan.Aircraft.LoadingUntil = null;
+                }
 
                 // No alternate set?, set to origin (return to base)
                 if (string.IsNullOrEmpty(plan.AlternateICAO))
