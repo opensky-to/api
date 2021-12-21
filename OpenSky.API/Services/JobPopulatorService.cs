@@ -7,12 +7,17 @@
 namespace OpenSky.API.Services
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
 
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+
+    using OpenSky.API.DbModel;
+    using OpenSky.API.Model.Job;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -86,11 +91,14 @@ namespace OpenSky.API.Services
         /// <param name="icao">
         /// The ICAO code of the airport to process.
         /// </param>
+        /// <param name="direction">
+        /// The direction of jobs to generate.
+        /// </param>
         /// <returns>
         /// An asynchronous result returning an information string about what jobs were generated.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        public async Task<string> CheckAndGenerateJobsForAirport(string icao)
+        public async Task<string> CheckAndGenerateJobsForAirport(string icao, JobDirection direction)
         {
             // Check if there is an airport with that ICAO code
             var airport = this.db.Airports.SingleOrDefault(a => a.ICAO == icao);
@@ -112,7 +120,7 @@ namespace OpenSky.API.Services
             }
 
             var started = DateTime.Now;
-            var infoText = $"Checking and generating jobs for airport {icao}:\r\n";
+            var infoText = $"Checking and generating jobs for airport {icao}, direction [{direction}]:\r\n";
 
             // Remove expired jobs
             var expiredJobs = airport.Jobs.Where(j => j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt <= DateTime.Now);
@@ -124,12 +132,26 @@ namespace OpenSky.API.Services
             }
 
             // How many jobs are currently still available at this airport?
-            var availableJobs = airport.Jobs.Where(j => j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now).ToList();
+            var availableJobs = new List<Job>();
+            if (direction == JobDirection.From)
+            {
+                availableJobs = await this.db.Jobs.Where(j => j.OriginICAO == icao && j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now).ToListAsync();
+            }
+
+            if (direction == JobDirection.To)
+            {
+                availableJobs = await this.db.Jobs.Where(j => j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now && j.Payloads.Any(p => p.DestinationICAO == icao)).ToListAsync();
+            }
+
+            if (direction == JobDirection.RoundTrip)
+            {
+                availableJobs = await this.db.Jobs.Where(j => j.OriginICAO == icao && j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now && j.Payloads.Any(p => p.DestinationICAO == icao)).ToListAsync();
+            }
 
             // Create the different job types
-            infoText += await this.CheckAndGenerateCargoJobsForAirport(airport, availableJobs);
+            infoText += await this.CheckAndGenerateCargoJobsForAirport(airport, availableJobs, direction);
 
-            infoText += $"Finished processing job creation for airport {icao} after {(DateTime.Now - started).TotalSeconds:F2} seconds.";
+            infoText += $"Finished processing job creation for airport {icao}, direction [{direction}] after {(DateTime.Now - started).TotalSeconds:F2} seconds.";
             return infoText;
         }
     }

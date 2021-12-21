@@ -271,16 +271,19 @@ namespace OpenSky.API.Controllers
         /// <param name="icao">
         /// The ICAO code of the airport.
         /// </param>
+        /// <param name="direction">
+        /// The direction of the jobs to return.
+        /// </param>
         /// <returns>
         /// An asynchronous result that yields the jobs at airport.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpGet("atAirport/{icao}", Name = "GetJobsAtAirport")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<Job>>>> GetJobsAtAirport(string icao)
+        [HttpGet("atAirport/{icao}/{direction}", Name = "GetJobsAtAirport")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<Job>>>> GetJobsAtAirport(string icao, JobDirection direction)
         {
             try
             {
-                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Job/atAirport/{icao}");
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Job/atAirport/{icao}/{direction}");
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
@@ -288,16 +291,32 @@ namespace OpenSky.API.Controllers
                 }
 
                 // Make sure there are enough jobs at this airport
-                var jobResult = await this.jobPopulator.CheckAndGenerateJobsForAirport(icao);
+                var jobResult = await this.jobPopulator.CheckAndGenerateJobsForAirport(icao, direction);
                 this.logger.LogInformation(jobResult);
 
-                var jobs = await this.db.Jobs.Where(j => j.OriginICAO == icao && j.OperatorID == null && j.OperatorAirlineID == null).ToListAsync();
+                if (direction == JobDirection.From)
+                {
+                    var jobs = await this.db.Jobs.Where(j => j.OriginICAO == icao && j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now).ToListAsync();
+                    return new ApiResponse<IEnumerable<Job>>(jobs);
+                }
 
-                return new ApiResponse<IEnumerable<Job>>(jobs);
+                if (direction == JobDirection.To)
+                {
+                    var jobs = await this.db.Jobs.Where(j => j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now && j.Payloads.Any(p => p.DestinationICAO == icao)).ToListAsync();
+                    return new ApiResponse<IEnumerable<Job>>(jobs);
+                }
+
+                if (direction == JobDirection.RoundTrip)
+                {
+                    var jobs = await this.db.Jobs.Where(j => j.OriginICAO == icao && j.OperatorID == null && j.ExpiresAt > DateTime.Now && j.OperatorAirlineID == null && j.Payloads.Any(p => p.DestinationICAO == icao)).ToListAsync();
+                    return new ApiResponse<IEnumerable<Job>>(jobs);
+                }
+
+                throw new Exception("Unsupported job direction.");
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Job/atAirport/{icao}");
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Job/atAirport/{icao}/{direction}");
                 return new ApiResponse<IEnumerable<Job>>(ex) { Data = new List<Job>() };
             }
         }
