@@ -55,6 +55,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The payloads currently loaded onto this aircraft.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<Payload> payloads;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The aircraft type.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -121,6 +128,7 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("AirlineOwnerID")]
         [StringLength(3)]
+        [ConcurrencyCheck]
         public string AirlineOwnerID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -149,6 +157,39 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Can the aircraft currently start a new flight?
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [NotMapped]
+        public bool CanStartFlight
+        {
+            get
+            {
+                if (this.Flights != null)
+                {
+                    // Check for active flight
+                    var activeFlight = this.Flights.SingleOrDefault(f => f.Started.HasValue && !f.Completed.HasValue);
+                    if (activeFlight != null)
+                    {
+                        return false;
+                    }
+
+                    if (this.WarpingUntil.HasValue && this.WarpingUntil.Value > DateTime.UtcNow)
+                    {
+                        return false;
+                    }
+
+                    // todo return repair/etc. status
+
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the flights.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -165,6 +206,80 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public double Fuel { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the Date/Time until the aircraft is fuelling.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public DateTime? FuellingUntil { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the current heading of the aircraft, or 0 if not available.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [NotMapped]
+        public double Heading
+        {
+            get
+            {
+                var activeFlight = this.Flights?.SingleOrDefault(f => f.Started.HasValue && !f.Completed.HasValue);
+                if (activeFlight != null)
+                {
+                    return activeFlight.Heading ?? 0;
+                }
+
+                return 0;
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the latitude.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [NotMapped]
+        public double Latitude
+        {
+            get
+            {
+                var activeFlight = this.Flights?.SingleOrDefault(f => f.Started.HasValue && !f.Completed.HasValue);
+                if (activeFlight != null)
+                {
+                    return activeFlight.Latitude ?? activeFlight.Origin.Latitude;
+                }
+
+                return this.Airport?.Latitude ?? 0;
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the Date/Time until the aircraft is loading payload (cargo or pax).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public DateTime? LoadingUntil { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the longitude.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [NotMapped]
+        public double Longitude
+        {
+            get
+            {
+                var activeFlight = this.Flights?.SingleOrDefault(f => f.Started.HasValue && !f.Completed.HasValue);
+                if (activeFlight != null)
+                {
+                    return activeFlight.Longitude ?? activeFlight.Origin.Longitude;
+                }
+
+                return this.Airport?.Longitude ?? 0;
+            }
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -194,6 +309,7 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("Owner")]
         [StringLength(255)]
+        [ConcurrencyCheck]
         public string OwnerID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -218,6 +334,18 @@ namespace OpenSky.API.DbModel
 
                 return "[System]";
             }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the payloads currently loaded onto this aircraft.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [InverseProperty("Aircraft")]
+        public ICollection<Payload> Payloads
+        {
+            get => this.LazyLoader.Load(this, ref this.payloads);
+            set => this.payloads = value;
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -271,6 +399,22 @@ namespace OpenSky.API.DbModel
                     if (this.WarpingUntil.HasValue && this.WarpingUntil.Value > DateTime.UtcNow)
                     {
                         return $"Warping T-{(DateTime.UtcNow - this.WarpingUntil.Value):hh\\:mm\\:ss}";
+                    }
+
+                    if (this.FuellingUntil.HasValue && this.FuellingUntil.Value > DateTime.UtcNow && this.LoadingUntil.HasValue && this.LoadingUntil.Value > DateTime.UtcNow)
+                    {
+                        var maxTime = this.FuellingUntil.Value > this.LoadingUntil.Value ? this.FuellingUntil.Value : this.LoadingUntil.Value;
+                        return $"Ground handling T-{(DateTime.UtcNow - maxTime):hh\\:mm\\:ss}";
+                    }
+
+                    if (this.FuellingUntil.HasValue && this.FuellingUntil.Value > DateTime.UtcNow)
+                    {
+                        return $"Fuelling T-{(DateTime.UtcNow - this.FuellingUntil.Value):hh\\:mm\\:ss}";
+                    }
+
+                    if (this.LoadingUntil.HasValue && this.LoadingUntil.Value > DateTime.UtcNow)
+                    {
+                        return $"Loading T-{(DateTime.UtcNow - this.LoadingUntil.Value):hh\\:mm\\:ss}";
                     }
 
                     // todo return repair/etc. status

@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="WorldPopulatorService.cs" company="OpenSky">
+// <copyright file="AircraftPopulatorService.cs" company="OpenSky">
 // OpenSky project 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
@@ -28,7 +28,7 @@ namespace OpenSky.API.Services
     /// Flusinerd, 25/06/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class WorldPopulatorService
+    public class AircraftPopulatorService
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -57,7 +57,7 @@ namespace OpenSky.API.Services
         /// The logger.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private readonly ILogger<WorldPopulatorService> logger;
+        private readonly ILogger<AircraftPopulatorService> logger;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -66,15 +66,15 @@ namespace OpenSky.API.Services
         /// -------------------------------------------------------------------------------------------------
         private readonly double[,] ratios =
         {
-            //SEP, MEP, SET, MET, JET, Regional, NBAirliner, WBAirliner, Helicopter
-            { 0, 0, 0, 0, 0, 0, 0, 0, 0 }, // -1
-            { 0.8, 0.15, 0, 0, 0, 0, 0, 0, 0.05 }, // 0
-            { 0.65, 0.15, 0.05, 0.05, 0.05, 0, 0, 0, 0.05 }, // 1
-            { 0.35, 0.2, 0.1, 0.1f, 0.1, 0.05, 0.05, 0, 0.05 }, // 2
-            { 0.15, 0.25, 0.15, 0.1, 0.1, 0.1, 0.1, 0, 0.05 }, // 3
-            { 0.075, 0.075, 0.05, 0.05, 0.1, 0.2, 0.3, 0.1, 0.05 }, // 4
-            { 0.05, 0.05, 0.05, 0.05, 0.05, 0.15, 0.35, 0.25, 0 }, // 5
-            { 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.3, 0.4, 0 } // 6 
+            //  SEP,   MEP,  SET,  MET,  JET,  REG,  NBA,  WBA,  HEL
+            {     0,     0,    0,    0,    0,    0,    0,    0,    0 }, // -1
+            {   0.8,  0.15,    0,    0,    0,    0,    0,    0, 0.05 }, // 0
+            {  0.65,  0.15, 0.05, 0.05, 0.05,    0,    0,    0, 0.05 }, // 1
+            {  0.35,   0.2,  0.1,  0.1,  0.1, 0.05, 0.05,    0, 0.05 }, // 2
+            {  0.15,  0.25, 0.15,  0.1,  0.1,  0.1,  0.1,    0, 0.05 }, // 3
+            { 0.075, 0.075, 0.05, 0.05,  0.1,  0.2,  0.3,  0.1, 0.05 }, // 4
+            {  0.05,  0.05, 0.05, 0.05, 0.05, 0.15, 0.35, 0.25,    0 }, // 5
+            {  0.05,  0.05, 0.05, 0.05, 0.05, 0.05,  0.3,  0.4,    0 }  // 6 
         };
 
         /// -------------------------------------------------------------------------------------------------
@@ -86,7 +86,7 @@ namespace OpenSky.API.Services
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="WorldPopulatorService"/> class.
+        /// Initializes a new instance of the <see cref="AircraftPopulatorService"/> class.
         /// </summary>
         /// <remarks>
         /// Flusinerd, 16/06/2021.
@@ -101,12 +101,12 @@ namespace OpenSky.API.Services
         /// The ICAO registrations service.
         /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public WorldPopulatorService(IServiceProvider services, ILogger<WorldPopulatorService> logger, IcaoRegistrationsService icaoRegistrations)
+        public AircraftPopulatorService(IServiceProvider services, ILogger<AircraftPopulatorService> logger, IcaoRegistrationsService icaoRegistrations)
         {
             this.logger = logger;
             this.db = services.CreateScope().ServiceProvider.GetRequiredService<OpenSkyDbContext>();
             this.icaoRegistrations = icaoRegistrations;
-            this.logger.LogInformation("World populator service started");
+            this.logger.LogInformation("Aircraft populator service started");
         }
 
         /// -------------------------------------------------------------------------------------------------

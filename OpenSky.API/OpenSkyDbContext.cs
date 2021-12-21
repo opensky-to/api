@@ -116,6 +116,13 @@ namespace OpenSky.API
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the flight payloads.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public virtual DbSet<FlightPayload> FlightPayloads { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the flights.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -123,10 +130,24 @@ namespace OpenSky.API
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the jobs.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public virtual DbSet<Job> Jobs { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the OpenSky tokens.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public virtual DbSet<OpenSkyToken> OpenSkyTokens { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the payloads.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public virtual DbSet<Payload> Payloads { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -222,6 +243,7 @@ namespace OpenSky.API
             builder.Entity<AirlineShareHolder>().HasKey(sh => new { sh.AirlineICAO, sh.UserID });
             builder.Entity<AirlineUserPermission>().HasKey(p => new { p.AirlineICAO, p.UserID });
             builder.Entity<FlightNavlogFix>().HasKey(nf => new { nf.FlightID, nf.FixNumber });
+            builder.Entity<FlightPayload>().HasKey(fp => new { fp.FlightID, fp.PayloadID });
 
             // Custom relationships
             builder.Entity<AircraftType>().HasMany(t => t.Variants).WithOne(t => t.VariantType).HasForeignKey(t => t.IsVariantOf);

@@ -37,10 +37,24 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The airline dispatcher assignments.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<Job> airlineDispatcherAssignments;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The airline permissions for this user.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private ICollection<AirlineUserPermission> airlinePermissions;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The airline pilot assignments.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<Flight> airlinePilotAssignments;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -55,6 +69,13 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private ICollection<Flight> flights;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The user operated jobs (not airline).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<Job> jobs;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -113,6 +134,19 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the airline dispatcher assignments.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        [InverseProperty("AssignedAirlineDispatcher")]
+        public ICollection<Job> AirlineDispatcherAssignments
+        {
+            get => this.LazyLoader.Load(this, ref this.airlineDispatcherAssignments);
+            set => this.airlineDispatcherAssignments = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the airline ICAO code (or NULL if not member of an airline).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -137,6 +171,19 @@ namespace OpenSky.API.DbModel
         {
             get => this.LazyLoader.Load(this, ref this.airlinePermissions);
             set => this.airlinePermissions = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the airline pilot assignments.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        [InverseProperty("AssignedAirlinePilot")]
+        public ICollection<Flight> AirlinePilotAssignments
+        {
+            get => this.LazyLoader.Load(this, ref this.airlinePilotAssignments);
+            set => this.airlinePilotAssignments = value;
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -188,6 +235,19 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the user operated jobs (not airline).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        [InverseProperty("Operator")]
+        public ICollection<Job> Jobs
+        {
+            get => this.LazyLoader.Load(this, ref this.jobs);
+            set => this.jobs = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the Date/Time of the last login.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -206,6 +266,13 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string LastLoginIP { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the personal account balance.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public long PersonalAccountBalance { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

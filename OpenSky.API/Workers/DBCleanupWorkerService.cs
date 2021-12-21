@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="DbCleanupWorkerService.cs" company="OpenSky">
+// <copyright file="DBCleanupWorkerService.cs" company="OpenSky">
 // OpenSky project 2021
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
@@ -150,44 +150,9 @@ namespace OpenSky.API.Workers
                 var errorCount = 0;
                 errorCount += await this.CleanupOpenSkyTokens(db);
                 errorCount += await this.CleanupAirportClientPackages(db);
+                errorCount += await this.CleanupExpiredJobs(db);
 
                 await Task.Delay(errorCount == 0 ? CleanupInterval : ErrorInterval, stoppingToken);
-            }
-        }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Cleans up expired OpenSkyTokens from the database.
-        /// </summary>
-        /// <remarks>
-        /// Flusinerd, 14/06/2021.
-        /// </remarks>
-        /// <param name="db">
-        /// The database context.
-        /// </param>
-        /// <returns>
-        /// An asynchronous result that yields an int, containing the error count.
-        /// </returns>
-        /// -------------------------------------------------------------------------------------------------
-        private async Task<int> CleanupOpenSkyTokens(OpenSkyDbContext db)
-        {
-
-            try
-            {
-                var tokens = db.OpenSkyTokens.Where(token => DateTime.UtcNow > token.Expiry);
-                db.OpenSkyTokens.RemoveRange(tokens);
-                var saveEx = await db.SaveDatabaseChangesAsync(this.logger, "Error removing old OpenSky tokens.");
-                if (saveEx != null)
-                {
-                    throw saveEx;
-                }
-
-                return 0;
-            }
-            catch (Exception ex)
-            {
-                this.logger.LogError(ex, "Error cleaning up OpenSky tokens.");
-                return 1;
             }
         }
 
@@ -226,6 +191,76 @@ namespace OpenSky.API.Workers
             catch (Exception ex)
             {
                 this.logger.LogError(ex, "Error cleaning up airport client packages.");
+                return 1;
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Cleans up expired jobs that aren't accepted from the database.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 21/12/2021.
+        /// </remarks>
+        /// <param name="db">
+        /// The database context.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields an int, containing the error count.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        private async Task<int> CleanupExpiredJobs(OpenSkyDbContext db)
+        {
+            try
+            {
+                var jobs = db.Jobs.Where(j => string.IsNullOrEmpty(j.OperatorAirlineID) && string.IsNullOrEmpty(j.OperatorID) && j.ExpiresAt < DateTime.UtcNow);
+                db.Jobs.RemoveRange(jobs);
+                var saveEx = await db.SaveDatabaseChangesAsync(this.logger, "Error removing expired jobs.");
+                if (saveEx != null)
+                {
+                    throw saveEx;
+                }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Error removing expired jobs.");
+                return 1;
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Cleans up expired OpenSkyTokens from the database.
+        /// </summary>
+        /// <remarks>
+        /// Flusinerd, 14/06/2021.
+        /// </remarks>
+        /// <param name="db">
+        /// The database context.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields an int, containing the error count.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        private async Task<int> CleanupOpenSkyTokens(OpenSkyDbContext db)
+        {
+            try
+            {
+                var tokens = db.OpenSkyTokens.Where(token => DateTime.UtcNow > token.Expiry);
+                db.OpenSkyTokens.RemoveRange(tokens);
+                var saveEx = await db.SaveDatabaseChangesAsync(this.logger, "Error removing old OpenSky tokens.");
+                if (saveEx != null)
+                {
+                    throw saveEx;
+                }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Error cleaning up OpenSky tokens.");
                 return 1;
             }
         }

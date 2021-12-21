@@ -56,6 +56,20 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The jobs.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<Job> jobs;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The payloads currently stored at this airport.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<Payload> payloads;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The runways.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -206,6 +220,18 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the jobs that have this airport as their origin.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        public ICollection<Job> Jobs
+        {
+            get => this.LazyLoader.Load(this, ref this.jobs);
+            set => this.jobs = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the latitude of the airport.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -252,8 +278,21 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the payloads currently stored at this airport.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [InverseProperty("Airport")]
+        [JsonIgnore]
+        public ICollection<Payload> Payloads
+        {
+            get => this.LazyLoader.Load(this, ref this.payloads);
+            set => this.payloads = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the previous size of the airport (if available, used to detect size changes and
-        /// trigger other services like the plane world populator).
+        /// trigger other services like the aircraft world populator).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public int? PreviousSize { get; set; }

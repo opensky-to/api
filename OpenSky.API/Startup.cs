@@ -237,13 +237,14 @@ namespace OpenSky.API
             // Set up ICAO registration service
             services.AddSingleton<IcaoRegistrationsService>();
 
-            // Setup world populator service
-            services.AddSingleton<WorldPopulatorService>();
+            // Setup populator services
+            services.AddSingleton<AircraftPopulatorService>();
+            services.AddSingleton<JobPopulatorService>();
             
             // Set up hosted worker services
             services.AddHostedService<DataImportWorkerService>();
             services.AddHostedService<DbCleanupWorkerService>();
-            services.AddHostedService<WorldPopulatorWorkerService>();
+            services.AddHostedService<AircraftPopulatorWorkerService>();
 
             // API controllers
             services.AddControllers();
