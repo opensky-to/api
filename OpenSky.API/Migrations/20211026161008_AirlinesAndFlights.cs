@@ -306,11 +306,6 @@ namespace OpenSky.API.Migrations
                 table: "Flights",
                 column: "OriginICAO");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Flights_AssignedAirlinePilotID",
-                table: "Flights",
-                column: "AssignedAirlinePilotID");
-
             migrationBuilder.AddForeignKey(
                 name: "FK_Aircraft_Airlines_AirlineOwnerID",
                 table: "Aircraft",
