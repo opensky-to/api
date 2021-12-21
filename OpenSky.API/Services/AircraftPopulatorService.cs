@@ -189,12 +189,12 @@ namespace OpenSky.API.Services
                                         type => type.Category == (AircraftTypeCategory)queryIndex && type.Enabled && (type.IsVanilla || type.IncludeInWorldPopulation) && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToList();
                                 }
 
-                                var randomType = typeCandidates[Random.Next(0, typeCandidates.Count - 1)];
+                                var randomType = typeCandidates[Random.Next(0, typeCandidates.Count)];
                                 // todo @todo update when economics/aircraft age/wear/tear are implemented
-                                var purchasePrice = (int)Math.Round((randomType.MaxPrice + randomType.MinPrice) / 2.0 * (Random.Next(80, 120) / 100.0), 0);
+                                var purchasePrice = (int)Math.Round((randomType.MaxPrice + randomType.MinPrice) / 2.0 * (Random.Next(80, 121) / 100.0), 0);
                                 purchasePrice = Math.Max(Math.Min(randomType.MaxPrice, purchasePrice), randomType.MinPrice); // Make sure we stay within the min/max limit no matter what
                                 var rentPrice = purchasePrice / 200;
-                                var fuel = Math.Round(randomType.FuelTotalCapacity * (Random.Next(30, 100) / 100.0), 2);
+                                var fuel = Math.Round(randomType.FuelTotalCapacity * (Random.Next(30, 101) / 100.0), 2);
 
                                 var aircraft = new Aircraft
                                 {
@@ -342,12 +342,12 @@ namespace OpenSky.API.Services
                         }
 
                         // Pick a random type and set purchase and rent price
-                        var randomType = typeCandidates[Random.Next(0, typeCandidates.Count - 1)];
+                        var randomType = typeCandidates[Random.Next(0, typeCandidates.Count)];
                         // todo @todo update when economics/aircraft age/wear/tear are implemented
-                        var purchasePrice = (int)Math.Round((randomType.MaxPrice + randomType.MinPrice) / 2.0 * (Random.Next(80, 120) / 100.0), 0);
+                        var purchasePrice = (int)Math.Round((randomType.MaxPrice + randomType.MinPrice) / 2.0 * (Random.Next(80, 121) / 100.0), 0);
                         purchasePrice = Math.Max(Math.Min(randomType.MaxPrice, purchasePrice), randomType.MinPrice); // Make sure we stay within the min/max limit no matter what
                         var rentPrice = purchasePrice / 200;
-                        var fuel = Math.Round(randomType.FuelTotalCapacity * (Random.Next(30, 100) / 100.0), 2);
+                        var fuel = Math.Round(randomType.FuelTotalCapacity * (Random.Next(30, 101) / 100.0), 2);
 
                         // Create aircraft with picked type
                         var aircraft = new Aircraft
@@ -481,7 +481,7 @@ namespace OpenSky.API.Services
                 if (totalSlots > 0)
                 {
                     var tenPercent = (int)Math.Round(totalSlots * 0.1);
-                    totalSlots += Random.Next(-tenPercent, tenPercent);
+                    totalSlots += Random.Next(-tenPercent, tenPercent + 1);
                 }
             }
 
@@ -529,7 +529,7 @@ namespace OpenSky.API.Services
         /// -------------------------------------------------------------------------------------------------
         private static string GenerateArmeniaRegistration()
         {
-            return $"EK-{Random.Next(0, 99999):D6}";
+            return $"EK-{Random.Next(0, 100000):D6}";
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -545,7 +545,7 @@ namespace OpenSky.API.Services
         /// -------------------------------------------------------------------------------------------------
         private static string GenerateColombiaRegistration()
         {
-            return $"HK-{Random.Next(1000, 9999)}{RandomString(1)}";
+            return $"HK-{Random.Next(1000, 10000)}{RandomString(1)}";
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -561,7 +561,7 @@ namespace OpenSky.API.Services
         /// -------------------------------------------------------------------------------------------------
         private static string GenerateLaosRegistration()
         {
-            return $"RDPL-{Random.Next(10000, 99999)}";
+            return $"RDPL-{Random.Next(10000, 100000)}";
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -579,8 +579,8 @@ namespace OpenSky.API.Services
         {
             return Random.Next(0, 100) switch
             {
-                < 20 => $"P{Random.Next(500, 9999)}", // 20% chance to spawn a longer number, we need more numbers to populate North Korea correctly to 80%
-                _ => $"P{Random.Next(500, 999)}"
+                < 20 => $"P{Random.Next(500, 10000)}", // 20% chance to spawn a longer number, we need more numbers to populate North Korea correctly to 80%
+                _ => $"P{Random.Next(500, 1000)}"
             };
         }
 
@@ -650,7 +650,7 @@ namespace OpenSky.API.Services
         /// -------------------------------------------------------------------------------------------------
         private static string GenerateRussiaRegistration()
         {
-            return $"RA-{Random.Next(0, 99999):D6}";
+            return $"RA-{Random.Next(0, 100000):D6}";
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -666,7 +666,7 @@ namespace OpenSky.API.Services
         /// -------------------------------------------------------------------------------------------------
         private static string GenerateSouthKoreaRegistration()
         {
-            return $"HL{Random.Next(1000, 9699):D4}";
+            return $"HL{Random.Next(1000, 9700):D4}";
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -682,7 +682,7 @@ namespace OpenSky.API.Services
         /// -------------------------------------------------------------------------------------------------
         private static string GenerateTaiwanRegistration()
         {
-            return $"B-{Random.Next(0, 99999):D6}";
+            return $"B-{Random.Next(0, 100000):D6}";
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -700,9 +700,9 @@ namespace OpenSky.API.Services
         {
             return Random.Next(0, 100) switch
             {
-                < 33 => $"N{Random.Next(1, 99999)}", // Generate 1-999999
-                < 66 => $"N{Random.Next(1, 9999)}{RandomString(1)}", // Generate 1A-9999Z
-                _ => $"N{Random.Next(1, 999)}{RandomString(2)}", // Generate 1AA-999ZZ
+                < 33 => $"N{Random.Next(1, 100000)}", // Generate 1-999999
+                < 66 => $"N{Random.Next(1, 10000)}{RandomString(1)}", // Generate 1A-9999Z
+                _ => $"N{Random.Next(1, 1000)}{RandomString(2)}", // Generate 1AA-999ZZ
             };
         }
 
