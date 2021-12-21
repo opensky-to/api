@@ -216,10 +216,70 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets the current heading of the aircraft, or 0 if not available.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [NotMapped]
+        public double Heading
+        {
+            get
+            {
+                var activeFlight = this.Flights?.SingleOrDefault(f => f.Started.HasValue && !f.Completed.HasValue);
+                if (activeFlight != null)
+                {
+                    return activeFlight.Heading ?? 0;
+                }
+
+                return 0;
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the latitude.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [NotMapped]
+        public double Latitude
+        {
+            get
+            {
+                var activeFlight = this.Flights?.SingleOrDefault(f => f.Started.HasValue && !f.Completed.HasValue);
+                if (activeFlight != null)
+                {
+                    return activeFlight.Latitude ?? activeFlight.Origin.Latitude;
+                }
+
+                return this.Airport?.Latitude ?? 0;
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the Date/Time until the aircraft is loading payload (cargo or pax).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public DateTime? LoadingUntil { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the longitude.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [NotMapped]
+        public double Longitude
+        {
+            get
+            {
+                var activeFlight = this.Flights?.SingleOrDefault(f => f.Started.HasValue && !f.Completed.HasValue);
+                if (activeFlight != null)
+                {
+                    return activeFlight.Longitude ?? activeFlight.Origin.Longitude;
+                }
+
+                return this.Airport?.Longitude ?? 0;
+            }
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
