@@ -16,6 +16,7 @@ namespace OpenSky.API.Services
 
     using OpenSky.API.DbModel;
     using OpenSky.API.DbModel.Enums;
+    using OpenSky.API.Model.Job;
     using OpenSky.API.Services.Models;
     using OpenSky.S2Geometry.Extensions;
 
@@ -200,13 +201,21 @@ namespace OpenSky.API.Services
         /// <param name="availableJobs">
         /// The currently available jobs.
         /// </param>
+        /// <param name="direction">
+        /// The direction to generate jobs for.
+        /// </param>
         /// <returns>
         /// An asynchronous result returning an information string about what jobs were generated.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        public async Task<string> CheckAndGenerateCargoJobsForAirport(Airport airport, List<Job> availableJobs)
+        public async Task<string> CheckAndGenerateCargoJobsForAirport(Airport airport, List<Job> availableJobs, JobDirection direction)
         {
-            var infoText = $"Processing cargo jobs for airport {airport.ICAO}:\r\n";
+            if (direction == JobDirection.RoundTrip)
+            {
+                return "Skipping cargo jobs, not supported for round trips.";
+            }
+
+            var infoText = $"Processing cargo jobs for airport {airport.ICAO}, direction [{direction}]:\r\n";
 
             // Check job quota for each aircraft category depending on airport size
             foreach (var category in Enum.GetValues<AircraftTypeCategory>())
@@ -250,7 +259,7 @@ namespace OpenSky.API.Services
                         var job = new Job
                         {
                             ID = Guid.NewGuid(),
-                            OriginICAO = airport.ICAO,
+                            OriginICAO = direction == JobDirection.From ? airport.ICAO : destination.ICAO,
                             ExpiresAt = DateTime.Now.AddHours(Random.Next(config.MinHoursToExpiry, config.MaxHoursToExpiry + 1)).AddMinutes(Random.Next(0, 60)),
                             Type = JobType.Cargo,
                             Category = category,
@@ -281,8 +290,8 @@ namespace OpenSky.API.Services
                                 {
                                     JobID = job.ID,
                                     ID = Guid.NewGuid(),
-                                    AirportICAO = airport.ICAO,
-                                    DestinationICAO = destination.ICAO,
+                                    AirportICAO = direction == JobDirection.From ? airport.ICAO : destination.ICAO,
+                                    DestinationICAO = direction == JobDirection.From ? destination.ICAO : airport.ICAO,
                                     Weight = Math.Round(payloadPounds * (payloadDistribution[i] / 100.0), 1),
                                     Description = this.cargoTypes[Random.Next(this.cargoTypes.Length)]
                                 });
@@ -297,7 +306,7 @@ namespace OpenSky.API.Services
                         }
                         else
                         {
-                            infoText += $" - Created new cargo job[{category}] to {destination.ICAO} [{distanceToOrigin:F1} NM] worth $B {job.Value}, expiring {job.ExpiresAt}\r\n";
+                            infoText += $" - Created new cargo job[{category}] to {(direction == JobDirection.From ? destination.ICAO : airport.ICAO)} [{distanceToOrigin:F1} NM] worth $B {job.Value}, expiring {job.ExpiresAt}\r\n";
                             foreach (var payload in payloads)
                             {
                                 infoText += $"   - Payload [{payload.Weight:F1} lbs]: {payload.Description}\r\n";
