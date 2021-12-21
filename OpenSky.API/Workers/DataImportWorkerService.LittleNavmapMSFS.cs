@@ -23,6 +23,7 @@ namespace OpenSky.API.Workers
     using OpenSky.API.DbModel;
     using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Model;
+    using OpenSky.S2Geometry.Extensions;
 
     /// -------------------------------------------------------------------------------------------------
     /// <content>
@@ -116,6 +117,16 @@ namespace OpenSky.API.Workers
                                 Size = null, // This will be calculated later as this depends on runways and approaches that aren't imported yet
                                 HasBeenPopulated = ProcessingStatus.NeedsHandling
                             };
+
+                            // Calculate S2 cell IDs
+                            newAirport.S2Cell3 = OpenSkyS2.CellIDForCoordinates(newAirport.Latitude, newAirport.Longitude, 3).Id;
+                            newAirport.S2Cell4 = OpenSkyS2.CellIDForCoordinates(newAirport.Latitude, newAirport.Longitude, 4).Id;
+                            newAirport.S2Cell5 = OpenSkyS2.CellIDForCoordinates(newAirport.Latitude, newAirport.Longitude, 5).Id;
+                            newAirport.S2Cell6 = OpenSkyS2.CellIDForCoordinates(newAirport.Latitude, newAirport.Longitude, 6).Id;
+                            newAirport.S2Cell7 = OpenSkyS2.CellIDForCoordinates(newAirport.Latitude, newAirport.Longitude, 7).Id;
+                            newAirport.S2Cell8 = OpenSkyS2.CellIDForCoordinates(newAirport.Latitude, newAirport.Longitude, 8).Id;
+                            newAirport.S2Cell9 = OpenSkyS2.CellIDForCoordinates(newAirport.Latitude, newAirport.Longitude, 9).Id;
+
                             newAirports.Add(newAirport);
                         }
                         else
@@ -144,6 +155,16 @@ namespace OpenSky.API.Workers
                             existingAirport.SupportsSuper = a380Airports.Contains(ident);
                             existingAirport.PreviousSize = existingAirport.Size; // Save that away to detect size changes
                             existingAirport.Size = null; // Re-calculate the size
+
+                            // Re-Calculate S2 cell IDs
+                            existingAirport.S2Cell3 = OpenSkyS2.CellIDForCoordinates(existingAirport.Latitude, existingAirport.Longitude, 3).Id;
+                            existingAirport.S2Cell4 = OpenSkyS2.CellIDForCoordinates(existingAirport.Latitude, existingAirport.Longitude, 4).Id;
+                            existingAirport.S2Cell5 = OpenSkyS2.CellIDForCoordinates(existingAirport.Latitude, existingAirport.Longitude, 5).Id;
+                            existingAirport.S2Cell6 = OpenSkyS2.CellIDForCoordinates(existingAirport.Latitude, existingAirport.Longitude, 6).Id;
+                            existingAirport.S2Cell7 = OpenSkyS2.CellIDForCoordinates(existingAirport.Latitude, existingAirport.Longitude, 7).Id;
+                            existingAirport.S2Cell8 = OpenSkyS2.CellIDForCoordinates(existingAirport.Latitude, existingAirport.Longitude, 8).Id;
+                            existingAirport.S2Cell9 = OpenSkyS2.CellIDForCoordinates(existingAirport.Latitude, existingAirport.Longitude, 9).Id;
+
                             if (triggerAircraftPopulator)
                             {
                                 existingAirport.HasBeenPopulated = ProcessingStatus.NeedsHandling;
