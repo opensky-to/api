@@ -129,17 +129,10 @@ namespace OpenSky.API.Migrations
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
-            try
-            {
-                migrationBuilder.CreateIndex(
-                    name: "IX_Flights_AssignedAirlinePilotID",
-                    table: "Flights",
-                    column: "AssignedAirlinePilotID");
-            }
-            catch (Exception)
-            {
-                // Ignore, there was a previous partial migration that might have already added it
-            }
+            migrationBuilder.CreateIndex(
+                name: "IX_Flights_AssignedAirlinePilotID",
+                table: "Flights",
+                column: "AssignedAirlinePilotID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Job_AssignedAirlineDispatcherID",
