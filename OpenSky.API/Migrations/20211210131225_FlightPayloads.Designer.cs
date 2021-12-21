@@ -2,15 +2,19 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OpenSky.API;
 
 namespace OpenSky.API.Migrations
 {
     [DbContext(typeof(OpenSkyDbContext))]
-    partial class OpenSkyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20211210131225_FlightPayloads")]
+    partial class FlightPayloads
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+#pragma warning restore CS1591 // Missing XML comment for publicly
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -152,7 +156,6 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("varchar(10)");
 
                     b.Property<string>("AirlineOwnerID")
-                        .IsConcurrencyToken()
                         .HasMaxLength(3)
                         .HasColumnType("varchar(3)");
 
@@ -164,18 +167,11 @@ namespace OpenSky.API.Migrations
                     b.Property<double>("Fuel")
                         .HasColumnType("double");
 
-                    b.Property<DateTime?>("FuellingUntil")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<DateTime?>("LoadingUntil")
-                        .HasColumnType("datetime(6)");
-
                     b.Property<string>("Name")
                         .HasMaxLength(30)
                         .HasColumnType("varchar(30)");
 
                     b.Property<string>("OwnerID")
-                        .IsConcurrencyToken()
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
@@ -289,9 +285,6 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("varchar(50)");
 
                     b.Property<bool>("NeedsCoPilot")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("NeedsFlightEngineer")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<Guid?>("NextVersion")
@@ -849,12 +842,10 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("OperatorAirlineID")
-                        .IsConcurrencyToken()
                         .HasMaxLength(3)
                         .HasColumnType("varchar(3)");
 
                     b.Property<string>("OperatorID")
-                        .IsConcurrencyToken()
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
@@ -1397,7 +1388,7 @@ namespace OpenSky.API.Migrations
                         .IsRequired();
 
                     b.HasOne("OpenSky.API.DbModel.Payload", "Payload")
-                        .WithMany("FlightPayloads")
+                        .WithMany()
                         .HasForeignKey("PayloadID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1568,11 +1559,6 @@ namespace OpenSky.API.Migrations
                     b.Navigation("ShareHoldings");
 
                     b.Navigation("Tokens");
-                });
-
-            modelBuilder.Entity("OpenSky.API.DbModel.Payload", b =>
-                {
-                    b.Navigation("FlightPayloads");
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.Runway", b =>

@@ -9,6 +9,7 @@ namespace OpenSky.API.Controllers
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Linq.Dynamic.Core;
     using System.Threading.Tasks;
 
     using Microsoft.AspNetCore.Authorization;
@@ -22,6 +23,7 @@ namespace OpenSky.API.Controllers
     using OpenSky.API.Model;
     using OpenSky.API.Model.Authentication;
     using OpenSky.API.Model.Flight;
+    using OpenSky.S2Geometry.Extensions;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -145,13 +147,37 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("Can't abort flights that have been completed!") { IsError = true };
                 }
 
+                // Are there any fuelling/loading times left on the flight that need to be transferred back to the aircraft?
+                if (flight.FuelLoadingComplete.HasValue && flight.FuelLoadingComplete.Value > DateTime.UtcNow)
+                {
+                    if (flight.Aircraft.FuellingUntil.HasValue && flight.Aircraft.FuellingUntil.Value > DateTime.UtcNow)
+                    {
+                        flight.Aircraft.FuellingUntil += flight.FuelLoadingComplete.Value - DateTime.UtcNow;
+                    }
+                    else
+                    {
+                        flight.Aircraft.FuellingUntil = flight.FuelLoadingComplete.Value;
+                    }
+                }
+                if (flight.PayloadLoadingComplete.HasValue && flight.PayloadLoadingComplete.Value > DateTime.UtcNow)
+                {
+                    if (flight.Aircraft.LoadingUntil.HasValue && flight.Aircraft.LoadingUntil.Value > DateTime.UtcNow)
+                    {
+                        flight.Aircraft.LoadingUntil += flight.PayloadLoadingComplete.Value - DateTime.UtcNow;
+                    }
+                    else
+                    {
+                        flight.Aircraft.LoadingUntil = flight.PayloadLoadingComplete.Value;
+                    }
+                }
+
                 // Check if/what penalties to apply
                 if (flight.OnGround)
                 {
                     // What's the closes airport to the current location?
                     if (flight.Latitude.HasValue && flight.Longitude.HasValue)
                     {
-                        // todo what's the closes airport, move the aircraft there
+                        // todo what's the closest airport, move the aircraft there
                         // todo also apply any time-warp to the aircraft
 
                         flight.Started = null;
@@ -347,12 +373,43 @@ namespace OpenSky.API.Controllers
                     }
                     else
                     {
-                        // todo check where we are (closest airport)
+                        // Check where we are (closest airport)
+                        var coverage = finalReport.FinalPositionReport.GeoCoordinate.CircularCoverage(10);
+                        var cells = coverage.Cells.Select(c => c.Id).ToList();
+                        var airports = await this.db.Airports.Where($"@0.Contains(S2Cell{coverage.Level})", cells).ToListAsync();
+                        if (airports.Count == 0)
+                        {
+                            // Landed at no airport, back to origin!
+                            flight.Aircraft.AirportICAO = flight.OriginICAO;
+                            flight.LandedAtICAO = flight.OriginICAO;
+                        }
+                        else
+                        {
+                            Airport closest = null;
+                            double closestDistance = 9999;
+                            foreach (var airport in airports)
+                            {
+                                var distance = airport.GeoCoordinate.GetDistanceTo(finalReport.FinalPositionReport.GeoCoordinate);
+                                if (distance < closestDistance)
+                                {
+                                    closestDistance = distance;
+                                    closest = airport;
+                                }
+                            }
 
+                            if (closest != null)
+                            {
+                                flight.Aircraft.AirportICAO = closest.ICAO;
+                                flight.LandedAtICAO = closest.ICAO;
+                            }
+                            else
+                            {
+                                // Should not happen, take first airport from list I guess?
+                                flight.Aircraft.AirportICAO = airports[0].ICAO;
+                                flight.LandedAtICAO = airports[0].ICAO;
+                            }
+                        }
                     }
-
-                    flight.Aircraft.AirportICAO = flight.DestinationICAO; // todo only for now while testing!
-                    flight.LandedAtICAO = flight.DestinationICAO;
                 }
                 else
                 {
@@ -360,12 +417,87 @@ namespace OpenSky.API.Controllers
                     flight.LandedAtICAO = flight.OriginICAO;
                 }
 
+                // Sum up final fuel values and update aircraft
                 flight.Aircraft.Fuel = finalReport.FinalPositionReport.FuelTankCenterQuantity + finalReport.FinalPositionReport.FuelTankCenter2Quantity + finalReport.FinalPositionReport.FuelTankCenter3Quantity +
                                        finalReport.FinalPositionReport.FuelTankLeftMainQuantity + finalReport.FinalPositionReport.FuelTankLeftAuxQuantity + finalReport.FinalPositionReport.FuelTankLeftTipQuantity +
                                        finalReport.FinalPositionReport.FuelTankRightMainQuantity + finalReport.FinalPositionReport.FuelTankRightAuxQuantity + finalReport.FinalPositionReport.FuelTankRightTipQuantity +
                                        finalReport.FinalPositionReport.FuelTankExternal1Quantity + finalReport.FinalPositionReport.FuelTankExternal2Quantity;
 
-                // todo complete jobs and pay out (if aircraft landed at correct airport)
+                // Did any payloads reach their destination?
+                if (!string.IsNullOrEmpty(flight.LandedAtICAO))
+                {
+                    // Any changes to these figures need to be mirrored in the AircraftController.PerformGroundOperations and FlightController.StartFlight method
+                    var lbsPerMinute = flight.Aircraft.Type.Category switch
+                    {
+                        AircraftTypeCategory.SEP => 225,
+                        AircraftTypeCategory.MEP => 225,
+                        AircraftTypeCategory.SET => 225,
+                        AircraftTypeCategory.MET => 350,
+                        AircraftTypeCategory.JET => 350,
+                        AircraftTypeCategory.REG => 1500,
+                        AircraftTypeCategory.NBA => 2000,
+                        AircraftTypeCategory.WBA => 3300,
+                        AircraftTypeCategory.HEL => 350,
+                        _ => 0.0
+                    };
+                    var lbsToTransfer = 0.0;
+                    var jobIDsToCheck = new HashSet<Guid>();
+                    var payloadsArrived = new List<Guid>();
+                    foreach (var flightPayload in flight.FlightPayloads)
+                    {
+                        if (flightPayload.Payload.DestinationICAO == flight.LandedAtICAO)
+                        {
+                            lbsToTransfer += flightPayload.Payload.Weight;
+                            flightPayload.Payload.AirportICAO = flight.LandedAtICAO;
+                            flightPayload.Payload.AircraftRegistry = null;
+                            jobIDsToCheck.Add(flightPayload.Payload.JobID);
+                            payloadsArrived.Add(flightPayload.PayloadID);
+                        }
+                    }
+
+                    if (lbsPerMinute > 0 && lbsToTransfer > 0)
+                    {
+                        // Start payload loading timer (starts after warp is complete)
+                        flight.Aircraft.LoadingUntil = DateTime.UtcNow.AddSeconds(flight.TimeWarpTimeSavedSeconds).AddMinutes(1 + (lbsToTransfer / lbsPerMinute));
+                    }
+
+                    foreach (var jobID in jobIDsToCheck)
+                    {
+                        var job = await this.db.Jobs.SingleOrDefaultAsync(j => j.ID == jobID);
+                        if (job != null)
+                        {
+                            var allPayloadsArrived = true;
+                            foreach (var payload in job.Payloads)
+                            {
+                                if (payload.AirportICAO != payload.DestinationICAO && !payloadsArrived.Contains(payload.ID))
+                                {
+                                    allPayloadsArrived = false;
+                                }
+                            }
+
+                            if (allPayloadsArrived)
+                            {
+                                // Job complete, pay out the money and then delete it
+                                var value = job.ExpiresAt > DateTime.UtcNow ? job.Value : (int)(job.Value * 0.7); // Deduct 30% if delivered late
+                                if (job.Operator != null)
+                                {
+                                    job.Operator.PersonalAccountBalance += value;
+                                }
+
+                                if (job.OperatorAirline != null)
+                                {
+                                    // todo add value to airline account balance
+                                }
+
+                                // todo also add some kind of financial record for this
+
+                                this.db.Payloads.RemoveRange(job.Payloads);
+                                this.db.Jobs.Remove(job);
+                            }
+                        }
+                    }
+                }
+
                 // todo calculate wear and tear on the aircraft
                 // todo check final log for signs of cheating?
                 // todo calculate final reputation/xp/whatever based on flight
@@ -706,7 +838,7 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Get active flights (up to one currently flying and possibly multiple paused).
+        /// Get "my" active flights (up to one currently flying and possibly multiple paused).
         /// </summary>
         /// <remarks>
         /// sushi.at, 10/11/2021.
@@ -1192,6 +1324,7 @@ namespace OpenSky.API.Controllers
 
                     await this.db.Flights.AddAsync(newFlight);
                     await this.db.FlightNavlogFixes.AddRangeAsync(flightPlan.NavlogFixes);
+                    await this.db.FlightPayloads.AddRangeAsync(flightPlan.Payloads);
                     var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving new flight plan");
                     if (saveEx != null)
                     {
@@ -1231,6 +1364,9 @@ namespace OpenSky.API.Controllers
 
                     this.db.FlightNavlogFixes.RemoveRange(existingFlight.NavlogFixes);
                     await this.db.FlightNavlogFixes.AddRangeAsync(flightPlan.NavlogFixes);
+
+                    this.db.FlightPayloads.RemoveRange(existingFlight.FlightPayloads);
+                    await this.db.FlightPayloads.AddRangeAsync(flightPlan.Payloads);
 
                     // Set these two anyway, in case flight was changed between private and airline flight
                     if (!flightPlan.IsAirlineFlight)
@@ -1334,7 +1470,7 @@ namespace OpenSky.API.Controllers
                 }
 
                 // Aircraft not selected?
-                if (string.IsNullOrEmpty(plan.AircraftRegistry))
+                if (string.IsNullOrEmpty(plan.AircraftRegistry) || plan.Aircraft == null)
                 {
                     return new ApiResponse<string>("Flight plan has no assigned aircraft!") { IsError = true };
                 }
@@ -1357,6 +1493,12 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("Flight plan has no fuel value!") { IsError = true };
                 }
 
+                // Invalid fuel value?
+                if (plan.FuelGallons.Value < 0 || plan.FuelGallons.Value > plan.Aircraft.Type.FuelTotalCapacity)
+                {
+                    return new ApiResponse<string>("Invalid fuel amount!") { IsError = true };
+                }
+
                 // Has the flight started already?
                 if (plan.Started.HasValue)
                 {
@@ -1370,32 +1512,90 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("You already have another flight in progress! Please complete or pause the other flight before starting a new one.") { IsError = true };
                 }
 
-                // Is the aircraft at the origin airport and idle?
+                // Is the aircraft at the origin airport?
                 if (!plan.OriginICAO.Equals(plan.Aircraft?.AirportICAO))
                 {
                     return new ApiResponse<string>("The selected aircraft is not at the departure airport!") { IsError = true, Data = "AircraftNotAtOrigin" };
                 }
 
-                if (plan.Aircraft?.Status != "Idle")
+                // Can the aircraft start a new flight?
+                if (plan.Aircraft?.CanStartFlight != true)
                 {
-                    return new ApiResponse<string>("The selected aircraft must be idle!") { IsError = true };
+                    return new ApiResponse<string>("The selected aircraft isn't available right now!") { IsError = true };
+                }
+
+                // Are all payloads either at the origin airport or already onboard the aircraft?
+                foreach (var flightPayload in plan.FlightPayloads)
+                {
+                    if (!string.IsNullOrEmpty(flightPayload.Payload.AirportICAO) && flightPayload.Payload.AirportICAO != plan.OriginICAO)
+                    {
+                        return new ApiResponse<string>("At least one payload hasn't reached the departure airport yet!") { IsError = true };
+                    }
+
+                    if (!string.IsNullOrEmpty(flightPayload.Payload.AircraftRegistry) && flightPayload.Payload.AircraftRegistry != plan.AircraftRegistry)
+                    {
+                        return new ApiResponse<string>("At least one payload is currently loaded on another aircraft!") { IsError = true };
+                    }
                 }
 
                 // All checks passed, start the flight and calculate the payload and fuel loading times
                 plan.Started = DateTime.UtcNow;
 
-                var gallonsPerMinute = plan.Aircraft.Type.FuelType switch
+                // Any changes to these figures need to be mirrored in the AircraftController.PerformGroundOperations method
+                var gallonsPerMinute = plan.Aircraft.Type.Category switch
                 {
-                    FuelType.JetFuel => 500,
-                    FuelType.AvGas => 8,
-                    FuelType.None => 0,
+                    AircraftTypeCategory.SEP => 25,
+                    AircraftTypeCategory.MEP => 25,
+                    AircraftTypeCategory.SET => 50,
+                    AircraftTypeCategory.MET => 50,
+                    AircraftTypeCategory.JET => 50,
+                    AircraftTypeCategory.REG => 600,
+                    AircraftTypeCategory.NBA => 600,
+                    AircraftTypeCategory.WBA => 1200,
+                    AircraftTypeCategory.HEL => 50,
                     _ => 0.0
                 };
                 var gallonsToTransfer = Math.Abs(plan.Aircraft.Fuel - plan.FuelGallons.Value);
-                plan.FuelLoadingComplete = gallonsPerMinute > 0 && gallonsToTransfer > 0 ? DateTime.UtcNow.AddMinutes(3 + gallonsToTransfer / gallonsPerMinute) : DateTime.UtcNow;
+                plan.FuelLoadingComplete = gallonsPerMinute > 0 && gallonsToTransfer > 0 ? DateTime.UtcNow.AddMinutes(3 + (gallonsToTransfer / gallonsPerMinute)) : DateTime.UtcNow;
+                if (plan.Aircraft.FuellingUntil.HasValue && plan.Aircraft.FuellingUntil.Value > DateTime.UtcNow)
+                {
+                    // Aircraft still has fuelling time left, add to the flight and remove from aircraft
+                    plan.FuelLoadingComplete += plan.Aircraft.FuellingUntil.Value - DateTime.UtcNow;
+                    plan.Aircraft.FuellingUntil = null;
+                    plan.Aircraft.Fuel = plan.FuelGallons.Value;
+                }
 
-                // todo add payload calculation once we have that
-                plan.PayloadLoadingComplete = DateTime.UtcNow;
+                // Any changes to these figures need to be mirrored in the AircraftController.PerformGroundOperations and FlightController.CompleteFlight method
+                var lbsPerMinute = plan.Aircraft.Type.Category switch
+                {
+                    AircraftTypeCategory.SEP => 225,
+                    AircraftTypeCategory.MEP => 225,
+                    AircraftTypeCategory.SET => 225,
+                    AircraftTypeCategory.MET => 350,
+                    AircraftTypeCategory.JET => 350,
+                    AircraftTypeCategory.REG => 1500,
+                    AircraftTypeCategory.NBA => 2000,
+                    AircraftTypeCategory.WBA => 3300,
+                    AircraftTypeCategory.HEL => 350,
+                    _ => 0.0
+                };
+                var lbsToTransfer = 0.0;
+                foreach (var flightPayload in plan.FlightPayloads)
+                {
+                    if (!string.IsNullOrEmpty(flightPayload.Payload.AirportICAO))
+                    {
+                        lbsToTransfer += flightPayload.Payload.Weight;
+                        flightPayload.Payload.AirportICAO = null;
+                        flightPayload.Payload.AircraftRegistry = plan.AircraftRegistry;
+                    }
+                }
+                plan.PayloadLoadingComplete = lbsPerMinute > 0 && lbsToTransfer > 0 ? DateTime.UtcNow.AddMinutes(1 + (lbsToTransfer / lbsPerMinute)) : DateTime.UtcNow;
+                if (plan.Aircraft.LoadingUntil.HasValue && plan.Aircraft.LoadingUntil.Value > DateTime.UtcNow)
+                {
+                    // Aircraft still has loading time left, add to the flight and remove from aircraft
+                    plan.PayloadLoadingComplete += plan.Aircraft.LoadingUntil.Value - DateTime.UtcNow;
+                    plan.Aircraft.LoadingUntil = null;
+                }
 
                 // No alternate set?, set to origin (return to base)
                 if (string.IsNullOrEmpty(plan.AlternateICAO))
@@ -1406,7 +1606,7 @@ namespace OpenSky.API.Controllers
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, $"Error starting flight {flightID}.");
                 if (saveEx != null)
                 {
-                    return new ApiResponse<string>("Error starting flight.", saveEx);
+                    throw saveEx;
                 }
 
                 return new ApiResponse<string>($"Flight {plan.FullFlightNumber} started successfully, remember to keep the rubber on the runway and your troubles on the ground!");

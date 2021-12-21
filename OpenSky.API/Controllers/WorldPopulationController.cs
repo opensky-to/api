@@ -6,6 +6,7 @@
 
 namespace OpenSky.API.Controllers
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
@@ -53,7 +54,7 @@ namespace OpenSky.API.Controllers
         /// The world populator service.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private readonly WorldPopulatorService worldPopulator;
+        private readonly AircraftPopulatorService aircraftPopulator;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -68,15 +69,15 @@ namespace OpenSky.API.Controllers
         /// <param name="db">
         /// The OpenSky database context.
         /// </param>
-        /// <param name="worldPopulator">
+        /// <param name="aircraftPopulator">
         /// The world populator service.
         /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public WorldPopulationController(ILogger<WorldPopulationController> logger, OpenSkyDbContext db, WorldPopulatorService worldPopulator)
+        public WorldPopulationController(ILogger<WorldPopulationController> logger, OpenSkyDbContext db, AircraftPopulatorService aircraftPopulator)
         {
             this.logger = logger;
             this.db = db;
-            this.worldPopulator = worldPopulator;
+            this.aircraftPopulator = aircraftPopulator;
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -93,9 +94,11 @@ namespace OpenSky.API.Controllers
         [HttpGet("", Name = "GetWorldPopulationOverview")]
         public async Task<ActionResult<ApiResponse<WorldPopulationOverview>>> GetWorldPopulationOverview()
         {
-            this.logger.LogInformation($"{this.User.Identity?.Name} | GET WorldPopulationOverview");
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET WorldPopulation");
 
-            var fuelAvailability = new List<PieChartValue>
+                var fuelAvailability = new List<PieChartValue>
             {
                 new() { Key = "None", Value = await this.db.Airports.CountAsync(a => !a.HasAvGas && !a.HasJetFuel) },
                 new() { Key = "AvGas", Value = await this.db.Airports.CountAsync(a => a.HasAvGas && !a.HasJetFuel) },
@@ -103,34 +106,40 @@ namespace OpenSky.API.Controllers
                 new() { Key = "Both", Value = await this.db.Airports.CountAsync(a => a.HasAvGas && a.HasJetFuel) }
             };
 
-            var runwayLights = new List<PieChartValue>
+                var runwayLights = new List<PieChartValue>
             {
                 new() { Key = "Lit", Value = await this.db.Runways.CountAsync(r => !string.IsNullOrEmpty(r.CenterLight) || !string.IsNullOrEmpty(r.EdgeLight)) },
                 new() { Key = "Unlit", Value = await this.db.Runways.CountAsync(r => string.IsNullOrEmpty(r.CenterLight) && string.IsNullOrEmpty(r.EdgeLight)) }
             };
 
-            var aircraftOwner = new List<PieChartValue>
+                var aircraftOwner = new List<PieChartValue>
             {
                 new() { Key = "System", Value = await this.db.Aircraft.CountAsync(a => a.OwnerID == null) },
                 new() { Key = "Player", Value = await this.db.Aircraft.CountAsync(a => a.OwnerID != null) }
             };
 
-            var overview = new WorldPopulationOverview
-            {
-                TotalAirports = await this.db.Airports.CountAsync(),
-                AirportSizes = await this.db.Airports.GroupBy(a => a.Size, a => a, (size, airports) => new PieChartValue { Key = $"{size}", Value = airports.Count() }).ToListAsync(),
-                FuelAvailability = fuelAvailability,
-                TotalRunways = await this.db.Runways.CountAsync(),
-                RunwaySurfaces = await this.db.Runways.GroupBy(r => r.Surface, r => r, (surface, runways) => new PieChartValue { Key = $"{surface.ParseRunwaySurface()}", Value = runways.Count() }).ToListAsync(),
-                RunwayLights = runwayLights,
-                TotalApproaches = await this.db.Approaches.CountAsync(),
-                ApproachTypes = await this.db.Approaches.GroupBy(a => a.Type, a => a, (type, approaches) => new PieChartValue { Key = type, Value = approaches.Count() }).ToListAsync(),
-                TotalAircraft = await this.db.Aircraft.CountAsync(),
-                AircraftCategories = await this.db.Aircraft.GroupBy(a => a.Type.Category, a => a, (category, aircraft) => new PieChartValue { Key = $"{category}", Value = aircraft.Count() }).ToListAsync(),
-                AircraftOwner = aircraftOwner
-            };
+                var overview = new WorldPopulationOverview
+                {
+                    TotalAirports = await this.db.Airports.CountAsync(),
+                    AirportSizes = await this.db.Airports.GroupBy(a => a.Size, a => a, (size, airports) => new PieChartValue { Key = $"{size}", Value = airports.Count() }).ToListAsync(),
+                    FuelAvailability = fuelAvailability,
+                    TotalRunways = await this.db.Runways.CountAsync(),
+                    RunwaySurfaces = await this.db.Runways.GroupBy(r => r.Surface, r => r, (surface, runways) => new PieChartValue { Key = $"{surface.ParseRunwaySurface()}", Value = runways.Count() }).ToListAsync(),
+                    RunwayLights = runwayLights,
+                    TotalApproaches = await this.db.Approaches.CountAsync(),
+                    ApproachTypes = await this.db.Approaches.GroupBy(a => a.Type, a => a, (type, approaches) => new PieChartValue { Key = type, Value = approaches.Count() }).ToListAsync(),
+                    TotalAircraft = await this.db.Aircraft.CountAsync(),
+                    AircraftCategories = await this.db.Aircraft.GroupBy(a => a.Type.Category, a => a, (category, aircraft) => new PieChartValue { Key = $"{category}", Value = aircraft.Count() }).ToListAsync(),
+                    AircraftOwner = aircraftOwner
+                };
 
-            return new ApiResponse<WorldPopulationOverview>(overview);
+                return new ApiResponse<WorldPopulationOverview>(overview);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET WorldPopulation");
+                return new ApiResponse<WorldPopulationOverview>(ex);
+            }
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -147,19 +156,27 @@ namespace OpenSky.API.Controllers
         /// An information string reporting what operations/errors where performed/encountered.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpPost("populate/{icao}", Name = "PopulateAirport")]
-        public async Task<ActionResult<ApiResponse<string>>> PopulateAirport(string icao)
+        [HttpPost("populateAircraft/{icao}", Name = "PopulateAirportWithAircraft")]
+        public async Task<ActionResult<ApiResponse<string>>> PopulateAirportWithAircraft(string icao)
         {
-            this.logger.LogInformation($"{this.User.Identity?.Name} | POST PopulateAirport/{icao}");
-
-            var airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == icao);
-            if (airport == null)
+            try
             {
-                return new ApiResponse<string>($"No airport record found for ICAO {icao}.") { IsError = true };
-            }
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST WorldPopulation/populateAircraft/{icao}");
 
-            var infoText = await this.worldPopulator.CheckAndGenerateAircraftForAirport(airport, false);
-            return new ApiResponse<string>($"Finished populating airport {icao}") { Data = infoText };
+                var airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == icao);
+                if (airport == null)
+                {
+                    return new ApiResponse<string>($"No airport record found for ICAO {icao}.") { IsError = true };
+                }
+
+                var infoText = await this.aircraftPopulator.CheckAndGenerateAircraftForAirport(airport, false);
+                return new ApiResponse<string>($"Finished populating airport {icao}") { Data = infoText };
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST WorldPopulation/populateAircraft/{icao}");
+                return new ApiResponse<string>(ex);
+            }
         }
     }
 }

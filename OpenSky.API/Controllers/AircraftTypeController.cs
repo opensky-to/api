@@ -638,6 +638,7 @@ namespace OpenSky.API.Controllers
                 existingType.Category = type.Category;
                 existingType.IsVanilla = type.IsVanilla;
                 existingType.NeedsCoPilot = type.NeedsCoPilot;
+                existingType.NeedsFlightEngineer = type.NeedsFlightEngineer;
                 existingType.RequiresManualFuelling = type.RequiresManualFuelling;
                 existingType.RequiresManualLoading = type.RequiresManualLoading;
                 existingType.IsVariantOf = type.IsVariantOf;

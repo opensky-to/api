@@ -108,8 +108,6 @@ namespace OpenSky.API.Model.Flight
 
             this.Dispatcher = flight.DispatcherName;
             this.DispatcherRemarks = flight.DispatcherRemarks;
-            this.PayloadWeight = 0; // todo add payload info once we have that
-            this.Payload = "None";
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -279,20 +277,6 @@ namespace OpenSky.API.Model.Flight
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string OriginICAO { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the payload.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public string Payload { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the payload weight.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public double PayloadWeight { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

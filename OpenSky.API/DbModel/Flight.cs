@@ -50,6 +50,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The assigned airline pilot.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private OpenSkyUser assignedAirlinePilot;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The destination airport.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -61,6 +68,13 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private OpenSkyUser dispatcher;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The flight payloads.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<FlightPayload> flightPayloads;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -130,7 +144,7 @@ namespace OpenSky.API.DbModel
                 Aircraft = Aircraft.ValidEmptyModel,
                 Origin = Airport.ValidEmptyModel,
                 Destination = Airport.ValidEmptyModel,
-                Alternate = Airport.ValidEmptyModel,
+                Alternate = Airport.ValidEmptyModel
             };
 
         /// -------------------------------------------------------------------------------------------------
@@ -196,6 +210,19 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public double? Altitude { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the assigned airline pilot.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("AssignedAirlinePilotID")]
+        [JsonIgnore]
+        public OpenSkyUser AssignedAirlinePilot
+        {
+            get => this.LazyLoader.Load(this, ref this.assignedAirlinePilot);
+            set => this.assignedAirlinePilot = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -312,6 +339,17 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public int FlightNumber { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the flight payloads.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public ICollection<FlightPayload> FlightPayloads
+        {
+            get => this.LazyLoader.Load(this, ref this.flightPayloads);
+            set => this.flightPayloads = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
