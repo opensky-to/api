@@ -601,6 +601,120 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Sell aircraft back to system.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 23/12/2021.
+        /// </remarks>
+        /// <param name="registry">
+        /// The registry of the aircraft to sell.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields an ActionResult&lt;ApiResponse&lt;string&gt;&gt;
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPost("sellToSystem/{registry}", Name = "SellAircraftToSystem")]
+        public async Task<ActionResult<ApiResponse<string>>> SellAircraftToSystem(string registry)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Aircraft/sellToSystem/{registry}");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
+                }
+
+                var aircraft = await this.db.Aircraft.SingleOrDefaultAsync(a => a.Registry.Equals(registry));
+                if (aircraft == null)
+                {
+                    return new ApiResponse<string>("Aircraft not found!") { IsError = true };
+                }
+
+                if (!string.IsNullOrEmpty(aircraft.OwnerID))
+                {
+                    if (aircraft.OwnerID != user.Id)
+                    {
+                        return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                    }
+
+                    if (aircraft.Status != "Idle")
+                    {
+                        return new ApiResponse<string>("Aircraft not idle!") { IsError = true };
+                    }
+
+                    if (this.db.Payloads.Any(p => p.AircraftRegistry == aircraft.Registry))
+                    {
+                        return new ApiResponse<string>("Aircraft not empty, please unload payload first!") { IsError = true };
+                    }
+
+                    // todo calculate value (evaluate, and deduct 30%) and credit user account balance
+                    aircraft.OwnerID = null;
+                }
+
+                if (!string.IsNullOrEmpty(aircraft.AirlineOwnerID))
+                {
+                    if (aircraft.AirlineOwnerID != user.AirlineICAO)
+                    {
+                        return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                    }
+
+                    if (!AirlineController.UserHasPermission(user, AirlinePermission.SellAircraft))
+                    {
+                        return new ApiResponse<string> { Message = "You don't have the permission to sell aircraft for your airline!", IsError = true };
+                    }
+
+                    if (aircraft.Status != "Idle")
+                    {
+                        return new ApiResponse<string>("Aircraft not idle!") { IsError = true };
+                    }
+
+                    if (this.db.Payloads.Any(p => p.AircraftRegistry == aircraft.Registry))
+                    {
+                        return new ApiResponse<string>("Aircraft not empty, please unload payload first!") { IsError = true };
+                    }
+
+                    // todo calculate value (evaluate, and deduct 30%) and credit airline account balance
+                    aircraft.AirlineOwnerID = null;
+                }
+
+                // User/Airline specific code finished, do the general changes
+                aircraft.Name = null;
+                var type = aircraft.Type;
+                if (aircraft.Type.IsVariantOf.HasValue)
+                {
+                    // System only owns base variants
+                    aircraft.TypeID = aircraft.Type.IsVariantOf.Value;
+                    type = this.db.AircraftTypes.Single(t => t.ID == aircraft.Type.IsVariantOf.Value);
+                }
+
+                // todo @todo update when economics/aircraft age/wear/tear are implemented
+                var random = new Random();
+                var purchasePrice = (int)Math.Round((type.MaxPrice + type.MinPrice) / 2.0 * (random.Next(80, 121) / 100.0), 0);
+                purchasePrice = Math.Max(Math.Min(type.MaxPrice, purchasePrice), type.MinPrice); // Make sure we stay within the min/max limit no matter what
+                var rentPrice = purchasePrice / 200;
+
+                aircraft.PurchasePrice = purchasePrice;
+                aircraft.RentPrice = rentPrice;
+
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error selling aircraft.");
+                if (saveEx != null)
+                {
+                    throw saveEx;
+                }
+
+                // todo return final sale price
+                return new ApiResponse<string>($"Successfully sold aircraft {registry} for $B ??(todo).");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Aircraft/sellToSystem/{registry}");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Updates the specified aircraft (user editable properties only)
         /// </summary>
         /// <remarks>
