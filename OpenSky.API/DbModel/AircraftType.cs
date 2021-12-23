@@ -362,6 +362,14 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the maximum payload delta allowed during a flight (to compensate for consumables
+        /// like de-icing fluid).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int MaxPayloadDeltaAllowed { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the maximum selling price.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------

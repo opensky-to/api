@@ -649,6 +649,7 @@ namespace OpenSky.API.Controllers
                 existingType.FuelWeightPerGallon = type.FuelWeightPerGallon;
                 existingType.MinimumRunwayLength = type.MinimumRunwayLength;
                 existingType.IncludeInWorldPopulation = type.IncludeInWorldPopulation;
+                existingType.MaxPayloadDeltaAllowed = type.MaxPayloadDeltaAllowed;
 
                 // Make sure to record who edited it
                 existingType.LastEditedByID = user.Id;
