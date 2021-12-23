@@ -182,9 +182,9 @@ namespace OpenSky.API.Services
             {   10,  10,  10,   0,   0,   0,   0,   0,   5 }, // 1
             {   10,  10,  10,  10,  10,   0,   0,   0,   5 }, // 2
             {   10,  10,  10,  10,  10,  10,  10,   0,   5 }, // 3
-            {    0,   0,   0,  10,  10,  10,  10,  10,   5 }, // 4
-            {    0,   0,   0,  10,  10,  10,  10,  10,   0 }, // 5
-            {    0,   0,   0,   0,   0,  10,  10,  10,   0 }  // 6
+            {   10,  10,  10,  10,  10,  10,  10,  10,   5 }, // 4
+            {    0,   0,  10,  10,  10,  10,  10,  10,   0 }, // 5
+            {    0,   0,   0,   0,  10,  10,  10,  10,   0 }  // 6
         };
 
         /// -------------------------------------------------------------------------------------------------
@@ -204,11 +204,14 @@ namespace OpenSky.API.Services
         /// <param name="direction">
         /// The direction to generate jobs for.
         /// </param>
+        /// <param name="targetCategory">
+        /// (Optional) The aircraft type category to generate jobs for, set to NULL for all categories.
+        /// </param>
         /// <returns>
         /// An asynchronous result returning an information string about what jobs were generated.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        public async Task<string> CheckAndGenerateCargoJobsForAirport(Airport airport, List<Job> availableJobs, JobDirection direction)
+        public async Task<string> CheckAndGenerateCargoJobsForAirport(Airport airport, List<Job> availableJobs, JobDirection direction, AircraftTypeCategory? targetCategory = null)
         {
             if (direction == JobDirection.RoundTrip)
             {
@@ -220,6 +223,12 @@ namespace OpenSky.API.Services
             // Check job quota for each aircraft category depending on airport size
             foreach (var category in Enum.GetValues<AircraftTypeCategory>())
             {
+                if (targetCategory.HasValue && targetCategory.Value != category)
+                {
+                    // We are only generating for a specific category, and it's not this one, skip over it
+                    continue;
+                }
+
                 var config = this.cargoJobConfig[category];
 
                 var coverage = airport.GeoCoordinate.DoughnutCoverage(config.MaxDistance, config.MinDistance);
@@ -299,23 +308,21 @@ namespace OpenSky.API.Services
 
                         this.db.Jobs.Add(job);
                         await this.db.Payloads.AddRangeAsync(payloads);
-                        var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving new job and it's payloads.");
-                        if (saveEx != null)
+                        infoText += $" - Created new cargo job[{category}] to {(direction == JobDirection.From ? destination.ICAO : airport.ICAO)} [{distanceToOrigin:F1} NM] worth $B {job.Value}, expiring {job.ExpiresAt}\r\n";
+                        foreach (var payload in payloads)
                         {
-                            infoText += $" - Error saving new job and it's payloads: {saveEx.Message}";
-                        }
-                        else
-                        {
-                            infoText += $" - Created new cargo job[{category}] to {(direction == JobDirection.From ? destination.ICAO : airport.ICAO)} [{distanceToOrigin:F1} NM] worth $B {job.Value}, expiring {job.ExpiresAt}\r\n";
-                            foreach (var payload in payloads)
-                            {
-                                infoText += $"   - Payload [{payload.Weight:F1} lbs]: {payload.Description}\r\n";
-                            }
+                            infoText += $"   - Payload [{payload.Weight:F1} lbs]: {payload.Description}\r\n";
                         }
 
                         generatedJobs++;
                     }
                 }
+            }
+
+            var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving new jobs and payloads.");
+            if (saveEx != null)
+            {
+                infoText += $" - Error saving new jobs and payloads: {saveEx.Message}";
             }
 
             return infoText;
