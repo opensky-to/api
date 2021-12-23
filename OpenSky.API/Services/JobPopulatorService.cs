@@ -17,6 +17,7 @@ namespace OpenSky.API.Services
     using Microsoft.Extensions.Logging;
 
     using OpenSky.API.DbModel;
+    using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Model.Job;
 
     /// -------------------------------------------------------------------------------------------------
@@ -94,11 +95,14 @@ namespace OpenSky.API.Services
         /// <param name="direction">
         /// The direction of jobs to generate.
         /// </param>
+        /// <param name="category">
+        /// (Optional) The aircraft type category to generate jobs for, set to NULL for all categories.
+        /// </param>
         /// <returns>
         /// An asynchronous result returning an information string about what jobs were generated.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        public async Task<string> CheckAndGenerateJobsForAirport(string icao, JobDirection direction)
+        public async Task<string> CheckAndGenerateJobsForAirport(string icao, JobDirection direction, AircraftTypeCategory? category = null)
         {
             // Check if there is an airport with that ICAO code
             var airport = this.db.Airports.SingleOrDefault(a => a.ICAO == icao);
@@ -148,8 +152,14 @@ namespace OpenSky.API.Services
                 availableJobs = await this.db.Jobs.Where(j => j.OriginICAO == icao && j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now && j.Payloads.Any(p => p.DestinationICAO == icao)).ToListAsync();
             }
 
+            if (category.HasValue)
+            {
+                availableJobs = availableJobs.Where(j => j.Category == category).ToList();
+            }
+
+
             // Create the different job types
-            infoText += await this.CheckAndGenerateCargoJobsForAirport(airport, availableJobs, direction);
+            infoText += await this.CheckAndGenerateCargoJobsForAirport(airport, availableJobs, direction, category);
 
             infoText += $"Finished processing job creation for airport {icao}, direction [{direction}] after {(DateTime.Now - started).TotalSeconds:F2} seconds.";
             return infoText;
