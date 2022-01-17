@@ -148,6 +148,7 @@ namespace OpenSky.API
                 {
                     c.SwaggerDoc("v1", new OpenApiInfo { Title = "OpenSky.API", Version = "v1" });
                     c.SchemaFilter<EnumSchemaFilter>();
+                    c.SchemaFilter<S2CellIDSchemaFilter>();
                     c.DocumentFilter<SwaggerAddEnumDescriptions>();
                     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                     {
