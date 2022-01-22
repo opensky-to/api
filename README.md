@@ -3,6 +3,7 @@
 [![Discord](https://img.shields.io/discord/837475420923756544.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.com/invite/eR3yePrj79)
 [![Facebook](https://img.shields.io/badge/-OpenSky-e84393?label=&logo=facebook&logoColor=ffffff&color=6399AE&labelColor=00C2CB)](https://www.facebook.com/Opensky.to/)
 ![Maintained][maintained-badge]
+[![.NET](https://github.com/opensky-to/api/actions/workflows/dotnet.yml/badge.svg)](https://github.com/opensky-to/api/actions/workflows/dotnet.yml)
 [![Make a pull request][prs-badge]][prs]
 [![License][license-badge]](LICENSE.md)
 
