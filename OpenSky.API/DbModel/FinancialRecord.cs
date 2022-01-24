@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Airline.cs" company="OpenSky">
+// <copyright file="FinancialRecord.cs" company="OpenSky">
 // OpenSky project 2022
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
@@ -12,199 +12,184 @@ namespace OpenSky.API.DbModel
     using System.ComponentModel.DataAnnotations.Schema;
     using System.Text.Json.Serialization;
 
-    using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Helpers;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Airline model.
+    /// Financial record model.
     /// </summary>
     /// <remarks>
-    /// sushi.at, 11/10/2021.
+    /// sushi.at, 24/01/2022.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class Airline
+    public class FinancialRecord
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The financial records for this airline.
+        /// The airline.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private ICollection<FinancialRecord> financialRecords;
+        private Airline airline;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The flights of this airline.
+        /// The child records.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private ICollection<Flight> flights;
+        private ICollection<FinancialRecord> childRecords;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The members of the airline.
+        /// The parent financial record.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private ICollection<OpenSkyUser> members;
+        private FinancialRecord parentRecord;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The airline share holders.
+        /// The user.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private ICollection<AirlineShareHolder> shareHolders;
+        private OpenSkyUser user;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The user permissions for this airline.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private ICollection<AirlineUserPermission> userPermissions;
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Airline"/> class.
+        /// Initializes a new instance of the <see cref="FinancialRecord"/> class.
         /// </summary>
         /// <remarks>
-        /// sushi.at, 12/10/2021.
+        /// sushi.at, 24/01/2022.
         /// </remarks>
         /// -------------------------------------------------------------------------------------------------
-        public Airline()
+        public FinancialRecord()
         {
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="Airline"/> class.
+        /// Initializes a new instance of the <see cref="FinancialRecord"/> class.
         /// </summary>
         /// <remarks>
-        /// sushi.at, 12/10/2021.
+        /// sushi.at, 24/01/2022.
         /// </remarks>
         /// <param name="lazyLoader">
         /// The lazy loader.
         /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public Airline(Action<object, string> lazyLoader)
+        public FinancialRecord(Action<object, string> lazyLoader)
         {
             this.LazyLoader = lazyLoader;
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the account balance.
+        /// Gets or sets the airline.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public long AccountBalance { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the country.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public Country Country { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the financial records.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("AirlineID")]
         [JsonIgnore]
-        public ICollection<FinancialRecord> FinancialRecords
+        public Airline Airline
         {
-            get => this.LazyLoader.Load(this, ref this.financialRecords);
-            set => this.financialRecords = value;
+            get => this.LazyLoader.Load(this, ref this.airline);
+            set => this.airline = value;
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the flights.
+        /// Gets or sets the identifier of the airline.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("Airline")]
+        [StringLength(3)]
         [JsonIgnore]
-        public ICollection<Flight> Flights
+        public string AirlineID { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the child records.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [InverseProperty("ParentRecord")]
+        public ICollection<FinancialRecord> ChildRecords
         {
-            get => this.LazyLoader.Load(this, ref this.flights);
-            set => this.flights = value;
+            get => this.LazyLoader.Load(this, ref this.childRecords);
+            set => this.childRecords = value;
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the identifier of the user that founded this airline.
+        /// Gets or sets the description of the record.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [ForeignKey("Founder")]
-        [StringLength(255)]
         [Required]
-        public string FounderID { get; set; }
+        public string Description { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the founding date of the airline.
+        /// Gets or sets the expense amount in SkyBucks.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public DateTime FoundingDate { get; set; }
+        public long Expense { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the optional IATA code of the airline.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [StringLength(2, MinimumLength = 2)]
-        public string IATA { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the airline ICAO code.
+        /// Gets or sets the identifier for the financial record.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [Key]
         [Required]
-        [StringLength(3, MinimumLength = 3)]
-        public string ICAO { get; set; }
+        public Guid ID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the members.
+        /// Gets or sets the income amount in SkyBucks.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        public long Income { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the parent financial record.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("ParentRecordID")]
         [JsonIgnore]
-        public ICollection<OpenSkyUser> Members
+        public FinancialRecord ParentRecord
         {
-            get => this.LazyLoader.Load(this, ref this.members);
-            set => this.members = value;
+            get => this.LazyLoader.Load(this, ref this.parentRecord);
+            set => this.parentRecord = value;
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the name of the airline.
+        /// Gets or sets the identifier of the parent financial record.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [Required]
-        [StringLength(50, MinimumLength = 4)]
-        public string Name { get; set; }
+        [ForeignKey("ParentRecord")]
+        [JsonIgnore]
+        public Guid? ParentRecordID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the airline share holders.
+        /// Gets or sets the user.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("UserID")]
         [JsonIgnore]
-        public ICollection<AirlineShareHolder> ShareHolders
+        public OpenSkyUser User
         {
-            get => this.LazyLoader.Load(this, ref this.shareHolders);
-            set => this.shareHolders = value;
+            get => this.LazyLoader.Load(this, ref this.user);
+            set => this.user = value;
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the user permissions for this airline.
+        /// Gets or sets the identifier of the user.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("User")]
+        [StringLength(255)]
         [JsonIgnore]
-        public ICollection<AirlineUserPermission> UserPermissions
-        {
-            get => this.LazyLoader.Load(this, ref this.userPermissions);
-            set => this.userPermissions = value;
-        }
+        public string UserID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
