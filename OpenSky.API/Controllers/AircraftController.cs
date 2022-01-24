@@ -492,17 +492,43 @@ namespace OpenSky.API.Controllers
                     aircraft.TypeID = purchase.VariantID;
                 }
 
-                // todo check if player/airline has enough money, plus deduct purchase price from account balance
-
-                // todo create some "financial" record for this transaction
-
                 if (!purchase.ForAirline)
                 {
+                    if (aircraft.PurchasePrice.Value > user.PersonalAccountBalance)
+                    {
+                        return new ApiResponse<string>("You can't afford this aircraft!") { IsError = true };
+                    }
+
                     aircraft.OwnerID = user.Id;
+                    user.PersonalAccountBalance -= aircraft.PurchasePrice.Value;
+                    var financialRecord = new FinancialRecord
+                    {
+                        ID = Guid.NewGuid(),
+                        Timestamp = DateTime.UtcNow,
+                        UserID = user.Id,
+                        Expense = aircraft.PurchasePrice.Value,
+                        Description = $"Purchase of aircraft {aircraft.Registry}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO}"
+                    };
+                    await this.db.FinancialRecords.AddAsync(financialRecord);
                 }
                 else
                 {
+                    if (aircraft.PurchasePrice.Value > user.Airline.AccountBalance)
+                    {
+                        return new ApiResponse<string>("Your airline can't afford this aircraft!") { IsError = true };
+                    }
+
                     aircraft.AirlineOwnerID = user.AirlineICAO;
+                    user.Airline.AccountBalance -= aircraft.PurchasePrice.Value;
+                    var financialRecord = new FinancialRecord
+                    {
+                        ID = Guid.NewGuid(),
+                        Timestamp = DateTime.UtcNow,
+                        AirlineID = user.AirlineICAO,
+                        Expense = aircraft.PurchasePrice.Value,
+                        Description = $"Purchase of aircraft {aircraft.Registry}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO} by user {user.UserName}"
+                    };
+                    await this.db.FinancialRecords.AddAsync(financialRecord);
                 }
 
                 aircraft.PurchasePrice = null;
