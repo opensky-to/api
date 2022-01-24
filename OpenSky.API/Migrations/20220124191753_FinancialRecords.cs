@@ -55,6 +55,7 @@ namespace OpenSky.API.Migrations
                     Expense = table.Column<long>(type: "bigint", nullable: false),
                     Income = table.Column<long>(type: "bigint", nullable: false),
                     ParentRecordID = table.Column<Guid>(type: "char(36)", nullable: true, collation: "ascii_general_ci"),
+                    Timestamp = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     UserID = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },

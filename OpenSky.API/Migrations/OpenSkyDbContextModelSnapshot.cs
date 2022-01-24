@@ -628,6 +628,9 @@ namespace OpenSky.API.Migrations
                     b.Property<Guid?>("ParentRecordID")
                         .HasColumnType("char(36)");
 
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<string>("UserID")
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
