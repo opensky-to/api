@@ -9,7 +9,7 @@ using OpenSky.API;
 namespace OpenSky.API.Migrations
 {
     [DbContext(typeof(OpenSkyDbContext))]
-    [Migration("20220124123732_FinancialRecords")]
+    [Migration("20220124191753_FinancialRecords")]
     partial class FinancialRecords
     {
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
@@ -631,6 +631,9 @@ namespace OpenSky.API.Migrations
 
                     b.Property<Guid?>("ParentRecordID")
                         .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("UserID")
                         .HasMaxLength(255)

@@ -41,6 +41,8 @@ namespace OpenSky.API.DbModel.Enums
         ReplaceAircraftParts = 42,
         PerformGroundOperations = 43,
 
+        FinancialRecords = 50,
+
         ChangePermissions = 90,
         BoardMember = 91,
         AllPermissions = 92
