@@ -82,6 +82,98 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Free money :)
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 25/01/2022.
+        /// </remarks>
+        /// <returns>
+        /// An asynchronous result that yields an ActionResult&lt;ApiResponse&lt;string&gt;&gt;
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPost("bobsYourUncle", Name = "BobsYourUncle")]
+        public async Task<ActionResult<ApiResponse<string>>> BobsYourUncle()
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Financial/bobsYourUncle");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
+                }
+
+                user.PersonalAccountBalance += 100000000;
+
+                var financialRecord = new FinancialRecord
+                {
+                    ID = Guid.NewGuid(),
+                    Timestamp = DateTime.UtcNow,
+                    UserID = user.Id,
+                    Income = 100000000,
+                    Description = "Bob's your uncle"
+                };
+                await this.db.FinancialRecords.AddAsync(financialRecord);
+
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "I guess Bob's not your uncle after all :)");
+                if (saveEx != null)
+                {
+                    throw saveEx;
+                }
+
+                return new ApiResponse<string>("Bob's your uncle!");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Financial/bobsYourUncle");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Get the current account balances.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 25/01/2022.
+        /// </remarks>
+        /// <returns>
+        /// An asynchronous result that yields the account balances.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet("balances", Name = "GetAccountBalances")]
+        public async Task<ActionResult<ApiResponse<AccountBalances>>> GetAccountBalances()
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Financial/balances");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<AccountBalances> { Message = "Unable to find user record!", IsError = true };
+                }
+
+                var balances = new AccountBalances
+                {
+                    AccountBalance = user.PersonalAccountBalance
+                };
+
+                if (!string.IsNullOrEmpty(user.AirlineICAO) && AirlineController.UserHasPermission(user, AirlinePermission.FinancialRecords))
+                {
+                    balances.AirlineAccountBalance = user.Airline.AccountBalance;
+                }
+
+                return new ApiResponse<AccountBalances>(balances);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Financial/balances");
+                return new ApiResponse<AccountBalances>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Get financial overview (with transactions of the last 30 days)
         /// </summary>
         /// <remarks>
