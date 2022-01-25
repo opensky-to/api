@@ -325,6 +325,87 @@ namespace OpenSky.API.Controllers
                 var gallonsToTransfer = Math.Abs(aircraft.Fuel - operations.Fuel);
                 if (gallonsPerMinute > 0 && gallonsToTransfer > 0)
                 {
+                    if (operations.Fuel > aircraft.Fuel)
+                    {
+                        var financialRecord = new FinancialRecord
+                        {
+                            ID = Guid.NewGuid(),
+                            Timestamp = DateTime.UtcNow,
+                            AircraftRegistry = aircraft.Registry
+                        };
+
+                        if (aircraft.Type.FuelType == FuelType.AvGas)
+                        {
+                            if (!aircraft.Airport.HasAvGas)
+                            {
+                                // todo check for fbo in the future
+                                return new ApiResponse<string>($"Airport {aircraft.AirportICAO} does not sell AV gas!") { IsError = true };
+                            }
+
+                            var fuelPrice = (int)(gallonsToTransfer * aircraft.Airport.AvGasPrice);
+                            if (!string.IsNullOrEmpty(aircraft.AirlineOwnerID))
+                            {
+                                if (fuelPrice > aircraft.AirlineOwner.AccountBalance)
+                                {
+                                    return new ApiResponse<string>("Your airline can't afford this fuel purchase!") { IsError = true };
+                                }
+
+                                financialRecord.AirlineID = aircraft.AirlineOwnerID;
+                                financialRecord.Expense = fuelPrice;
+                                financialRecord.Description = $"Fuel purchase {aircraft.Registry}: {gallonsToTransfer} gallons AV gas at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
+                            }
+                            else
+                            {
+                                if (fuelPrice > aircraft.Owner.PersonalAccountBalance)
+                                {
+                                    return new ApiResponse<string>("You can't afford this fuel purchase!") { IsError = true };
+                                }
+
+                                financialRecord.UserID = aircraft.OwnerID;
+                                financialRecord.Expense = fuelPrice;
+                                financialRecord.Description = $"Fuel purchase {aircraft.Registry}: {gallonsToTransfer} gallons AV gas at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
+                            }
+                        }
+                        else if (aircraft.Type.FuelType == FuelType.JetFuel)
+                        {
+                            if (!aircraft.Airport.HasAvGas)
+                            {
+                                // todo check for fbo in the future
+                                return new ApiResponse<string>($"Airport {aircraft.AirportICAO} does not sell jet fuel!") { IsError = true };
+                            }
+
+                            var fuelPrice = (int)(gallonsToTransfer * aircraft.Airport.JetFuelPrice);
+                            if (!string.IsNullOrEmpty(aircraft.AirlineOwnerID))
+                            {
+                                if (fuelPrice > aircraft.AirlineOwner.AccountBalance)
+                                {
+                                    return new ApiResponse<string>("Your airline can't afford this fuel purchase!") { IsError = true };
+                                }
+
+                                financialRecord.AirlineID = aircraft.AirlineOwnerID;
+                                financialRecord.Expense = fuelPrice;
+                                financialRecord.Description = $"Fuel purchase {aircraft.Registry}: {gallonsToTransfer} gallons jet fuel at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
+                            }
+                            else
+                            {
+                                if (fuelPrice > aircraft.Owner.PersonalAccountBalance)
+                                {
+                                    return new ApiResponse<string>("You can't afford this fuel purchase!") { IsError = true };
+                                }
+
+                                financialRecord.UserID = aircraft.OwnerID;
+                                financialRecord.Expense = fuelPrice;
+                                financialRecord.Description = $"Fuel purchase {aircraft.Registry}: {gallonsToTransfer} gallons jet fuel at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
+                            }
+                        }
+                        else
+                        {
+                            return new ApiResponse<string>("This aircraft doesn't use fuel and can therefore not be fueled!") { IsError = true };
+                        }
+
+                        await this.db.FinancialRecords.AddAsync(financialRecord);
+                    }
+
                     aircraft.Fuel = operations.Fuel;
                     if (aircraft.FuellingUntil.HasValue && aircraft.FuellingUntil.Value > DateTime.UtcNow)
                     {
@@ -492,6 +573,35 @@ namespace OpenSky.API.Controllers
                     aircraft.TypeID = purchase.VariantID;
                 }
 
+                // If the owner isn't the system, credit the owner pilot/airline for the purchase
+                if (aircraft.Owner != null)
+                {
+                    aircraft.Owner.PersonalAccountBalance += aircraft.PurchasePrice.Value;
+                    var financialRecord = new FinancialRecord
+                    {
+                        ID = Guid.NewGuid(),
+                        Timestamp = DateTime.UtcNow,
+                        UserID = aircraft.OwnerID,
+                        Income = aircraft.PurchasePrice.Value,
+                        Description = $"Sale of aircraft {aircraft.Registry}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO}"
+                    };
+                    await this.db.FinancialRecords.AddAsync(financialRecord);
+                }
+
+                if (aircraft.AirlineOwner != null)
+                {
+                    aircraft.AirlineOwner.AccountBalance += aircraft.PurchasePrice.Value;
+                    var financialRecord = new FinancialRecord
+                    {
+                        ID = Guid.NewGuid(),
+                        Timestamp = DateTime.UtcNow,
+                        AirlineID = aircraft.AirlineOwnerID,
+                        Income = aircraft.PurchasePrice.Value,
+                        Description = $"Sale of aircraft {aircraft.Registry}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO}"
+                    };
+                    await this.db.FinancialRecords.AddAsync(financialRecord);
+                }
+
                 if (!purchase.ForAirline)
                 {
                     if (aircraft.PurchasePrice.Value > user.PersonalAccountBalance)
@@ -500,6 +610,7 @@ namespace OpenSky.API.Controllers
                     }
 
                     aircraft.OwnerID = user.Id;
+                    aircraft.AirlineOwnerID = null;
                     user.PersonalAccountBalance -= aircraft.PurchasePrice.Value;
                     var financialRecord = new FinancialRecord
                     {
@@ -519,6 +630,7 @@ namespace OpenSky.API.Controllers
                     }
 
                     aircraft.AirlineOwnerID = user.AirlineICAO;
+                    aircraft.OwnerID = null;
                     user.Airline.AccountBalance -= aircraft.PurchasePrice.Value;
                     var financialRecord = new FinancialRecord
                     {
@@ -657,7 +769,21 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("Aircraft not found!") { IsError = true };
                 }
 
-                if (!string.IsNullOrEmpty(aircraft.OwnerID))
+                // todo @todo update when economics/aircraft age/wear/tear are implemented
+                var type = aircraft.Type;
+                if (aircraft.Type.IsVariantOf.HasValue)
+                {
+                    // System only owns base variants
+                    aircraft.TypeID = aircraft.Type.IsVariantOf.Value;
+                    type = this.db.AircraftTypes.Single(t => t.ID == aircraft.Type.IsVariantOf.Value);
+                }
+
+                var random = new Random();
+                var purchasePrice = (int)Math.Round((type.MaxPrice + type.MinPrice) / 2.0 * (random.Next(80, 121) / 100.0), 0);
+                purchasePrice = Math.Max(Math.Min(type.MaxPrice, purchasePrice), type.MinPrice); // Make sure we stay within the min/max limit no matter what
+                var rentPrice = purchasePrice / 200;
+
+                if (aircraft.Owner != null)
                 {
                     if (aircraft.OwnerID != user.Id)
                     {
@@ -674,11 +800,21 @@ namespace OpenSky.API.Controllers
                         return new ApiResponse<string>("Aircraft not empty, please unload payload first!") { IsError = true };
                     }
 
-                    // todo calculate value (evaluate, and deduct 30%) and credit user account balance
                     aircraft.OwnerID = null;
+                    aircraft.Owner.PersonalAccountBalance += (int)(purchasePrice * 0.7);
+
+                    var financialRecord = new FinancialRecord
+                    {
+                        ID = Guid.NewGuid(),
+                        Timestamp = DateTime.UtcNow,
+                        UserID = aircraft.OwnerID,
+                        Income = (int)(purchasePrice * 0.7),
+                        Description = $"Sale of aircraft {aircraft.Registry}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO}"
+                    };
+                    await this.db.FinancialRecords.AddAsync(financialRecord);
                 }
 
-                if (!string.IsNullOrEmpty(aircraft.AirlineOwnerID))
+                if (aircraft.AirlineOwner != null)
                 {
                     if (aircraft.AirlineOwnerID != user.AirlineICAO)
                     {
@@ -700,26 +836,22 @@ namespace OpenSky.API.Controllers
                         return new ApiResponse<string>("Aircraft not empty, please unload payload first!") { IsError = true };
                     }
 
-                    // todo calculate value (evaluate, and deduct 30%) and credit airline account balance
                     aircraft.AirlineOwnerID = null;
+                    aircraft.AirlineOwner.AccountBalance += (int)(purchasePrice * 0.7);
+
+                    var financialRecord = new FinancialRecord
+                    {
+                        ID = Guid.NewGuid(),
+                        Timestamp = DateTime.UtcNow,
+                        AirlineID = aircraft.AirlineOwnerID,
+                        Income = (int)(purchasePrice * 0.7),
+                        Description = $"Sale of aircraft {aircraft.Registry}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO}"
+                    };
+                    await this.db.FinancialRecords.AddAsync(financialRecord);
                 }
 
                 // User/Airline specific code finished, do the general changes
                 aircraft.Name = null;
-                var type = aircraft.Type;
-                if (aircraft.Type.IsVariantOf.HasValue)
-                {
-                    // System only owns base variants
-                    aircraft.TypeID = aircraft.Type.IsVariantOf.Value;
-                    type = this.db.AircraftTypes.Single(t => t.ID == aircraft.Type.IsVariantOf.Value);
-                }
-
-                // todo @todo update when economics/aircraft age/wear/tear are implemented
-                var random = new Random();
-                var purchasePrice = (int)Math.Round((type.MaxPrice + type.MinPrice) / 2.0 * (random.Next(80, 121) / 100.0), 0);
-                purchasePrice = Math.Max(Math.Min(type.MaxPrice, purchasePrice), type.MinPrice); // Make sure we stay within the min/max limit no matter what
-                var rentPrice = purchasePrice / 200;
-
                 aircraft.PurchasePrice = purchasePrice;
                 aircraft.RentPrice = rentPrice;
 
@@ -729,8 +861,7 @@ namespace OpenSky.API.Controllers
                     throw saveEx;
                 }
 
-                // todo return final sale price
-                return new ApiResponse<string>($"Successfully sold aircraft {registry} for $B ??(todo).");
+                return new ApiResponse<string>($"Successfully sold aircraft {registry} for $B {purchasePrice:N0}.");
             }
             catch (Exception ex)
             {

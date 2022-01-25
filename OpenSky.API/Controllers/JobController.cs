@@ -136,6 +136,16 @@ namespace OpenSky.API.Controllers
 
                     // Deduct 30% of job value as penalty
                     user.PersonalAccountBalance -= (int)(job.Value * 0.3);
+                    var financialRecord = new FinancialRecord
+                    {
+                        ID = Guid.NewGuid(),
+                        Timestamp = DateTime.UtcNow,
+                        UserID = job.OperatorID,
+                        Expense = (int)(job.Value * 0.3),
+                        Description = $"Cancellation penalty for job{(string.IsNullOrEmpty(job.UserIdentifier) ? string.Empty : $" ({job.UserIdentifier})")} of type {job.Category} from {job.OriginICAO}"
+                    };
+
+                    await this.db.FinancialRecords.AddAsync(financialRecord);
                 }
                 else if (!string.IsNullOrEmpty(job.OperatorAirlineID))
                 {
@@ -150,7 +160,18 @@ namespace OpenSky.API.Controllers
                         return new ApiResponse<string> { Message = "You don't have the permission to abort jobs for your airline!", IsError = true };
                     }
 
-                    // todo deduct cancellation fee from airline account balance
+                    // Deduct 30% of job value as penalty
+                    job.OperatorAirline.AccountBalance -= (int)(job.Value * 0.3);
+                    var financialRecord = new FinancialRecord
+                    {
+                        ID = Guid.NewGuid(),
+                        Timestamp = DateTime.UtcNow,
+                        AirlineID = job.OperatorAirlineID,
+                        Expense = (int)(job.Value * 0.3),
+                        Description = $"Cancellation penalty for job{(string.IsNullOrEmpty(job.UserIdentifier) ? string.Empty : $" ({job.UserIdentifier})")} of type {job.Category} from {job.OriginICAO}"
+                    };
+
+                    await this.db.FinancialRecords.AddAsync(financialRecord);
                 }
                 else
                 {
