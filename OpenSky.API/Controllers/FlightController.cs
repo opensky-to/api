@@ -578,6 +578,8 @@ namespace OpenSky.API.Controllers
                                     job.OperatorAirline.AccountBalance += value;
                                     jobFinancialRecord.AirlineID = job.OperatorAirlineID;
                                 }
+                                
+                                // todo create separate financial record for late delivery penalty
 
                                 await this.db.FinancialRecords.AddAsync(jobFinancialRecord);
                                 this.db.Payloads.RemoveRange(job.Payloads);
