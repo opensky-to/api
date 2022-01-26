@@ -618,7 +618,8 @@ namespace OpenSky.API.Controllers
                         Timestamp = DateTime.UtcNow,
                         UserID = user.Id,
                         Expense = aircraft.PurchasePrice.Value,
-                        Description = $"Purchase of aircraft {aircraft.Registry}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO}"
+                        Description = $"Purchase of aircraft {aircraft.Registry}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO}",
+                        AircraftRegistry = aircraft.Registry
                     };
                     await this.db.FinancialRecords.AddAsync(financialRecord);
                 }
@@ -638,7 +639,8 @@ namespace OpenSky.API.Controllers
                         Timestamp = DateTime.UtcNow,
                         AirlineID = user.AirlineICAO,
                         Expense = aircraft.PurchasePrice.Value,
-                        Description = $"Purchase of aircraft {aircraft.Registry}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO} by user {user.UserName}"
+                        Description = $"Purchase of aircraft {aircraft.Registry}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO} by user {user.UserName}",
+                        AircraftRegistry = aircraft.Registry
                     };
                     await this.db.FinancialRecords.AddAsync(financialRecord);
                 }
