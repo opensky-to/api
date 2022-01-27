@@ -43,7 +43,7 @@ namespace OpenSky.API.Model
         /// Gets the percent done.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public int PercentDone => (int)((this.Processed / (double)this.Total) * 100.0);
+        public int PercentDone => this.Total > 0 ? (int)((this.Processed / (double)this.Total) * 100.0) : 0;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -82,7 +82,7 @@ namespace OpenSky.API.Model
         /// Gets the percent done.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public int PercentDone => (int)((this.Processed / (double)this.Total) * 100.0);
+        public int PercentDone => this.Total > 0 ?  (int)((this.Processed / (double)this.Total) * 100.0) : 0;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
