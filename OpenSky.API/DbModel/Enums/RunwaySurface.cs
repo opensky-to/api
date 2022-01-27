@@ -130,7 +130,7 @@ namespace OpenSky.API.DbModel.Enums
     /// sushi.at, 11/06/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public static class RunwaySurceExtensions
+    public static class RunwaySurfaceExtensions
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

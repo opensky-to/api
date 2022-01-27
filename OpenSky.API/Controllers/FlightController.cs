@@ -514,7 +514,25 @@ namespace OpenSky.API.Controllers
                             if (allPayloadsArrived)
                             {
                                 // Job complete, pay out the money and then delete it
-                                var value = job.ExpiresAt > DateTime.UtcNow ? job.Value : (int)(job.Value * 0.7); // Deduct 30% if delivered late
+                                var latePenaltyMultiplier = 1.0;
+                                if (DateTime.UtcNow > job.ExpiresAt)
+                                {
+                                    // 30% off as soon as it is late
+                                    latePenaltyMultiplier = 0.7;
+
+                                    // 5% off for each additional day late (after 14 days, payout is 0)
+                                    var daysLate = (DateTime.UtcNow - job.ExpiresAt).TotalDays;
+                                    if (daysLate is >= 1.0 and < 14.0)
+                                    {
+                                        latePenaltyMultiplier -= 0.05 * (int)daysLate;
+                                    }
+                                    else if (daysLate >= 14.0)
+                                    {
+                                        latePenaltyMultiplier = 0;
+                                    }
+                                }
+
+                                var value = (int)(job.Value * latePenaltyMultiplier);
                                 var jobFinancialRecord = new FinancialRecord
                                 {
                                     ID = Guid.NewGuid(),
@@ -542,9 +560,9 @@ namespace OpenSky.API.Controllers
                                     {
                                         ID = Guid.NewGuid(),
                                         ParentRecordID = flightFinancialRecord.ID,
-                                        Expense = (int)(job.Value * 0.3),
+                                        Expense = (int)(job.Value * (1.0 - latePenaltyMultiplier)),
                                         Timestamp = flightFinancialRecord.Timestamp,
-                                        Description = $"Late delivery penalty for job{(string.IsNullOrEmpty(job.UserIdentifier) ? string.Empty : $" ({job.UserIdentifier})")} of type {job.Category} from {job.OriginICAO}"
+                                        Description = $"Late delivery penalty ({(int)((1.0 - latePenaltyMultiplier) * 100)} %) for job{(string.IsNullOrEmpty(job.UserIdentifier) ? string.Empty : $" ({job.UserIdentifier})")} of type {job.Category} from {job.OriginICAO}"
                                     };
                                     await this.db.FinancialRecords.AddAsync(penaltyFinancialRecord);
                                 }

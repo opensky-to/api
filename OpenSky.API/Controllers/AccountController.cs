@@ -147,6 +147,11 @@ namespace OpenSky.API.Controllers
                     TokenRenewalCountryVerification = user.TokenRenewalCountryVerification
                 };
 
+                if (user.Airline != null)
+                {
+                    accountOverview.AirlineName = user.Airline.Name;
+                }
+
                 return new ApiResponse<AccountOverview>(accountOverview);
             }
             catch (Exception ex)

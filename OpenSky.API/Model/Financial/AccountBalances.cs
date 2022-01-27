@@ -28,6 +28,6 @@ namespace OpenSky.API.Model.Financial
         /// Gets or sets the airline account balance (if user has the permission).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public long AirlineAccountBalance { get; set; }
+        public long? AirlineAccountBalance { get; set; }
     }
 }
