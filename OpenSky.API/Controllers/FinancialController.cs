@@ -105,15 +105,16 @@ namespace OpenSky.API.Controllers
 
                 user.PersonalAccountBalance += 100000000;
 
-                var financialRecord = new FinancialRecord
+                var bobsRecord = new FinancialRecord
                 {
                     ID = Guid.NewGuid(),
                     Timestamp = DateTime.UtcNow,
                     UserID = user.Id,
+                    Category = FinancialCategory.None,
                     Income = 100000000,
                     Description = "Bob's your uncle"
                 };
-                await this.db.FinancialRecords.AddAsync(financialRecord);
+                await this.db.FinancialRecords.AddAsync(bobsRecord);
 
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "I guess Bob's not your uncle after all :)");
                 if (saveEx != null)

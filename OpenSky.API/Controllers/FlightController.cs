@@ -446,7 +446,8 @@ namespace OpenSky.API.Controllers
                     ID = Guid.NewGuid(),
                     Description = $"Flight {flight.FullFlightNumber} landed aircraft {flight.AircraftRegistry} at {flight.LandedAtICAO}",
                     Timestamp = DateTime.UtcNow,
-                    AircraftRegistry = flight.AircraftRegistry
+                    AircraftRegistry = flight.AircraftRegistry,
+                    Category = FinancialCategory.None
                 };
                 if (!string.IsNullOrEmpty(flight.OperatorID))
                 {
@@ -533,41 +534,49 @@ namespace OpenSky.API.Controllers
                                 }
 
                                 var value = (int)(job.Value * latePenaltyMultiplier);
-                                var jobFinancialRecord = new FinancialRecord
+                                var jobRecord = new FinancialRecord
                                 {
                                     ID = Guid.NewGuid(),
                                     ParentRecordID = flightFinancialRecord.ID,
                                     Income = job.Value,
+                                    Category = job.Type switch
+                                    {
+                                        JobType.Cargo => FinancialCategory.Cargo,
+                                        _ => FinancialCategory.None
+                                    },
                                     Timestamp = flightFinancialRecord.Timestamp,
                                     Description = $"Job{(string.IsNullOrEmpty(job.UserIdentifier) ? string.Empty : $" ({job.UserIdentifier})")} of type {job.Category} from {job.OriginICAO} completed."
                                 };
+                                flight.Aircraft.LifeTimeIncome += job.Value;
 
                                 if (job.Operator != null)
                                 {
                                     job.Operator.PersonalAccountBalance += value;
-                                    jobFinancialRecord.UserID = job.OperatorID;
+                                    jobRecord.UserID = job.OperatorID;
                                 }
 
                                 if (job.OperatorAirline != null)
                                 {
                                     job.OperatorAirline.AccountBalance += value;
-                                    jobFinancialRecord.AirlineID = job.OperatorAirlineID;
+                                    jobRecord.AirlineID = job.OperatorAirlineID;
                                 }
 
                                 if (job.ExpiresAt <= DateTime.UtcNow)
                                 {
-                                    var penaltyFinancialRecord = new FinancialRecord
+                                    var penaltyRecord = new FinancialRecord
                                     {
                                         ID = Guid.NewGuid(),
                                         ParentRecordID = flightFinancialRecord.ID,
+                                        Category = FinancialCategory.Fines,
                                         Expense = (int)(job.Value * (1.0 - latePenaltyMultiplier)),
                                         Timestamp = flightFinancialRecord.Timestamp,
                                         Description = $"Late delivery penalty ({(int)((1.0 - latePenaltyMultiplier) * 100)} %) for job{(string.IsNullOrEmpty(job.UserIdentifier) ? string.Empty : $" ({job.UserIdentifier})")} of type {job.Category} from {job.OriginICAO}"
                                     };
-                                    await this.db.FinancialRecords.AddAsync(penaltyFinancialRecord);
+                                    await this.db.FinancialRecords.AddAsync(penaltyRecord);
+                                    flight.Aircraft.LifeTimeExpense += (int)(job.Value * (1.0 - latePenaltyMultiplier));
                                 }
 
-                                await this.db.FinancialRecords.AddAsync(jobFinancialRecord);
+                                await this.db.FinancialRecords.AddAsync(jobRecord);
                                 this.db.Payloads.RemoveRange(job.Payloads);
                                 this.db.Jobs.Remove(job);
                             }
@@ -579,28 +588,34 @@ namespace OpenSky.API.Controllers
                     {
                         // Calculate landing fees
                         var landingFee = this.CalculateLandingFee(flight.Aircraft, landedAt);
-                        var landingFeeFinancialRecord = new FinancialRecord
+                        var landingFeeRecord = new FinancialRecord
                         {
                             ID = Guid.NewGuid(),
                             ParentRecordID = flightFinancialRecord.ID,
                             Expense = landingFee,
+                            Category = FinancialCategory.AirportFees,
                             Timestamp = flightFinancialRecord.Timestamp,
                             Description = $"Landing fee for aircraft {flight.AircraftRegistry} at airport {flight.LandedAtICAO}"
                         };
-                        await this.db.FinancialRecords.AddAsync(landingFeeFinancialRecord);
+                        await this.db.FinancialRecords.AddAsync(landingFeeRecord);
+                        flight.Aircraft.LifeTimeExpense += landingFee;
 
                         // Landed at closed airport?
                         if (landedAt.IsClosed)
                         {
-                            var penaltyFinancialRecord = new FinancialRecord
+                            // Fine is $B 1000 / tonne of aircraft max gross
+                            var fine = (int)(1000 * (flight.Aircraft.Type.MaxGrossWeight / 2205));
+                            var landingClosedFineRecord = new FinancialRecord
                             {
                                 ID = Guid.NewGuid(),
                                 ParentRecordID = flightFinancialRecord.ID,
-                                Expense = 1000,
+                                Category = FinancialCategory.Fines,
+                                Expense = fine,
                                 Timestamp = flightFinancialRecord.Timestamp,
                                 Description = $"Penalty for landing aircraft {flight.AircraftRegistry} at CLOSED airport {flight.LandedAtICAO}"
                             };
-                            await this.db.FinancialRecords.AddAsync(penaltyFinancialRecord);
+                            await this.db.FinancialRecords.AddAsync(landingClosedFineRecord);
+                            flight.Aircraft.LifeTimeExpense += fine;
 
                             // todo reputation damage
                         }

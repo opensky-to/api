@@ -136,16 +136,17 @@ namespace OpenSky.API.Controllers
 
                     // Deduct 30% of job value as penalty
                     user.PersonalAccountBalance -= (int)(job.Value * 0.3);
-                    var financialRecord = new FinancialRecord
+                    var penaltyRecord = new FinancialRecord
                     {
                         ID = Guid.NewGuid(),
                         Timestamp = DateTime.UtcNow,
                         UserID = job.OperatorID,
+                        Category = FinancialCategory.Fines,
                         Expense = (int)(job.Value * 0.3),
                         Description = $"Cancellation penalty for job{(string.IsNullOrEmpty(job.UserIdentifier) ? string.Empty : $" ({job.UserIdentifier})")} of type {job.Category} from {job.OriginICAO}"
                     };
 
-                    await this.db.FinancialRecords.AddAsync(financialRecord);
+                    await this.db.FinancialRecords.AddAsync(penaltyRecord);
                 }
                 else if (!string.IsNullOrEmpty(job.OperatorAirlineID))
                 {
@@ -162,16 +163,17 @@ namespace OpenSky.API.Controllers
 
                     // Deduct 30% of job value as penalty
                     job.OperatorAirline.AccountBalance -= (int)(job.Value * 0.3);
-                    var financialRecord = new FinancialRecord
+                    var airlinePenaltyRecord = new FinancialRecord
                     {
                         ID = Guid.NewGuid(),
                         Timestamp = DateTime.UtcNow,
                         AirlineID = job.OperatorAirlineID,
                         Expense = (int)(job.Value * 0.3),
+                        Category = FinancialCategory.Fines,
                         Description = $"Cancellation penalty for job{(string.IsNullOrEmpty(job.UserIdentifier) ? string.Empty : $" ({job.UserIdentifier})")} of type {job.Category} from {job.OriginICAO}"
                     };
 
-                    await this.db.FinancialRecords.AddAsync(financialRecord);
+                    await this.db.FinancialRecords.AddAsync(airlinePenaltyRecord);
                 }
                 else
                 {

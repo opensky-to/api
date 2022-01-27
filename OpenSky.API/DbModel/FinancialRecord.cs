@@ -12,6 +12,7 @@ namespace OpenSky.API.DbModel
     using System.ComponentModel.DataAnnotations.Schema;
     using System.Text.Json.Serialization;
 
+    using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Helpers;
 
     /// -------------------------------------------------------------------------------------------------
@@ -110,6 +111,14 @@ namespace OpenSky.API.DbModel
         [StringLength(3)]
         [JsonIgnore]
         public string AirlineID { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the financial category.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [Required]
+        public FinancialCategory Category { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
