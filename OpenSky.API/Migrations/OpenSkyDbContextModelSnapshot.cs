@@ -167,6 +167,12 @@ namespace OpenSky.API.Migrations
                     b.Property<DateTime?>("FuellingUntil")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<long>("LifeTimeExpense")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("LifeTimeIncome")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTime?>("LoadingUntil")
                         .HasColumnType("datetime(6)");
 
@@ -336,6 +342,9 @@ namespace OpenSky.API.Migrations
                         .HasMaxLength(3)
                         .HasColumnType("varchar(3)");
 
+                    b.Property<long>("AccountBalance")
+                        .HasColumnType("bigint");
+
                     b.Property<int>("Country")
                         .HasColumnType("int");
 
@@ -413,6 +422,9 @@ namespace OpenSky.API.Migrations
                     b.Property<int?>("AtisFrequency")
                         .HasColumnType("int");
 
+                    b.Property<float>("AvGasPrice")
+                        .HasColumnType("float");
+
                     b.Property<string>("City")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
@@ -437,6 +449,9 @@ namespace OpenSky.API.Migrations
 
                     b.Property<bool>("IsMilitary")
                         .HasColumnType("tinyint(1)");
+
+                    b.Property<float>("JetFuelPrice")
+                        .HasColumnType("float");
 
                     b.Property<double>("Latitude")
                         .HasColumnType("double");
@@ -600,6 +615,54 @@ namespace OpenSky.API.Migrations
                     b.HasKey("ID");
 
                     b.ToTable("DataImports");
+                });
+
+            modelBuilder.Entity("OpenSky.API.DbModel.FinancialRecord", b =>
+                {
+                    b.Property<Guid>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("AircraftRegistry")
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)");
+
+                    b.Property<string>("AirlineID")
+                        .HasMaxLength(3)
+                        .HasColumnType("varchar(3)");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<long>("Expense")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("Income")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid?>("ParentRecordID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UserID")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("AirlineID");
+
+                    b.HasIndex("ParentRecordID");
+
+                    b.HasIndex("UserID");
+
+                    b.ToTable("FinancialRecords");
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.Flight", b =>
@@ -1323,6 +1386,27 @@ namespace OpenSky.API.Migrations
                     b.Navigation("Airport");
                 });
 
+            modelBuilder.Entity("OpenSky.API.DbModel.FinancialRecord", b =>
+                {
+                    b.HasOne("OpenSky.API.DbModel.Airline", "Airline")
+                        .WithMany("FinancialRecords")
+                        .HasForeignKey("AirlineID");
+
+                    b.HasOne("OpenSky.API.DbModel.FinancialRecord", "ParentRecord")
+                        .WithMany("ChildRecords")
+                        .HasForeignKey("ParentRecordID");
+
+                    b.HasOne("OpenSky.API.DbModel.OpenSkyUser", "User")
+                        .WithMany("FinancialRecords")
+                        .HasForeignKey("UserID");
+
+                    b.Navigation("Airline");
+
+                    b.Navigation("ParentRecord");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("OpenSky.API.DbModel.Flight", b =>
                 {
                     b.HasOne("OpenSky.API.DbModel.Aircraft", "Aircraft")
@@ -1522,6 +1606,8 @@ namespace OpenSky.API.Migrations
 
             modelBuilder.Entity("OpenSky.API.DbModel.Airline", b =>
                 {
+                    b.Navigation("FinancialRecords");
+
                     b.Navigation("Flights");
 
                     b.Navigation("Members");
@@ -1540,6 +1626,11 @@ namespace OpenSky.API.Migrations
                     b.Navigation("Payloads");
 
                     b.Navigation("Runways");
+                });
+
+            modelBuilder.Entity("OpenSky.API.DbModel.FinancialRecord", b =>
+                {
+                    b.Navigation("ChildRecords");
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.Flight", b =>
@@ -1563,6 +1654,8 @@ namespace OpenSky.API.Migrations
                     b.Navigation("AirlinePilotAssignments");
 
                     b.Navigation("Dispatches");
+
+                    b.Navigation("FinancialRecords");
 
                     b.Navigation("Flights");
 

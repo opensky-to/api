@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="OpenSkyUser.cs" company="OpenSky">
-// OpenSky project 2021
+// OpenSky project 2022
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -62,6 +62,13 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private ICollection<Flight> dispatches;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The financial records for this user.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<FinancialRecord> financialRecords;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -218,6 +225,18 @@ namespace OpenSky.API.DbModel
         {
             get => this.LazyLoader.Load(this, ref this.dispatches);
             set => this.dispatches = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the financial records.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        public ICollection<FinancialRecord> FinancialRecords
+        {
+            get => this.LazyLoader.Load(this, ref this.financialRecords);
+            set => this.financialRecords = value;
         }
 
         /// -------------------------------------------------------------------------------------------------

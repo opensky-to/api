@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="AirlinePermission.cs" company="OpenSky">
-// OpenSky project 2021
+// OpenSky project 2021-2022
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -40,6 +40,8 @@ namespace OpenSky.API.DbModel.Enums
         MaintainAircraft = 41,
         ReplaceAircraftParts = 42,
         PerformGroundOperations = 43,
+
+        FinancialRecords = 50,
 
         ChangePermissions = 90,
         BoardMember = 91,

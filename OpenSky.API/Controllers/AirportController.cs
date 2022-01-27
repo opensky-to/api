@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="AirportController.cs" company="OpenSky">
-// OpenSky project 2021
+// OpenSky project 2021-2022
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -167,6 +167,11 @@ namespace OpenSky.API.Controllers
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET Airport/{icao}");
                 var airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO.Equals(icao));
 
+                if (airport == null)
+                {
+                    return new ApiResponse<Airport>(Airport.ValidEmptyModel) { Message = $"No airport found for ICAO code {icao}" };
+                }
+
                 // todo add country(ies) by looking up ICAO registration
                 return new ApiResponse<Airport>(airport);
             }
@@ -291,7 +296,7 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET AirportsWithPopulationStatus/{status}/{maxResults}");
-                
+
                 var airport = await this.db.Airports.Where(a => a.HasBeenPopulated == status).OrderBy(a => a.ICAO).Take(maxResults).ToListAsync();
 
                 // todo add country(ies) by looking up ICAO registration

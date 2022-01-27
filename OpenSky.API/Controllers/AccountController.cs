@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="AccountController.cs" company="OpenSky">
-// OpenSky project 2021
+// OpenSky project 2021-2022
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -146,6 +146,11 @@ namespace OpenSky.API.Controllers
                     ProfileImage = user.ProfileImage,
                     TokenRenewalCountryVerification = user.TokenRenewalCountryVerification
                 };
+
+                if (user.Airline != null)
+                {
+                    accountOverview.AirlineName = user.Airline.Name;
+                }
 
                 return new ApiResponse<AccountOverview>(accountOverview);
             }

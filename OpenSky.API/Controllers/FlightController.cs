@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="FlightController.cs" company="OpenSky">
-// OpenSky project 2021
+// OpenSky project 2022
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -11,6 +11,8 @@ namespace OpenSky.API.Controllers
     using System.Linq;
     using System.Linq.Dynamic.Core;
     using System.Threading.Tasks;
+
+    using GeoCoordinatePortable;
 
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Identity;
@@ -159,6 +161,7 @@ namespace OpenSky.API.Controllers
                         flight.Aircraft.FuellingUntil = flight.FuelLoadingComplete.Value;
                     }
                 }
+
                 if (flight.PayloadLoadingComplete.HasValue && flight.PayloadLoadingComplete.Value > DateTime.UtcNow)
                 {
                     if (flight.Aircraft.LoadingUntil.HasValue && flight.Aircraft.LoadingUntil.Value > DateTime.UtcNow)
@@ -174,11 +177,27 @@ namespace OpenSky.API.Controllers
                 // Check if/what penalties to apply
                 if (flight.OnGround)
                 {
-                    // What's the closes airport to the current location?
+                    // What's the closest airport to the current location?
                     if (flight.Latitude.HasValue && flight.Longitude.HasValue)
                     {
-                        // todo what's the closest airport, move the aircraft there
-                        // todo also apply any time-warp to the aircraft
+                        // Check where we are (closest airport)
+                        var closestAirportICAO = await this.GetClosestAirport(new GeoCoordinate(flight.Latitude.Value, flight.Longitude.Value));
+                        if (string.IsNullOrEmpty(closestAirportICAO))
+                        {
+                            // Landed at no airport, back to origin!
+                            flight.Aircraft.AirportICAO = flight.OriginICAO;
+                            flight.LandedAtICAO = flight.OriginICAO;
+                        }
+                        else
+                        {
+                            flight.Aircraft.AirportICAO = closestAirportICAO;
+                            flight.LandedAtICAO = closestAirportICAO;
+                        }
+
+                        if (flight.TimeWarpTimeSavedSeconds > 0)
+                        {
+                            flight.Aircraft.WarpingUntil = DateTime.UtcNow.AddSeconds(flight.TimeWarpTimeSavedSeconds);
+                        }
 
                         flight.Started = null;
                         flight.PayloadLoadingComplete = null;
@@ -213,7 +232,26 @@ namespace OpenSky.API.Controllers
                 else
                 {
                     // Now it should get expensive, return flight, etc.
-                    // todo penalties (lock plane in time-warp, money cost, reputation impact)
+                    // todo penalties (money cost, fuel consumption?, reputation impact)
+
+                    var distanceToOrigin = 0d;
+                    if (flight.Latitude.HasValue && flight.Longitude.HasValue)
+                    {
+                        distanceToOrigin = flight.Origin.GeoCoordinate.GetDistanceTo(new GeoCoordinate(flight.Latitude.Value, flight.Longitude.Value));
+                    }
+
+                    var groundSpeed = flight.Aircraft.Type.EngineType switch
+                    {
+                        EngineType.HeloBellTurbine => 150,
+                        EngineType.Jet => 400,
+                        EngineType.Piston => 100,
+                        EngineType.Turboprop => 250,
+                        EngineType.None => 0,
+                        EngineType.Unsupported => 0,
+                        _ => 0
+                    };
+                    var returnFlightDuration = (distanceToOrigin > 0 && groundSpeed > 0) ? TimeSpan.FromHours(distanceToOrigin / groundSpeed) : DateTime.UtcNow - flight.Started.Value;
+                    flight.Aircraft.WarpingUntil = flight.TimeWarpTimeSavedSeconds > 0 ? DateTime.UtcNow.AddSeconds(flight.TimeWarpTimeSavedSeconds).Add(returnFlightDuration) : DateTime.UtcNow.Add(returnFlightDuration);
 
                     // Return aircraft back to Origin airport
                     flight.Started = null;
@@ -374,10 +412,8 @@ namespace OpenSky.API.Controllers
                     else
                     {
                         // Check where we are (closest airport)
-                        var coverage = finalReport.FinalPositionReport.GeoCoordinate.CircularCoverage(10);
-                        var cells = coverage.Cells.Select(c => c.Id).ToList();
-                        var airports = await this.db.Airports.Where($"@0.Contains(S2Cell{coverage.Level})", cells).ToListAsync();
-                        if (airports.Count == 0)
+                        var closestAirportICAO = await this.GetClosestAirport(finalReport.FinalPositionReport.GeoCoordinate);
+                        if (string.IsNullOrEmpty(closestAirportICAO))
                         {
                             // Landed at no airport, back to origin!
                             flight.Aircraft.AirportICAO = flight.OriginICAO;
@@ -385,29 +421,8 @@ namespace OpenSky.API.Controllers
                         }
                         else
                         {
-                            Airport closest = null;
-                            double closestDistance = 9999;
-                            foreach (var airport in airports)
-                            {
-                                var distance = airport.GeoCoordinate.GetDistanceTo(finalReport.FinalPositionReport.GeoCoordinate);
-                                if (distance < closestDistance)
-                                {
-                                    closestDistance = distance;
-                                    closest = airport;
-                                }
-                            }
-
-                            if (closest != null)
-                            {
-                                flight.Aircraft.AirportICAO = closest.ICAO;
-                                flight.LandedAtICAO = closest.ICAO;
-                            }
-                            else
-                            {
-                                // Should not happen, take first airport from list I guess?
-                                flight.Aircraft.AirportICAO = airports[0].ICAO;
-                                flight.LandedAtICAO = airports[0].ICAO;
-                            }
+                            flight.Aircraft.AirportICAO = closestAirportICAO;
+                            flight.LandedAtICAO = closestAirportICAO;
                         }
                     }
                 }
@@ -415,6 +430,8 @@ namespace OpenSky.API.Controllers
                 {
                     // Crash, set it back to origin
                     flight.LandedAtICAO = flight.OriginICAO;
+
+                    // todo determine the severity and calculate the impact on the aircraft status
                 }
 
                 // Sum up final fuel values and update aircraft
@@ -422,6 +439,26 @@ namespace OpenSky.API.Controllers
                                        finalReport.FinalPositionReport.FuelTankLeftMainQuantity + finalReport.FinalPositionReport.FuelTankLeftAuxQuantity + finalReport.FinalPositionReport.FuelTankLeftTipQuantity +
                                        finalReport.FinalPositionReport.FuelTankRightMainQuantity + finalReport.FinalPositionReport.FuelTankRightAuxQuantity + finalReport.FinalPositionReport.FuelTankRightTipQuantity +
                                        finalReport.FinalPositionReport.FuelTankExternal1Quantity + finalReport.FinalPositionReport.FuelTankExternal2Quantity;
+
+                // Create the top-level financial record for this flight that will sum up all income and expenses
+                var flightFinancialRecord = new FinancialRecord
+                {
+                    ID = Guid.NewGuid(),
+                    Description = $"Flight {flight.FullFlightNumber} landed aircraft {flight.AircraftRegistry} at {flight.LandedAtICAO}",
+                    Timestamp = DateTime.UtcNow,
+                    AircraftRegistry = flight.AircraftRegistry,
+                    Category = FinancialCategory.None
+                };
+                if (!string.IsNullOrEmpty(flight.OperatorID))
+                {
+                    flightFinancialRecord.UserID = flight.OperatorID;
+                }
+                else
+                {
+                    flightFinancialRecord.AirlineID = flight.OperatorAirlineID;
+                }
+
+                await this.db.FinancialRecords.AddAsync(flightFinancialRecord);
 
                 // Did any payloads reach their destination?
                 if (!string.IsNullOrEmpty(flight.LandedAtICAO))
@@ -478,26 +515,136 @@ namespace OpenSky.API.Controllers
                             if (allPayloadsArrived)
                             {
                                 // Job complete, pay out the money and then delete it
-                                var value = job.ExpiresAt > DateTime.UtcNow ? job.Value : (int)(job.Value * 0.7); // Deduct 30% if delivered late
+                                var latePenaltyMultiplier = 1.0;
+                                if (DateTime.UtcNow > job.ExpiresAt)
+                                {
+                                    // 30% off as soon as it is late
+                                    latePenaltyMultiplier = 0.7;
+
+                                    // 5% off for each additional day late (after 14 days, payout is 0)
+                                    var daysLate = (DateTime.UtcNow - job.ExpiresAt).TotalDays;
+                                    if (daysLate is >= 1.0 and < 14.0)
+                                    {
+                                        latePenaltyMultiplier -= 0.05 * (int)daysLate;
+                                    }
+                                    else if (daysLate >= 14.0)
+                                    {
+                                        latePenaltyMultiplier = 0;
+                                    }
+                                }
+
+                                var value = (int)(job.Value * latePenaltyMultiplier);
+                                var jobRecord = new FinancialRecord
+                                {
+                                    ID = Guid.NewGuid(),
+                                    ParentRecordID = flightFinancialRecord.ID,
+                                    Income = job.Value,
+                                    Category = job.Type switch
+                                    {
+                                        JobType.Cargo => FinancialCategory.Cargo,
+                                        _ => FinancialCategory.None
+                                    },
+                                    Timestamp = flightFinancialRecord.Timestamp,
+                                    Description = $"Job{(string.IsNullOrEmpty(job.UserIdentifier) ? string.Empty : $" ({job.UserIdentifier})")} of type {job.Category} from {job.OriginICAO} completed."
+                                };
+                                flight.Aircraft.LifeTimeIncome += job.Value;
+
                                 if (job.Operator != null)
                                 {
                                     job.Operator.PersonalAccountBalance += value;
+                                    jobRecord.UserID = job.OperatorID;
                                 }
 
                                 if (job.OperatorAirline != null)
                                 {
-                                    // todo add value to airline account balance
+                                    job.OperatorAirline.AccountBalance += value;
+                                    jobRecord.AirlineID = job.OperatorAirlineID;
                                 }
 
-                                // todo also add some kind of financial record for this
+                                if (job.ExpiresAt <= DateTime.UtcNow)
+                                {
+                                    var penaltyRecord = new FinancialRecord
+                                    {
+                                        ID = Guid.NewGuid(),
+                                        ParentRecordID = flightFinancialRecord.ID,
+                                        Category = FinancialCategory.Fines,
+                                        Expense = (int)(job.Value * (1.0 - latePenaltyMultiplier)),
+                                        Timestamp = flightFinancialRecord.Timestamp,
+                                        Description = $"Late delivery penalty ({(int)((1.0 - latePenaltyMultiplier) * 100)} %) for job{(string.IsNullOrEmpty(job.UserIdentifier) ? string.Empty : $" ({job.UserIdentifier})")} of type {job.Category} from {job.OriginICAO}"
+                                    };
+                                    await this.db.FinancialRecords.AddAsync(penaltyRecord);
+                                    flight.Aircraft.LifeTimeExpense += (int)(job.Value * (1.0 - latePenaltyMultiplier));
+                                }
 
+                                await this.db.FinancialRecords.AddAsync(jobRecord);
                                 this.db.Payloads.RemoveRange(job.Payloads);
                                 this.db.Jobs.Remove(job);
                             }
                         }
                     }
+
+                    var landedAt = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == flight.LandedAtICAO);
+                    if (landedAt != null)
+                    {
+                        // Calculate landing fees
+                        var landingFee = this.CalculateLandingFee(flight.Aircraft, landedAt);
+                        var landingFeeRecord = new FinancialRecord
+                        {
+                            ID = Guid.NewGuid(),
+                            ParentRecordID = flightFinancialRecord.ID,
+                            Expense = landingFee,
+                            Category = FinancialCategory.AirportFees,
+                            Timestamp = flightFinancialRecord.Timestamp,
+                            Description = $"Landing fee for aircraft {flight.AircraftRegistry} at airport {flight.LandedAtICAO}"
+                        };
+                        await this.db.FinancialRecords.AddAsync(landingFeeRecord);
+                        flight.Aircraft.LifeTimeExpense += landingFee;
+
+                        // Landed at closed airport?
+                        if (landedAt.IsClosed)
+                        {
+                            // Fine is $B 1000 / tonne of aircraft max gross
+                            var fine = (int)(1000 * (flight.Aircraft.Type.MaxGrossWeight / 2205));
+                            var landingClosedFineRecord = new FinancialRecord
+                            {
+                                ID = Guid.NewGuid(),
+                                ParentRecordID = flightFinancialRecord.ID,
+                                Category = FinancialCategory.Fines,
+                                Expense = fine,
+                                Timestamp = flightFinancialRecord.Timestamp,
+                                Description = $"Penalty for landing aircraft {flight.AircraftRegistry} at CLOSED airport {flight.LandedAtICAO}"
+                            };
+                            await this.db.FinancialRecords.AddAsync(landingClosedFineRecord);
+                            flight.Aircraft.LifeTimeExpense += fine;
+
+                            // todo reputation damage
+                        }
+                    }
                 }
 
+                // Are there fuelling financial records for this aircraft not yet assigned to a flight?
+                if (!string.IsNullOrEmpty(flight.OperatorID))
+                {
+                    var fuellingRecords = this.db.FinancialRecords.Where(
+                        f => f.AircraftRegistry == flight.AircraftRegistry && f.ParentRecordID == null && f.UserID == flight.OperatorID && f.Description.StartsWith("Fuel purchase") && f.Description.Contains(flight.OriginICAO));
+                    foreach (var fuellingRecord in fuellingRecords)
+                    {
+                        fuellingRecord.ParentRecordID = flightFinancialRecord.ID;
+                    }
+                }
+                else
+                {
+                    var fuellingRecords = this.db.FinancialRecords.Where(
+                        f => f.AircraftRegistry == flight.AircraftRegistry && f.ParentRecordID == null && f.AirlineID == flight.OperatorAirlineID && f.Description.StartsWith("Fuel purchase") && f.Description.Contains(flight.OriginICAO));
+                    foreach (var fuellingRecord in fuellingRecords)
+                    {
+                        fuellingRecord.ParentRecordID = flightFinancialRecord.ID;
+                    }
+                }
+
+                // todo find any other ground handling fees financial records from the beginning of the flight and add here
+
+                // todo calculate landing fees
                 // todo calculate wear and tear on the aircraft
                 // todo check final log for signs of cheating?
                 // todo calculate final reputation/xp/whatever based on flight
@@ -1556,6 +1703,87 @@ namespace OpenSky.API.Controllers
                     _ => 0.0
                 };
                 var gallonsToTransfer = Math.Abs(plan.Aircraft.Fuel - plan.FuelGallons.Value);
+                if (gallonsToTransfer > 0 && plan.FuelGallons.Value > plan.Aircraft.Fuel)
+                {
+                    var financialRecord = new FinancialRecord
+                    {
+                        ID = Guid.NewGuid(),
+                        Timestamp = DateTime.UtcNow,
+                        AircraftRegistry = plan.Aircraft.Registry
+                    };
+
+                    if (plan.Aircraft.Type.FuelType == FuelType.AvGas)
+                    {
+                        if (!plan.Aircraft.Airport.HasAvGas)
+                        {
+                            // todo check for fbo in the future
+                            return new ApiResponse<string>($"Airport {plan.Aircraft.AirportICAO} does not sell AV gas!") { IsError = true };
+                        }
+
+                        var fuelPrice = (int)(gallonsToTransfer * plan.Aircraft.Airport.AvGasPrice);
+                        if (!string.IsNullOrEmpty(plan.Aircraft.AirlineOwnerID))
+                        {
+                            if (fuelPrice > plan.Aircraft.AirlineOwner.AccountBalance)
+                            {
+                                return new ApiResponse<string>("Your airline can't afford this fuel purchase!") { IsError = true };
+                            }
+
+                            financialRecord.AirlineID = plan.Aircraft.AirlineOwnerID;
+                            financialRecord.Expense = fuelPrice;
+                            financialRecord.Description = $"Fuel purchase {plan.Aircraft.Registry}: {gallonsToTransfer} gallons AV gas at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                        }
+                        else
+                        {
+                            if (fuelPrice > plan.Aircraft.Owner.PersonalAccountBalance)
+                            {
+                                return new ApiResponse<string>("You can't afford this fuel purchase!") { IsError = true };
+                            }
+
+                            financialRecord.UserID = plan.Aircraft.OwnerID;
+                            financialRecord.Expense = fuelPrice;
+                            financialRecord.Description = $"Fuel purchase {plan.Aircraft.Registry}: {gallonsToTransfer} gallons AV gas at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                        }
+                    }
+                    else if (plan.Aircraft.Type.FuelType == FuelType.JetFuel)
+                    {
+                        if (!plan.Aircraft.Airport.HasAvGas)
+                        {
+                            // todo check for fbo in the future
+                            return new ApiResponse<string>($"Airport {plan.Aircraft.AirportICAO} does not sell jet fuel!") { IsError = true };
+                        }
+
+                        var fuelPrice = (int)(gallonsToTransfer * plan.Aircraft.Airport.JetFuelPrice);
+                        if (!string.IsNullOrEmpty(plan.Aircraft.AirlineOwnerID))
+                        {
+                            if (fuelPrice > plan.Aircraft.AirlineOwner.AccountBalance)
+                            {
+                                return new ApiResponse<string>("Your airline can't afford this fuel purchase!") { IsError = true };
+                            }
+
+                            financialRecord.AirlineID = plan.Aircraft.AirlineOwnerID;
+                            financialRecord.Expense = fuelPrice;
+                            financialRecord.Description = $"Fuel purchase {plan.Aircraft.Registry}: {gallonsToTransfer} gallons jet fuel at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                        }
+                        else
+                        {
+                            if (fuelPrice > plan.Aircraft.Owner.PersonalAccountBalance)
+                            {
+                                return new ApiResponse<string>("You can't afford this fuel purchase!") { IsError = true };
+                            }
+
+                            financialRecord.UserID = plan.Aircraft.OwnerID;
+                            financialRecord.Expense = fuelPrice;
+                            financialRecord.Description = $"Fuel purchase {plan.Aircraft.Registry}: {gallonsToTransfer} gallons jet fuel at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                        }
+                    }
+                    else
+                    {
+                        return new ApiResponse<string>("This aircraft doesn't use fuel and can therefore not be fueled!") { IsError = true };
+                    }
+
+                    await this.db.FinancialRecords.AddAsync(financialRecord);
+                }
+
                 plan.FuelLoadingComplete = gallonsPerMinute > 0 && gallonsToTransfer > 0 ? DateTime.UtcNow.AddMinutes(3 + (gallonsToTransfer / gallonsPerMinute)) : DateTime.UtcNow;
                 if (plan.Aircraft.FuellingUntil.HasValue && plan.Aircraft.FuellingUntil.Value > DateTime.UtcNow)
                 {
@@ -1589,6 +1817,7 @@ namespace OpenSky.API.Controllers
                         flightPayload.Payload.AircraftRegistry = plan.AircraftRegistry;
                     }
                 }
+
                 plan.PayloadLoadingComplete = lbsPerMinute > 0 && lbsToTransfer > 0 ? DateTime.UtcNow.AddMinutes(1 + (lbsToTransfer / lbsPerMinute)) : DateTime.UtcNow;
                 if (plan.Aircraft.LoadingUntil.HasValue && plan.Aircraft.LoadingUntil.Value > DateTime.UtcNow)
                 {
@@ -1596,6 +1825,8 @@ namespace OpenSky.API.Controllers
                     plan.PayloadLoadingComplete += plan.Aircraft.LoadingUntil.Value - DateTime.UtcNow;
                     plan.Aircraft.LoadingUntil = null;
                 }
+
+                // todo charge cargo handling fee? passenger fee? for the airport...
 
                 // No alternate set?, set to origin (return to base)
                 if (string.IsNullOrEmpty(plan.AlternateICAO))
@@ -1705,6 +1936,88 @@ namespace OpenSky.API.Controllers
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Flight/autoSave/{flightID}");
                 return new ApiResponse<string>(ex);
             }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Calculate the landing fee for the specified aircraft at the given airport.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 26/01/2022.
+        /// </remarks>
+        /// <param name="aircraft">
+        /// The aircraft.
+        /// </param>
+        /// <param name="airport">
+        /// The airport.
+        /// </param>
+        /// <returns>
+        /// The calculated landing fee.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        private int CalculateLandingFee(Aircraft aircraft, Airport airport)
+        {
+            var mtowTonnes = (int)Math.Round(aircraft.Type.MaxGrossWeight / 2205, 0, MidpointRounding.ToPositiveInfinity);
+            var militarySurcharge = airport.IsMilitary ? 500 : 0;
+            if (airport.Size >= 5)
+            {
+                mtowTonnes = mtowTonnes > 45 ? mtowTonnes - 45 : 0;
+                return 220 + (mtowTonnes * 6) + militarySurcharge;
+            }
+
+            if (airport.Size >= 2)
+            {
+                return 15 * mtowTonnes + militarySurcharge;
+            }
+
+            return airport.Size == 1 ? 10 + militarySurcharge : militarySurcharge;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Find the closest airport to the specified geo coordinate.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 26/01/2022.
+        /// </remarks>
+        /// <param name="location">
+        /// The location.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields the closest airport ICAO code, or NULL if there is no airport within 10 nm.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        private async Task<string> GetClosestAirport(GeoCoordinate location)
+        {
+            // Check where we are (closest airport)
+            var coverage = location.CircularCoverage(10);
+            var cells = coverage.Cells.Select(c => c.Id).ToList();
+            var airports = await this.db.Airports.Where($"@0.Contains(S2Cell{coverage.Level})", cells).ToListAsync();
+            if (airports.Count == 0)
+            {
+                // Landed at no airport, back to origin?
+                return null;
+            }
+
+            Airport closest = null;
+            double closestDistance = 9999;
+            foreach (var airport in airports)
+            {
+                var distance = airport.GeoCoordinate.GetDistanceTo(location);
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+                    closest = airport;
+                }
+            }
+
+            if (closest != null)
+            {
+                return closest.ICAO;
+            }
+
+            // Should not happen, take first airport from list I guess?
+            return airports[0].ICAO;
         }
     }
 }
