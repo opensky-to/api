@@ -99,24 +99,31 @@ namespace OpenSky.API.Controllers
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET WorldPopulation");
 
                 var fuelAvailability = new List<PieChartValue>
-            {
-                new() { Key = "None", Value = await this.db.Airports.CountAsync(a => !a.HasAvGas && !a.HasJetFuel) },
-                new() { Key = "AvGas", Value = await this.db.Airports.CountAsync(a => a.HasAvGas && !a.HasJetFuel) },
-                new() { Key = "Jetfuel", Value = await this.db.Airports.CountAsync(a => !a.HasAvGas && a.HasJetFuel) },
-                new() { Key = "Both", Value = await this.db.Airports.CountAsync(a => a.HasAvGas && a.HasJetFuel) }
-            };
+                {
+                    new() { Key = "None", Value = await this.db.Airports.CountAsync(a => !a.HasAvGas && !a.HasJetFuel) },
+                    new() { Key = "AvGas", Value = await this.db.Airports.CountAsync(a => a.HasAvGas && !a.HasJetFuel) },
+                    new() { Key = "Jetfuel", Value = await this.db.Airports.CountAsync(a => !a.HasAvGas && a.HasJetFuel) },
+                    new() { Key = "Both", Value = await this.db.Airports.CountAsync(a => a.HasAvGas && a.HasJetFuel) }
+                };
 
                 var runwayLights = new List<PieChartValue>
-            {
-                new() { Key = "Lit", Value = await this.db.Runways.CountAsync(r => !string.IsNullOrEmpty(r.CenterLight) || !string.IsNullOrEmpty(r.EdgeLight)) },
-                new() { Key = "Unlit", Value = await this.db.Runways.CountAsync(r => string.IsNullOrEmpty(r.CenterLight) && string.IsNullOrEmpty(r.EdgeLight)) }
-            };
+                {
+                    new() { Key = "Lit", Value = await this.db.Runways.CountAsync(r => !string.IsNullOrEmpty(r.CenterLight) || !string.IsNullOrEmpty(r.EdgeLight)) },
+                    new() { Key = "Unlit", Value = await this.db.Runways.CountAsync(r => string.IsNullOrEmpty(r.CenterLight) && string.IsNullOrEmpty(r.EdgeLight)) }
+                };
 
                 var aircraftOwner = new List<PieChartValue>
-            {
-                new() { Key = "System", Value = await this.db.Aircraft.CountAsync(a => a.OwnerID == null) },
-                new() { Key = "Player", Value = await this.db.Aircraft.CountAsync(a => a.OwnerID != null) }
-            };
+                {
+                    new() { Key = "System", Value = await this.db.Aircraft.CountAsync(a => a.OwnerID == null) },
+                    new() { Key = "Player", Value = await this.db.Aircraft.CountAsync(a => a.OwnerID != null) },
+                    new() { Key = "Airline", Value = await this.db.Aircraft.CountAsync(a => a.AirlineOwnerID != null) }
+                };
+
+                var flightOperators = new List<PieChartValue>
+                {
+                    new() { Key = "Player", Value = await this.db.Flights.CountAsync(f => f.Completed.HasValue && f.OperatorID != null)},
+                    new() { Key = "Airline", Value = await this.db.Flights.CountAsync(f => f.Completed.HasValue && f.OperatorAirlineID != null)}
+                };
 
                 var overview = new WorldPopulationOverview
                 {
@@ -130,7 +137,13 @@ namespace OpenSky.API.Controllers
                     ApproachTypes = await this.db.Approaches.GroupBy(a => a.Type, a => a, (type, approaches) => new PieChartValue { Key = type, Value = approaches.Count() }).ToListAsync(),
                     TotalAircraft = await this.db.Aircraft.CountAsync(),
                     AircraftCategories = await this.db.Aircraft.GroupBy(a => a.Type.Category, a => a, (category, aircraft) => new PieChartValue { Key = $"{category}", Value = aircraft.Count() }).ToListAsync(),
-                    AircraftOwner = aircraftOwner
+                    AircraftOwner = aircraftOwner,
+                    TotalJobs = await this.db.Jobs.CountAsync(),
+                    JobTypes = await this.db.Jobs.GroupBy(j => j.Type, j => j, (type, jobs) => new PieChartValue { Key = $"{type}", Value = jobs.Count() }).ToListAsync(),
+                    JobCategories = await this.db.Jobs.GroupBy(j => j.Category, j => j, (category, jobs) => new PieChartValue { Key = $"{category}", Value = jobs.Count() }).ToListAsync(),
+                    CompletedFlights = await this.db.Flights.CountAsync(f => f.Completed.HasValue),
+                    FlightOperators = flightOperators,
+                    FlightAircraftCategories = this.db.Flights.Where(f => f.Completed.HasValue).ToList().GroupBy(f => f.Aircraft.Type.Category, f => f, (category, flights) => new PieChartValue { Key = $"{category}", Value = flights.Count() })
                 };
 
                 return new ApiResponse<WorldPopulationOverview>(overview);
