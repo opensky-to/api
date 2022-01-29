@@ -316,6 +316,8 @@ namespace OpenSky.API.Services
 
                         generatedJobs++;
                     }
+
+                    this.statisticsService.RecordJobsGenerated(generatedJobs);
                 }
             }
 

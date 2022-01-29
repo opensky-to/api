@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="WorldPopulationOverview.cs" company="OpenSky">
-// OpenSky project 2022
+// <copyright file="WorldStatisticsOverview.cs" company="OpenSky">
+// OpenSky project 2021-2022
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -10,13 +10,13 @@ namespace OpenSky.API.Model
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// World population overview model.
+    /// World statistics overview model.
     /// </summary>
     /// <remarks>
     /// sushi.at, 02/07/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class WorldPopulationOverview
+    public class WorldStatisticsOverview
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -79,7 +79,21 @@ namespace OpenSky.API.Model
         /// Gets or sets a pie chart series for job categories.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public IEnumerable<PieChartValue> JobCategories { get; set; }
+        public IEnumerable<PieChartValue> JobAircraftCategories { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets a pie chart series for job operators.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public IEnumerable<PieChartValue> JobOperators { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the jobs generated.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int JobsGenerated { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

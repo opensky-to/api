@@ -46,6 +46,13 @@ namespace OpenSky.API.Services
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The statistics service.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly StatisticsService statisticsService;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The logger.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -64,10 +71,14 @@ namespace OpenSky.API.Services
         /// <param name="logger">
         /// The logger.
         /// </param>
+        /// <param name="statisticsService">
+        /// The statistics service.
+        /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public JobPopulatorService(IServiceProvider services, ILogger<JobPopulatorService> logger)
+        public JobPopulatorService(IServiceProvider services, ILogger<JobPopulatorService> logger, StatisticsService statisticsService)
         {
             this.logger = logger;
+            this.statisticsService = statisticsService;
             this.db = services.CreateScope().ServiceProvider.GetRequiredService<OpenSkyDbContext>();
             this.logger.LogInformation("Job populator service started");
 

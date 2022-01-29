@@ -242,6 +242,9 @@ namespace OpenSky.API
             services.AddSingleton<AircraftPopulatorService>();
             services.AddSingleton<JobPopulatorService>();
             
+            // Setup statistics service
+            services.AddSingleton<StatisticsService>();
+
             // Set up hosted worker services
             services.AddHostedService<DataImportWorkerService>();
             services.AddHostedService<DbCleanupWorkerService>();

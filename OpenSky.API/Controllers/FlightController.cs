@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="FlightController.cs" company="OpenSky">
-// OpenSky project 2022
+// OpenSky project 2021-2022
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -25,6 +25,8 @@ namespace OpenSky.API.Controllers
     using OpenSky.API.Model;
     using OpenSky.API.Model.Authentication;
     using OpenSky.API.Model.Flight;
+    using OpenSky.API.Services;
+    using OpenSky.API.Services.Models;
     using OpenSky.S2Geometry.Extensions;
 
     /// -------------------------------------------------------------------------------------------------
@@ -64,6 +66,13 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The statistics service.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly StatisticsService statisticsService;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Initializes a new instance of the <see cref="FlightController"/> class.
         /// </summary>
         /// <remarks>
@@ -78,12 +87,16 @@ namespace OpenSky.API.Controllers
         /// <param name="userManager">
         /// The user manager.
         /// </param>
+        /// <param name="statisticsService">
+        /// The statistics service.
+        /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public FlightController(ILogger<FlightController> logger, OpenSkyDbContext db, UserManager<OpenSkyUser> userManager)
+        public FlightController(ILogger<FlightController> logger, OpenSkyDbContext db, UserManager<OpenSkyUser> userManager, StatisticsService statisticsService)
         {
             this.logger = logger;
             this.db = db;
             this.userManager = userManager;
+            this.statisticsService = statisticsService;
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -576,6 +589,7 @@ namespace OpenSky.API.Controllers
                                     flight.Aircraft.LifeTimeExpense += (int)(job.Value * (1.0 - latePenaltyMultiplier));
                                 }
 
+                                this.statisticsService.RecordCompletedJob(job.OperatorAirline != null ? FlightOperator.Airline : FlightOperator.Player, flight.Aircraft.Type.Category, job.Type);
                                 await this.db.FinancialRecords.AddAsync(jobRecord);
                                 this.db.Payloads.RemoveRange(job.Payloads);
                                 this.db.Jobs.Remove(job);
@@ -649,6 +663,7 @@ namespace OpenSky.API.Controllers
                 // todo check final log for signs of cheating?
                 // todo calculate final reputation/xp/whatever based on flight
 
+                this.statisticsService.RecordCompletedFlight(flight.OperatorAirline != null ? FlightOperator.Airline : FlightOperator.Player, flight.Aircraft.Type.Category);
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error completing flight");
                 if (saveEx != null)
                 {
