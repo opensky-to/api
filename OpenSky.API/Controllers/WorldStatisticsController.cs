@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="WorldPopulationController.cs" company="OpenSky">
+// <copyright file="WorldStatisticsController.cs" company="OpenSky">
 // OpenSky project 2021-2022
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
@@ -23,7 +23,7 @@ namespace OpenSky.API.Controllers
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// World population controller.
+    /// World statistics controller.
     /// </summary>
     /// <remarks>
     /// sushi.at, 02/07/2021.
@@ -33,7 +33,7 @@ namespace OpenSky.API.Controllers
     [Authorize(Roles = UserRoles.Admin)]
     [ApiController]
     [Route("[controller]")]
-    public class WorldPopulationController : ControllerBase
+    public class WorldStatisticsController : ControllerBase
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -47,7 +47,7 @@ namespace OpenSky.API.Controllers
         /// The logger.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private readonly ILogger<WorldPopulationController> logger;
+        private readonly ILogger<WorldStatisticsController> logger;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -58,7 +58,14 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Initializes a new instance of the <see cref="WorldPopulationController"/> class.
+        /// The statistics service.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly StatisticsService statisticsService;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WorldStatisticsController"/> class.
         /// </summary>
         /// <remarks>
         /// sushi.at, 04/05/2021.
@@ -72,53 +79,58 @@ namespace OpenSky.API.Controllers
         /// <param name="aircraftPopulator">
         /// The world populator service.
         /// </param>
+        /// <param name="statisticsService">
+        /// The statistics service.
+        /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public WorldPopulationController(ILogger<WorldPopulationController> logger, OpenSkyDbContext db, AircraftPopulatorService aircraftPopulator)
+        public WorldStatisticsController(ILogger<WorldStatisticsController> logger, OpenSkyDbContext db, AircraftPopulatorService aircraftPopulator, StatisticsService statisticsService)
         {
             this.logger = logger;
             this.db = db;
             this.aircraftPopulator = aircraftPopulator;
+            this.statisticsService = statisticsService;
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Get world population overview.
+        /// Get world statistics overview.
         /// </summary>
         /// <remarks>
         /// sushi.at, 02/07/2021.
         /// </remarks>
         /// <returns>
-        /// An asynchronous result that yields the world population overview.
+        /// An asynchronous result that yields the world statistics overview.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpGet("", Name = "GetWorldPopulationOverview")]
-        public async Task<ActionResult<ApiResponse<WorldPopulationOverview>>> GetWorldPopulationOverview()
+        [HttpGet("", Name = "GetWorldStatisticsOverview")]
+        public async Task<ActionResult<ApiResponse<WorldStatisticsOverview>>> GetWorldStatisticsOverview()
         {
             try
             {
-                this.logger.LogInformation($"{this.User.Identity?.Name} | GET WorldPopulation");
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET WorldStatistics");
 
                 var fuelAvailability = new List<PieChartValue>
-            {
-                new() { Key = "None", Value = await this.db.Airports.CountAsync(a => !a.HasAvGas && !a.HasJetFuel) },
-                new() { Key = "AvGas", Value = await this.db.Airports.CountAsync(a => a.HasAvGas && !a.HasJetFuel) },
-                new() { Key = "Jetfuel", Value = await this.db.Airports.CountAsync(a => !a.HasAvGas && a.HasJetFuel) },
-                new() { Key = "Both", Value = await this.db.Airports.CountAsync(a => a.HasAvGas && a.HasJetFuel) }
-            };
+                {
+                    new() { Key = "None", Value = await this.db.Airports.CountAsync(a => !a.HasAvGas && !a.HasJetFuel) },
+                    new() { Key = "AvGas", Value = await this.db.Airports.CountAsync(a => a.HasAvGas && !a.HasJetFuel) },
+                    new() { Key = "Jetfuel", Value = await this.db.Airports.CountAsync(a => !a.HasAvGas && a.HasJetFuel) },
+                    new() { Key = "Both", Value = await this.db.Airports.CountAsync(a => a.HasAvGas && a.HasJetFuel) }
+                };
 
                 var runwayLights = new List<PieChartValue>
-            {
-                new() { Key = "Lit", Value = await this.db.Runways.CountAsync(r => !string.IsNullOrEmpty(r.CenterLight) || !string.IsNullOrEmpty(r.EdgeLight)) },
-                new() { Key = "Unlit", Value = await this.db.Runways.CountAsync(r => string.IsNullOrEmpty(r.CenterLight) && string.IsNullOrEmpty(r.EdgeLight)) }
-            };
+                {
+                    new() { Key = "Lit", Value = await this.db.Runways.CountAsync(r => !string.IsNullOrEmpty(r.CenterLight) || !string.IsNullOrEmpty(r.EdgeLight)) },
+                    new() { Key = "Unlit", Value = await this.db.Runways.CountAsync(r => string.IsNullOrEmpty(r.CenterLight) && string.IsNullOrEmpty(r.EdgeLight)) }
+                };
 
                 var aircraftOwner = new List<PieChartValue>
-            {
-                new() { Key = "System", Value = await this.db.Aircraft.CountAsync(a => a.OwnerID == null) },
-                new() { Key = "Player", Value = await this.db.Aircraft.CountAsync(a => a.OwnerID != null) }
-            };
+                {
+                    new() { Key = "System", Value = await this.db.Aircraft.CountAsync(a => a.OwnerID == null) },
+                    new() { Key = "Player", Value = await this.db.Aircraft.CountAsync(a => a.OwnerID != null) },
+                    new() { Key = "Airline", Value = await this.db.Aircraft.CountAsync(a => a.AirlineOwnerID != null) }
+                };
 
-                var overview = new WorldPopulationOverview
+                var overview = new WorldStatisticsOverview
                 {
                     TotalAirports = await this.db.Airports.CountAsync(),
                     AirportSizes = await this.db.Airports.GroupBy(a => a.Size, a => a, (size, airports) => new PieChartValue { Key = $"{size}", Value = airports.Count() }).ToListAsync(),
@@ -130,15 +142,23 @@ namespace OpenSky.API.Controllers
                     ApproachTypes = await this.db.Approaches.GroupBy(a => a.Type, a => a, (type, approaches) => new PieChartValue { Key = type, Value = approaches.Count() }).ToListAsync(),
                     TotalAircraft = await this.db.Aircraft.CountAsync(),
                     AircraftCategories = await this.db.Aircraft.GroupBy(a => a.Type.Category, a => a, (category, aircraft) => new PieChartValue { Key = $"{category}", Value = aircraft.Count() }).ToListAsync(),
-                    AircraftOwner = aircraftOwner
+                    AircraftOwner = aircraftOwner,
+                    TotalJobs = await this.statisticsService.GetTotalJobCount(),
+                    JobsGenerated = await this.statisticsService.GetJobGeneratedCount(),
+                    JobOperators = this.statisticsService.GetJobOperatorPieSeries(),
+                    JobTypes = this.statisticsService.GetJobTypePieSeries(),
+                    JobAircraftCategories = this.statisticsService.GetJobAircraftTypePieSeries(),
+                    CompletedFlights = await this.statisticsService.GetTotalFlightCount(),
+                    FlightOperators = this.statisticsService.GetFlightOperatorPieSeries(),
+                    FlightAircraftCategories = this.statisticsService.GetFlightAircraftTypePieSeries()
                 };
 
-                return new ApiResponse<WorldPopulationOverview>(overview);
+                return new ApiResponse<WorldStatisticsOverview>(overview);
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET WorldPopulation");
-                return new ApiResponse<WorldPopulationOverview>(ex);
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET WorldStatistics");
+                return new ApiResponse<WorldStatisticsOverview>(ex);
             }
         }
 
@@ -161,7 +181,7 @@ namespace OpenSky.API.Controllers
         {
             try
             {
-                this.logger.LogInformation($"{this.User.Identity?.Name} | POST WorldPopulation/populateAircraft/{icao}");
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST WorldStatistics/populateAircraft/{icao}");
 
                 var airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == icao);
                 if (airport == null)
@@ -174,7 +194,7 @@ namespace OpenSky.API.Controllers
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST WorldPopulation/populateAircraft/{icao}");
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST WorldStatistics/populateAircraft/{icao}");
                 return new ApiResponse<string>(ex);
             }
         }

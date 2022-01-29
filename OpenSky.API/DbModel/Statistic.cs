@@ -1,26 +1,30 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="PieChartValue.cs" company="OpenSky">
+// <copyright file="Statistic.cs" company="OpenSky">
 // OpenSky project 2021-2022
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace OpenSky.API.Model
+namespace OpenSky.API.DbModel
 {
+    using System.ComponentModel.DataAnnotations;
+
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Pie chart value.
+    /// Statistic model.
     /// </summary>
     /// <remarks>
-    /// sushi.at, 02/07/2021.
+    /// sushi.at, 29/01/2022.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class PieChartValue
+    public class Statistic
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
         /// Gets or sets the key.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [Required]
+        [Key]
         public string Key { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -28,6 +32,6 @@ namespace OpenSky.API.Model
         /// Gets or sets the value.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public long Value { get; set; }
+        public double Value { get; set; }
     }
 }
