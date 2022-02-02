@@ -1747,6 +1747,7 @@ namespace OpenSky.API.Controllers
                         }
 
                         var fuelPrice = (int)(gallonsToTransfer * plan.Aircraft.Airport.AvGasPrice);
+                        plan.Aircraft.LifeTimeExpense += fuelPrice;
                         if (!string.IsNullOrEmpty(plan.Aircraft.AirlineOwnerID))
                         {
                             if (fuelPrice > plan.Aircraft.AirlineOwner.AccountBalance)
@@ -1779,6 +1780,7 @@ namespace OpenSky.API.Controllers
                         }
 
                         var fuelPrice = (int)(gallonsToTransfer * plan.Aircraft.Airport.JetFuelPrice);
+                        plan.Aircraft.LifeTimeExpense += fuelPrice;
                         if (!string.IsNullOrEmpty(plan.Aircraft.AirlineOwnerID))
                         {
                             if (fuelPrice > plan.Aircraft.AirlineOwner.AccountBalance)

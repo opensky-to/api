@@ -405,6 +405,7 @@ namespace OpenSky.API.Controllers
                             }
 
                             var fuelPrice = (int)(gallonsToTransfer * aircraft.Airport.JetFuelPrice);
+                            aircraft.LifeTimeExpense += fuelPrice;
                             if (!string.IsNullOrEmpty(aircraft.AirlineOwnerID))
                             {
                                 if (fuelPrice > aircraft.AirlineOwner.AccountBalance)
