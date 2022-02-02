@@ -457,10 +457,10 @@ namespace OpenSky.API.Controllers
                 var flightFinancialRecord = new FinancialRecord
                 {
                     ID = Guid.NewGuid(),
-                    Description = $"Flight {flight.FullFlightNumber} landed aircraft {flight.AircraftRegistry} at {flight.LandedAtICAO}",
+                    Description = $"Flight {flight.FullFlightNumber} with aircraft {flight.AircraftRegistry} from {flight.OriginICAO} to {flight.LandedAtICAO}",
                     Timestamp = DateTime.UtcNow,
                     AircraftRegistry = flight.AircraftRegistry,
-                    Category = FinancialCategory.None
+                    Category = FinancialCategory.Flight
                 };
                 if (!string.IsNullOrEmpty(flight.OperatorID))
                 {
@@ -551,6 +551,9 @@ namespace OpenSky.API.Controllers
                                 {
                                     ID = Guid.NewGuid(),
                                     ParentRecordID = flightFinancialRecord.ID,
+                                    UserID = flightFinancialRecord.UserID,
+                                    AirlineID = flightFinancialRecord.AirlineID,
+                                    AircraftRegistry = flight.AircraftRegistry,
                                     Income = job.Value,
                                     Category = job.Type switch
                                     {
@@ -558,20 +561,18 @@ namespace OpenSky.API.Controllers
                                         _ => FinancialCategory.None
                                     },
                                     Timestamp = flightFinancialRecord.Timestamp,
-                                    Description = $"Job{(string.IsNullOrEmpty(job.UserIdentifier) ? string.Empty : $" ({job.UserIdentifier})")} of type {job.Category} from {job.OriginICAO} completed."
+                                    Description = $"{job.Type} job{(string.IsNullOrEmpty(job.UserIdentifier) ? string.Empty : $" ({job.UserIdentifier})")} of category {job.Category} from {job.OriginICAO} completed."
                                 };
                                 flight.Aircraft.LifeTimeIncome += job.Value;
 
                                 if (job.Operator != null)
                                 {
                                     job.Operator.PersonalAccountBalance += value;
-                                    jobRecord.UserID = job.OperatorID;
                                 }
 
                                 if (job.OperatorAirline != null)
                                 {
                                     job.OperatorAirline.AccountBalance += value;
-                                    jobRecord.AirlineID = job.OperatorAirlineID;
                                 }
 
                                 if (job.ExpiresAt <= DateTime.UtcNow)
@@ -580,10 +581,13 @@ namespace OpenSky.API.Controllers
                                     {
                                         ID = Guid.NewGuid(),
                                         ParentRecordID = flightFinancialRecord.ID,
+                                        UserID = flightFinancialRecord.UserID,
+                                        AirlineID = flightFinancialRecord.AirlineID,
+                                        AircraftRegistry = flight.AircraftRegistry,
                                         Category = FinancialCategory.Fines,
                                         Expense = (int)(job.Value * (1.0 - latePenaltyMultiplier)),
                                         Timestamp = flightFinancialRecord.Timestamp,
-                                        Description = $"Late delivery penalty ({(int)((1.0 - latePenaltyMultiplier) * 100)} %) for job{(string.IsNullOrEmpty(job.UserIdentifier) ? string.Empty : $" ({job.UserIdentifier})")} of type {job.Category} from {job.OriginICAO}"
+                                        Description = $"Late delivery penalty ({(int)((1.0 - latePenaltyMultiplier) * 100)} %) for {job.Type} job{(string.IsNullOrEmpty(job.UserIdentifier) ? string.Empty : $" ({job.UserIdentifier})")} of category {job.Category} from {job.OriginICAO}"
                                     };
                                     await this.db.FinancialRecords.AddAsync(penaltyRecord);
                                     flight.Aircraft.LifeTimeExpense += (int)(job.Value * (1.0 - latePenaltyMultiplier));
@@ -606,6 +610,9 @@ namespace OpenSky.API.Controllers
                         {
                             ID = Guid.NewGuid(),
                             ParentRecordID = flightFinancialRecord.ID,
+                            UserID = flightFinancialRecord.UserID,
+                            AirlineID = flightFinancialRecord.AirlineID,
+                            AircraftRegistry = flight.AircraftRegistry,
                             Expense = landingFee,
                             Category = FinancialCategory.AirportFees,
                             Timestamp = flightFinancialRecord.Timestamp,
@@ -623,6 +630,9 @@ namespace OpenSky.API.Controllers
                             {
                                 ID = Guid.NewGuid(),
                                 ParentRecordID = flightFinancialRecord.ID,
+                                UserID = flightFinancialRecord.UserID,
+                                AirlineID = flightFinancialRecord.AirlineID,
+                                AircraftRegistry = flight.AircraftRegistry,
                                 Category = FinancialCategory.Fines,
                                 Expense = fine,
                                 Timestamp = flightFinancialRecord.Timestamp,
@@ -1720,11 +1730,12 @@ namespace OpenSky.API.Controllers
                 var gallonsToTransfer = Math.Abs(plan.Aircraft.Fuel - plan.FuelGallons.Value);
                 if (gallonsToTransfer > 0 && plan.FuelGallons.Value > plan.Aircraft.Fuel)
                 {
-                    var financialRecord = new FinancialRecord
+                    var fuelRecord = new FinancialRecord
                     {
                         ID = Guid.NewGuid(),
                         Timestamp = DateTime.UtcNow,
-                        AircraftRegistry = plan.Aircraft.Registry
+                        AircraftRegistry = plan.Aircraft.Registry,
+                        Category = FinancialCategory.Fuel
                     };
 
                     if (plan.Aircraft.Type.FuelType == FuelType.AvGas)
@@ -1743,9 +1754,9 @@ namespace OpenSky.API.Controllers
                                 return new ApiResponse<string>("Your airline can't afford this fuel purchase!") { IsError = true };
                             }
 
-                            financialRecord.AirlineID = plan.Aircraft.AirlineOwnerID;
-                            financialRecord.Expense = fuelPrice;
-                            financialRecord.Description = $"Fuel purchase {plan.Aircraft.Registry}: {gallonsToTransfer} gallons AV gas at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                            fuelRecord.AirlineID = plan.Aircraft.AirlineOwnerID;
+                            fuelRecord.Expense = fuelPrice;
+                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry}: {gallonsToTransfer:F1} gallons AV gas at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
                         }
                         else
                         {
@@ -1754,9 +1765,9 @@ namespace OpenSky.API.Controllers
                                 return new ApiResponse<string>("You can't afford this fuel purchase!") { IsError = true };
                             }
 
-                            financialRecord.UserID = plan.Aircraft.OwnerID;
-                            financialRecord.Expense = fuelPrice;
-                            financialRecord.Description = $"Fuel purchase {plan.Aircraft.Registry}: {gallonsToTransfer} gallons AV gas at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                            fuelRecord.UserID = plan.Aircraft.OwnerID;
+                            fuelRecord.Expense = fuelPrice;
+                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry}: {gallonsToTransfer:F1} gallons AV gas at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
                         }
                     }
                     else if (plan.Aircraft.Type.FuelType == FuelType.JetFuel)
@@ -1775,9 +1786,9 @@ namespace OpenSky.API.Controllers
                                 return new ApiResponse<string>("Your airline can't afford this fuel purchase!") { IsError = true };
                             }
 
-                            financialRecord.AirlineID = plan.Aircraft.AirlineOwnerID;
-                            financialRecord.Expense = fuelPrice;
-                            financialRecord.Description = $"Fuel purchase {plan.Aircraft.Registry}: {gallonsToTransfer} gallons jet fuel at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                            fuelRecord.AirlineID = plan.Aircraft.AirlineOwnerID;
+                            fuelRecord.Expense = fuelPrice;
+                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry}: {gallonsToTransfer:F1} gallons jet fuel at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
                         }
                         else
                         {
@@ -1786,9 +1797,9 @@ namespace OpenSky.API.Controllers
                                 return new ApiResponse<string>("You can't afford this fuel purchase!") { IsError = true };
                             }
 
-                            financialRecord.UserID = plan.Aircraft.OwnerID;
-                            financialRecord.Expense = fuelPrice;
-                            financialRecord.Description = $"Fuel purchase {plan.Aircraft.Registry}: {gallonsToTransfer} gallons jet fuel at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                            fuelRecord.UserID = plan.Aircraft.OwnerID;
+                            fuelRecord.Expense = fuelPrice;
+                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry}: {gallonsToTransfer:F1} gallons jet fuel at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
                         }
                     }
                     else
@@ -1796,7 +1807,7 @@ namespace OpenSky.API.Controllers
                         return new ApiResponse<string>("This aircraft doesn't use fuel and can therefore not be fueled!") { IsError = true };
                     }
 
-                    await this.db.FinancialRecords.AddAsync(financialRecord);
+                    await this.db.FinancialRecords.AddAsync(fuelRecord);
                 }
 
                 plan.FuelLoadingComplete = gallonsPerMinute > 0 && gallonsToTransfer > 0 ? DateTime.UtcNow.AddMinutes(3 + (gallonsToTransfer / gallonsPerMinute)) : DateTime.UtcNow;

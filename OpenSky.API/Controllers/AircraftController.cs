@@ -382,7 +382,7 @@ namespace OpenSky.API.Controllers
 
                                 fuelRecord.AirlineID = aircraft.AirlineOwnerID;
                                 fuelRecord.Expense = fuelPrice;
-                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry}: {gallonsToTransfer} gallons AV gas at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
+                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry}: {gallonsToTransfer:F1} gallons AV gas at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
                             }
                             else
                             {
@@ -393,7 +393,7 @@ namespace OpenSky.API.Controllers
 
                                 fuelRecord.UserID = aircraft.OwnerID;
                                 fuelRecord.Expense = fuelPrice;
-                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry}: {gallonsToTransfer} gallons AV gas at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
+                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry}: {gallonsToTransfer:F1} gallons AV gas at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
                             }
                         }
                         else if (aircraft.Type.FuelType == FuelType.JetFuel)
@@ -414,7 +414,7 @@ namespace OpenSky.API.Controllers
 
                                 fuelRecord.AirlineID = aircraft.AirlineOwnerID;
                                 fuelRecord.Expense = fuelPrice;
-                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry}: {gallonsToTransfer} gallons jet fuel at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
+                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry}: {gallonsToTransfer:F1} gallons jet fuel at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
                             }
                             else
                             {
@@ -425,7 +425,7 @@ namespace OpenSky.API.Controllers
 
                                 fuelRecord.UserID = aircraft.OwnerID;
                                 fuelRecord.Expense = fuelPrice;
-                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry}: {gallonsToTransfer} gallons jet fuel at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
+                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry}: {gallonsToTransfer:F1} gallons jet fuel at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
                             }
                         }
                         else
@@ -848,9 +848,6 @@ namespace OpenSky.API.Controllers
                         return new ApiResponse<string>("Aircraft not empty, please unload payload first!") { IsError = true };
                     }
 
-                    aircraft.OwnerID = null;
-                    aircraft.Owner.PersonalAccountBalance += (int)(purchasePrice * 0.7);
-
                     var saleRecord = new FinancialRecord
                     {
                         ID = Guid.NewGuid(),
@@ -860,6 +857,10 @@ namespace OpenSky.API.Controllers
                         Category = FinancialCategory.Aircraft,
                         Description = $"Sale of aircraft {aircraft.Registry}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO}"
                     };
+
+                    aircraft.OwnerID = null;
+                    aircraft.Owner.PersonalAccountBalance += (int)(purchasePrice * 0.7);
+
                     await this.db.FinancialRecords.AddAsync(saleRecord);
                 }
 

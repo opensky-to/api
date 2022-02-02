@@ -17,6 +17,11 @@ namespace OpenSky.API.DbModel.Enums
     public enum FinancialCategory
     {
         /// <summary>
+        /// Flight pseudo category (used to summarize, excluded from graphs etc.)
+        /// </summary>
+        Flight = -1,
+
+        /// <summary>
         /// No financial category.
         /// </summary>
         None = 0,

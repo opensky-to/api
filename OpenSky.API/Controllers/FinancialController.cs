@@ -110,7 +110,7 @@ namespace OpenSky.API.Controllers
                     ID = Guid.NewGuid(),
                     Timestamp = DateTime.UtcNow,
                     UserID = user.Id,
-                    Category = FinancialCategory.None,
+                    Category = FinancialCategory.Dividend,
                     Income = 100000000,
                     Description = "Bob's your uncle"
                 };
