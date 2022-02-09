@@ -54,6 +54,13 @@ namespace OpenSky.API.Services
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The ICAO registrations service.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly IcaoRegistrationsService icaoRegistrations;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The logger.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -67,22 +74,15 @@ namespace OpenSky.API.Services
         private readonly double[,] ratios =
         {
             //  SEP,   MEP,  SET,  MET,  JET,  REG,  NBA,  WBA,  HEL
-            {     0,     0,    0,    0,    0,    0,    0,    0,    0 }, // -1
-            {   0.8,  0.15,    0,    0,    0,    0,    0,    0, 0.05 }, // 0
-            {  0.65,  0.15, 0.05, 0.05, 0.05,    0,    0,    0, 0.05 }, // 1
-            {  0.35,   0.2,  0.1,  0.1,  0.1, 0.05, 0.05,    0, 0.05 }, // 2
-            {  0.15,  0.25, 0.15,  0.1,  0.1,  0.1,  0.1,    0, 0.05 }, // 3
-            { 0.075, 0.075, 0.05, 0.05,  0.1,  0.2,  0.3,  0.1, 0.05 }, // 4
-            {  0.05,  0.05, 0.05, 0.05, 0.05, 0.15, 0.35, 0.25,    0 }, // 5
-            {  0.05,  0.05, 0.05, 0.05, 0.05, 0.05,  0.3,  0.4,    0 }  // 6 
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0 }, // -1
+            { 0.8, 0.15, 0, 0, 0, 0, 0, 0, 0.05 }, // 0
+            { 0.65, 0.15, 0.05, 0.05, 0.05, 0, 0, 0, 0.05 }, // 1
+            { 0.35, 0.2, 0.1, 0.1, 0.1, 0.05, 0.05, 0, 0.05 }, // 2
+            { 0.15, 0.25, 0.15, 0.1, 0.1, 0.1, 0.1, 0, 0.05 }, // 3
+            { 0.075, 0.075, 0.05, 0.05, 0.1, 0.2, 0.3, 0.1, 0.05 }, // 4
+            { 0.05, 0.05, 0.05, 0.05, 0.05, 0.15, 0.35, 0.25, 0 }, // 5
+            { 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.3, 0.4, 0 } // 6 
         };
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// The ICAO registrations service.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private readonly IcaoRegistrationsService icaoRegistrations;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -114,10 +114,13 @@ namespace OpenSky.API.Services
         /// Checks the airports for missing quotas and generates new aircraft.
         /// </summary>
         /// <remarks>
-        /// sushi.at, 28/06/2021.
+        /// sushi.at, 08/02/2022.
         /// </remarks>
         /// <param name="airports">
         /// The list of airports to bulk-process.
+        /// </param>
+        /// <param name="simulator">
+        /// The simulator.
         /// </param>
         /// <param name="cancellationToken">
         /// A token that allows processing to be cancelled.
@@ -126,17 +129,27 @@ namespace OpenSky.API.Services
         /// An asynchronous result.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        public async Task CheckAndGenerateAircaftForAirports(IEnumerable<Airport> airports, CancellationToken cancellationToken)
+        public async Task CheckAndGenerateAircaftForAirports(IEnumerable<Airport> airports, Simulator simulator, CancellationToken cancellationToken)
         {
             // Comments on how this works have been removed for the bulk-operation method, to understand what this code does look at the single airport method
             var generatedAircraft = new List<Aircraft>();
             var updatedAirports = new List<Airport>();
-            var aircraftTypes = await this.db.AircraftTypes.ToListAsync(cancellationToken);
+            var aircraftTypes = await this.db.AircraftTypes.Where(type => type.Enabled && type.Simulator == simulator && !type.IsVariantOf.HasValue && (type.IsVanilla || type.IncludeInWorldPopulation)).ToListAsync(cancellationToken);
             foreach (var airport in airports)
             {
                 try
                 {
-                    if (!airport.Size.HasValue || !airport.MSFS)
+                    if (simulator == Simulator.MSFS && !airport.MSFS)
+                    {
+                        continue;
+                    }
+
+                    if (simulator == Simulator.XPlane11 && !airport.XP11)
+                    {
+                        continue;
+                    }
+
+                    if (!airport.Size.HasValue)
                     {
                         continue;
                     }
@@ -146,7 +159,8 @@ namespace OpenSky.API.Services
                         return;
                     }
 
-                    var availableForPurchaseOrRent = await this.db.Aircraft.Where(aircraft => aircraft.AirportICAO == airport.ICAO && (aircraft.RentPrice.HasValue || aircraft.PurchasePrice.HasValue)).ToListAsync(cancellationToken);
+                    var availableForPurchaseOrRent = await this.db.Aircraft.Where(aircraft => aircraft.AirportICAO == airport.ICAO && (aircraft.RentPrice.HasValue || aircraft.PurchasePrice.HasValue && aircraft.Type.Simulator == simulator))
+                                                               .ToListAsync(cancellationToken);
                     var totalSlots = CalculateTotalSlots(airport);
                     var requiredAircraft = Math.Ceiling(totalSlots * 0.8);
                     var newAircraftCount = availableForPurchaseOrRent.Count;
@@ -176,9 +190,9 @@ namespace OpenSky.API.Services
                             var minIndex = FindMinInArray(deltas);
                             try
                             {
-                                var registration = this.GenerateRegistration(airport, generatedAircraft);
+                                var registration = this.GenerateRegistration(airport, generatedAircraft, simulator);
                                 var typeCandidates = aircraftTypes.Where(
-                                    type => type.Category == (AircraftTypeCategory)minIndex && type.Enabled && !type.IsVariantOf.HasValue && (type.IsVanilla || type.IncludeInWorldPopulation) && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToList();
+                                    type => type.Category == (AircraftTypeCategory)minIndex && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToList();
 
                                 var alternateIndex = minIndex;
                                 while (typeCandidates.Count == 0 && alternateIndex > 0)
@@ -186,10 +200,18 @@ namespace OpenSky.API.Services
                                     alternateIndex--;
                                     var queryIndex = alternateIndex;
                                     typeCandidates = aircraftTypes.Where(
-                                        type => type.Category == (AircraftTypeCategory)queryIndex && type.Enabled && (type.IsVanilla || type.IncludeInWorldPopulation) && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToList();
+                                        type => type.Category == (AircraftTypeCategory)queryIndex && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToList();
+                                }
+
+                                if (typeCandidates.Count == 0)
+                                {
+                                    // No available aircraft type, can't populate this airport
+                                    wasSuccessfull = false;
+                                    break;
                                 }
 
                                 var randomType = typeCandidates[Random.Next(0, typeCandidates.Count)];
+
                                 // todo @todo update when economics/aircraft age/wear/tear are implemented
                                 var purchasePrice = (int)Math.Round((randomType.MaxPrice + randomType.MinPrice) / 2.0 * (Random.Next(80, 121) / 100.0), 0);
                                 purchasePrice = Math.Max(Math.Min(randomType.MaxPrice, purchasePrice), randomType.MinPrice); // Make sure we stay within the min/max limit no matter what
@@ -218,19 +240,37 @@ namespace OpenSky.API.Services
                             }
                         }
 
-                        airport.HasBeenPopulated = wasSuccessfull ? ProcessingStatus.Finished : ProcessingStatus.Failed;
+                        if (simulator == Simulator.MSFS)
+                        {
+                            airport.HasBeenPopulatedMSFS = wasSuccessfull ? ProcessingStatus.Finished : ProcessingStatus.Failed;
+                        }
+
+                        if (simulator == Simulator.XPlane11)
+                        {
+                            airport.HasBeenPopulatedXP11 = wasSuccessfull ? ProcessingStatus.Finished : ProcessingStatus.Failed;
+                        }
+
                         updatedAirports.Add(airport);
                     }
                     else
                     {
-                        airport.HasBeenPopulated = ProcessingStatus.Finished;
+                        if (simulator == Simulator.MSFS)
+                        {
+                            airport.HasBeenPopulatedMSFS = ProcessingStatus.Finished;
+                        }
+
+                        if (simulator == Simulator.XPlane11)
+                        {
+                            airport.HasBeenPopulatedXP11 = ProcessingStatus.Finished;
+                        }
+
                         updatedAirports.Add(airport);
                     }
                 }
                 catch (Exception ex)
                 {
                     this.logger.LogError(ex, $"Error populating airport {airport.ICAO} with aircraft.");
-                    airport.HasBeenPopulated = ProcessingStatus.Failed;
+                    airport.HasBeenPopulatedMSFS = ProcessingStatus.Failed;
                     updatedAirports.Add(airport);
                 }
             }
@@ -251,19 +291,23 @@ namespace OpenSky.API.Services
         /// Checks the airport for missing quotas and generates new aircraft.
         /// </summary>
         /// <remarks>
-        /// Flusinerd+sushi.at, 25/06/2021.
+        /// Flusinerd+sushi.at, 08/02/2022.
         /// </remarks>
         /// <param name="airport">
         /// The airport to process.
         /// </param>
+        /// <param name="simulator">
+        /// The simulator.
+        /// </param>
         /// <param name="throwAllExceptions">
-        /// (Optional) True to throw all exceptions (false to just log them and set error status on airport).
+        /// (Optional) True to throw all exceptions (false to just log them and set error status on
+        /// airport).
         /// </param>
         /// <returns>
         /// An asynchronous result.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        public async Task<string> CheckAndGenerateAircraftForAirport(Airport airport, bool throwAllExceptions = true)
+        public async Task<string> CheckAndGenerateAircraftForAirport(Airport airport, Simulator simulator, bool throwAllExceptions = true)
         {
             // The airport doesn't have a size yet, so don't populate it
             if (!airport.Size.HasValue)
@@ -271,18 +315,23 @@ namespace OpenSky.API.Services
                 return $"Airport {airport.ICAO} has no size, not processing.";
             }
 
-            // The airport is currently being imported (no sim), so don't populate it
-            if (!airport.MSFS)
+            // The airport is not active for the specified simulator
+            if (simulator == Simulator.MSFS && !airport.MSFS)
             {
-                return $"Airport {airport.ICAO} has no active simulator, not processing.";
+                return $"Airport {airport.ICAO} not active for MSFS, not processing.";
+            }
+
+            if (simulator == Simulator.XPlane11 && !airport.XP11)
+            {
+                return $"Airport {airport.ICAO} not active for XPlane11, not processing.";
             }
 
             // The info text that describes what we did, for manual calls by admins
             string infoText;
 
             // ReSharper disable once AccessToModifiedClosure
-            var availableForPurchaseOrRent = await this.db.Aircraft.Where(aircraft => aircraft.AirportICAO == airport.ICAO && (aircraft.RentPrice.HasValue || aircraft.PurchasePrice.HasValue)).ToListAsync();
-            var aircraftTypes = await this.db.AircraftTypes.ToListAsync();
+            var availableForPurchaseOrRent = await this.db.Aircraft.Where(aircraft => aircraft.AirportICAO == airport.ICAO && (aircraft.RentPrice.HasValue || aircraft.PurchasePrice.HasValue) && aircraft.Type.Simulator == simulator).ToListAsync();
+            var aircraftTypes = await this.db.AircraftTypes.Where(type => type.Enabled && type.Simulator == simulator && !type.IsVariantOf.HasValue && (type.IsVanilla || type.IncludeInWorldPopulation)).ToListAsync();
             var totalSlots = CalculateTotalSlots(airport);
 
             // 80% Utilization ?
@@ -290,7 +339,7 @@ namespace OpenSky.API.Services
             var newAircraftCount = availableForPurchaseOrRent.Count;
             if (newAircraftCount < requiredAircraft)
             {
-                infoText = $"Airport {airport.ICAO} has {newAircraftCount} aircraft available, but {requiredAircraft} are required, populating...\r\n";
+                infoText = $"Airport {airport.ICAO} has {newAircraftCount} aircraft available, but {requiredAircraft} are required, populating for {simulator}...\r\n";
 
                 var categoryCount = Enum.GetValues<AircraftTypeCategory>().Length;
                 var generatedTypesCount = new int[categoryCount];
@@ -324,11 +373,11 @@ namespace OpenSky.API.Services
                     try
                     {
                         // Generate registration for the aircraft (based on airport country)
-                        var registration = this.GenerateRegistration(airport, generatedAircraft);
+                        var registration = this.GenerateRegistration(airport, generatedAircraft, simulator);
 
                         // Get enabled vanilla/popular types of needed category and matching minimum runway length
                         var typeCandidates = aircraftTypes.Where(
-                            type => type.Category == (AircraftTypeCategory)minIndex && type.Enabled && !type.IsVariantOf.HasValue && (type.IsVanilla || type.IncludeInWorldPopulation) && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToList();
+                            type => type.Category == (AircraftTypeCategory)minIndex && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToList();
 
                         var alternateIndex = minIndex;
                         while (typeCandidates.Count == 0 && alternateIndex > 0)
@@ -338,11 +387,19 @@ namespace OpenSky.API.Services
 
                             var queryIndex = alternateIndex;
                             typeCandidates = aircraftTypes.Where(
-                                type => type.Category == (AircraftTypeCategory)queryIndex && type.Enabled && (type.IsVanilla || type.IncludeInWorldPopulation) && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToList();
+                                type => type.Category == (AircraftTypeCategory)queryIndex && type.MinimumRunwayLength <= airport.LongestRunwayLength).ToList();
+                        }
+
+                        if (typeCandidates.Count == 0)
+                        {
+                            infoText += $"{airport.ICAO}: Unable to find any aircraft types for category {(AircraftTypeCategory)alternateIndex}, can't populate airport.";
+                            errors.Add(new Exception());
+                            break;
                         }
 
                         // Pick a random type and set purchase and rent price
                         var randomType = typeCandidates[Random.Next(0, typeCandidates.Count)];
+
                         // todo @todo update when economics/aircraft age/wear/tear are implemented
                         var purchasePrice = (int)Math.Round((randomType.MaxPrice + randomType.MinPrice) / 2.0 * (Random.Next(80, 121) / 100.0), 0);
                         purchasePrice = Math.Max(Math.Min(randomType.MaxPrice, purchasePrice), randomType.MinPrice); // Make sure we stay within the min/max limit no matter what
@@ -380,7 +437,16 @@ namespace OpenSky.API.Services
                     airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == airport.ICAO);
                 }
 
-                airport.HasBeenPopulated = errors.Count == 0 ? ProcessingStatus.Finished : ProcessingStatus.Failed;
+                if (simulator == Simulator.MSFS)
+                {
+                    airport.HasBeenPopulatedMSFS = errors.Count == 0 ? ProcessingStatus.Finished : ProcessingStatus.Failed;
+                }
+
+                if (simulator == Simulator.XPlane11)
+                {
+                    airport.HasBeenPopulatedXP11 = errors.Count == 0 ? ProcessingStatus.Finished : ProcessingStatus.Failed;
+                }
+
                 await this.db.Aircraft.AddRangeAsync(generatedAircraft);
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, $"Error saving generated aircraft for airport {airport.ICAO}.");
                 if (saveEx == null)
@@ -417,7 +483,16 @@ namespace OpenSky.API.Services
                     airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == airport.ICAO);
                 }
 
-                airport.HasBeenPopulated = ProcessingStatus.Finished;
+                if (simulator == Simulator.MSFS)
+                {
+                    airport.HasBeenPopulatedMSFS = ProcessingStatus.Finished;
+                }
+
+                if (simulator == Simulator.XPlane11)
+                {
+                    airport.HasBeenPopulatedXP11 = ProcessingStatus.Finished;
+                }
+
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, $"Error setting Finished status on airport {airport.ICAO}");
                 if (saveEx != null)
                 {
@@ -733,26 +808,22 @@ namespace OpenSky.API.Services
         /// <remarks>
         /// Flusinerd, 16/06/2021.
         /// </remarks>
-        /// <exception cref="Exception">
-        /// Thrown when an exception error condition occurs.
-        /// </exception>
         /// <param name="airport">
         /// Airport this registration should be generated for.
         /// </param>
         /// <param name="generatedAircraft">
         /// The already generated aircraft to avoid duplicates.
         /// </param>
+        /// <param name="simulator">
+        /// The simulator.
+        /// </param>
         /// <returns>
         /// Unique Registration as string.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        private string GenerateRegistration(Airport airport, IReadOnlyCollection<Aircraft> generatedAircraft)
+        private string GenerateRegistration(Airport airport, IReadOnlyCollection<Aircraft> generatedAircraft, Simulator simulator)
         {
             var airportRegistrationsEntry = this.icaoRegistrations.GetIcaoRegistrationForAirport(airport);
-            if (airportRegistrationsEntry == null)
-            {
-                this.logger.Log(LogLevel.Error, $"Unable to find ICAO registration for airport {airport.ICAO}.");
-            }
 
             // Default to US Registration if there is no entry for a given country
             airportRegistrationsEntry ??= new IcaoRegistration
@@ -790,6 +861,13 @@ namespace OpenSky.API.Services
                     "EK" => GenerateArmeniaRegistration(),
                     "RA" => GenerateRussiaRegistration(),
                     _ => GenerateRegularRegistration(airportRegistrationsEntry.AircraftPrefixes, 6)
+                };
+
+                registration = simulator switch
+                {
+                    Simulator.MSFS => $"m.{registration}",
+                    Simulator.XPlane11 => $"x.{registration}",
+                    _ => $"?.{registration}"
                 };
 
                 // Lookup DB for registration

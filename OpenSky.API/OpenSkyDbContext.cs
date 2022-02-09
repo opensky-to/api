@@ -195,6 +195,22 @@ namespace OpenSky.API
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Resets the XP11 flag for all airports.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 08/02/2022.
+        /// </remarks>
+        /// <returns>
+        /// An asynchronous result that yields an int of rows affected.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        public async Task<int> ResetAirportsXP11()
+        {
+            return await this.Database.ExecuteSqlRawAsync("UPDATE Airports SET XP11=0");
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Save database changes using a transaction.
         /// </summary>
         /// <remarks>

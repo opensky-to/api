@@ -60,6 +60,7 @@ namespace OpenSky.API.Model.Flight
             }
 
             this.AircraftType = flight.Aircraft.Type.Name;
+            this.Simulator = flight.Aircraft.Type.Simulator;
             this.AircraftEngineType = flight.Aircraft.Type.EngineType;
             this.OriginICAO = flight.OriginICAO;
             this.Origin = flight.Origin.Name;
@@ -298,6 +299,13 @@ namespace OpenSky.API.Model.Flight
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string Route { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the simulator.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public Simulator Simulator { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

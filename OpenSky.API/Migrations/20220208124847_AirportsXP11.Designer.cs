@@ -2,15 +2,19 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OpenSky.API;
 
 namespace OpenSky.API.Migrations
 {
     [DbContext(typeof(OpenSkyDbContext))]
-    partial class OpenSkyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20220208124847_AirportsXP11")]
+    partial class AirportsXP11
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+#pragma warning restore CS1591 // Missing XML comment for publicly
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -148,8 +152,8 @@ namespace OpenSky.API.Migrations
             modelBuilder.Entity("OpenSky.API.DbModel.Aircraft", b =>
                 {
                     b.Property<string>("Registry")
-                        .HasMaxLength(12)
-                        .HasColumnType("varchar(12)");
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)");
 
                     b.Property<string>("AirlineOwnerID")
                         .IsConcurrencyToken()
@@ -438,10 +442,7 @@ namespace OpenSky.API.Migrations
                     b.Property<bool>("HasAvGas")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<int>("HasBeenPopulatedMSFS")
-                        .HasColumnType("int");
-
-                    b.Property<int>("HasBeenPopulatedXP11")
+                    b.Property<int>("HasBeenPopulated")
                         .HasColumnType("int");
 
                     b.Property<bool>("HasJetFuel")

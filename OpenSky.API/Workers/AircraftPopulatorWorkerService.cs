@@ -157,10 +157,10 @@ namespace OpenSky.API.Workers
             // When starting up, reset airports that still have "Queued" status back to "NeedsHandling", in case the server stopped while processing an airport
             try
             {
-                var leftOverQueuedAirports = db.Airports.Where(a => a.HasBeenPopulated == ProcessingStatus.Queued);
+                var leftOverQueuedAirports = db.Airports.Where(a => a.HasBeenPopulatedMSFS == ProcessingStatus.Queued);
                 foreach (var airport in leftOverQueuedAirports)
                 {
-                    airport.HasBeenPopulated = ProcessingStatus.NeedsHandling;
+                    airport.HasBeenPopulatedMSFS = ProcessingStatus.NeedsHandling;
                 }
 
                 await db.SaveDatabaseChangesAsync(this.logger, "Error saving airport HasBeenPopulated resets.");
@@ -177,22 +177,34 @@ namespace OpenSky.API.Workers
             {
                 try
                 {
-                    var airportTodoCount = await db.Airports.CountAsync(airport => airport.HasBeenPopulated == ProcessingStatus.NeedsHandling && airport.Size.HasValue && airport.MSFS, stoppingToken);
-                    if (airportTodoCount > 0)
+                    var airportTodoCountMSFS = await db.Airports.CountAsync(airport => airport.HasBeenPopulatedMSFS == ProcessingStatus.NeedsHandling && airport.Size.HasValue && airport.MSFS, stoppingToken);
+                    var airportTodoCountXP11 = await db.Airports.CountAsync(airport => airport.HasBeenPopulatedXP11 == ProcessingStatus.NeedsHandling && airport.Size.HasValue && airport.XP11, stoppingToken);
+                    if (airportTodoCountMSFS > 0 || airportTodoCountXP11 > 0)
                     {
                         if (!processed.HasValue)
                         {
                             processed = 0;
-                            todoCount = airportTodoCount;
+                            todoCount = airportTodoCountMSFS + airportTodoCountXP11;
                             runStarted = DateTime.UtcNow;
-                            this.logger.LogInformation($"Aircraft populator starting new run, found {airportTodoCount} airports to process...");
+                            this.logger.LogInformation($"Aircraft populator starting new run, found {airportTodoCountMSFS} airports to process...");
                         }
 
                         // Get the first 100 airports that need populating
-                        var airports = await db.Airports.Where(airport => airport.HasBeenPopulated == ProcessingStatus.NeedsHandling && airport.Size.HasValue && airport.MSFS).Take(100).ToListAsync(stoppingToken);
-                        await this.aircraftPopulator.CheckAndGenerateAircaftForAirports(airports, stoppingToken);
-                        processed += airports.Count;
-                        this.logger.LogInformation($"Aircraft populator processed {processed} of {todoCount} airports [{(int)((processed / (double)todoCount) * 100)} %]");
+                        if (airportTodoCountMSFS > 0)
+                        {
+                            var airports = await db.Airports.Where(airport => airport.HasBeenPopulatedMSFS == ProcessingStatus.NeedsHandling && airport.Size.HasValue && airport.MSFS).Take(100).ToListAsync(stoppingToken);
+                            await this.aircraftPopulator.CheckAndGenerateAircaftForAirports(airports, Simulator.MSFS, stoppingToken);
+                            processed += airports.Count;
+                            this.logger.LogInformation($"Aircraft populator processed {processed} of {todoCount} airports [{(int)((processed / (double)todoCount) * 100)} %]");
+                        }
+
+                        if (airportTodoCountXP11 > 0)
+                        {
+                            var airports = await db.Airports.Where(airport => airport.HasBeenPopulatedXP11 == ProcessingStatus.NeedsHandling && airport.Size.HasValue && airport.XP11).Take(100).ToListAsync(stoppingToken);
+                            await this.aircraftPopulator.CheckAndGenerateAircaftForAirports(airports, Simulator.XPlane11, stoppingToken);
+                            processed += airports.Count;
+                            this.logger.LogInformation($"Aircraft populator processed {processed} of {todoCount} airports [{(int)((processed / (double)todoCount) * 100)} %]");
+                        }
                     }
                     else
                     {

@@ -207,11 +207,14 @@ namespace OpenSky.API.Services
         /// <param name="targetCategory">
         /// (Optional) The aircraft type category to generate jobs for, set to NULL for all categories.
         /// </param>
+        /// <param name="simulator">
+        /// (Optional) The simulator.
+        /// </param>
         /// <returns>
         /// An asynchronous result returning an information string about what jobs were generated.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        public async Task<string> CheckAndGenerateCargoJobsForAirport(Airport airport, List<Job> availableJobs, JobDirection direction, AircraftTypeCategory? targetCategory = null)
+        public async Task<string> CheckAndGenerateCargoJobsForAirport(Airport airport, List<Job> availableJobs, JobDirection direction, AircraftTypeCategory? targetCategory = null, Simulator? simulator = null)
         {
             if (direction == JobDirection.RoundTrip)
             {
@@ -234,8 +237,16 @@ namespace OpenSky.API.Services
                 var coverage = airport.GeoCoordinate.DoughnutCoverage(config.MaxDistance, config.MinDistance);
                 var includeCells = coverage.IncludeCells.Select(c => c.Id).ToList();
                 var excludeCells = coverage.ExcludeCells.Select(c => c.Id).ToList();
+
+                var simClause = simulator switch
+                {
+                    Simulator.MSFS => " and MSFS ",
+                    Simulator.XPlane11 => " and XP11 ",
+                    _ => string.Empty
+                };
+
                 var destinations = await this.db.Airports.Where(
-                    $"Size >= {config.MinAirportSize} and Size <= {config.MaxAirportSize} and !IsClosed and !IsMilitary and @0.Contains(S2Cell{coverage.IncludeLevel}) and not(@1.Contains(S2Cell{coverage.ExcludeLevel}))",
+                    $"Size >= {config.MinAirportSize} and Size <= {config.MaxAirportSize} and !IsClosed and !IsMilitary{simClause} and @0.Contains(S2Cell{coverage.IncludeLevel}) and not(@1.Contains(S2Cell{coverage.ExcludeLevel}))",
                     includeCells,
                     excludeCells).Select(a => new { a.ICAO, a.GeoCoordinate }).ToListAsync();
 

@@ -19,6 +19,7 @@ namespace OpenSky.API.Controllers
 
     using OpenSky.API.DbModel;
     using OpenSky.API.DbModel.Enums;
+    using OpenSky.API.Helpers;
     using OpenSky.API.Model;
     using OpenSky.API.Model.Aircraft;
     using OpenSky.API.Model.Authentication;
@@ -382,7 +383,7 @@ namespace OpenSky.API.Controllers
 
                                 fuelRecord.AirlineID = aircraft.AirlineOwnerID;
                                 fuelRecord.Expense = fuelPrice;
-                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry}: {gallonsToTransfer:F1} gallons AV gas at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
+                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons AV gas at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
                             }
                             else
                             {
@@ -393,7 +394,7 @@ namespace OpenSky.API.Controllers
 
                                 fuelRecord.UserID = aircraft.OwnerID;
                                 fuelRecord.Expense = fuelPrice;
-                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry}: {gallonsToTransfer:F1} gallons AV gas at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
+                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons AV gas at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
                             }
                         }
                         else if (aircraft.Type.FuelType == FuelType.JetFuel)
@@ -415,7 +416,7 @@ namespace OpenSky.API.Controllers
 
                                 fuelRecord.AirlineID = aircraft.AirlineOwnerID;
                                 fuelRecord.Expense = fuelPrice;
-                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry}: {gallonsToTransfer:F1} gallons jet fuel at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
+                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
                             }
                             else
                             {
@@ -426,7 +427,7 @@ namespace OpenSky.API.Controllers
 
                                 fuelRecord.UserID = aircraft.OwnerID;
                                 fuelRecord.Expense = fuelPrice;
-                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry}: {gallonsToTransfer:F1} gallons jet fuel at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
+                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
                             }
                         }
                         else
@@ -522,7 +523,7 @@ namespace OpenSky.API.Controllers
                     throw saveEx;
                 }
 
-                return new ApiResponse<string>($"Successfully started ground operations for aircraft {operations.Registry}");
+                return new ApiResponse<string>($"Successfully started ground operations for aircraft {operations.Registry.RemoveSimPrefix()}");
             }
             catch (Exception ex)
             {
@@ -575,7 +576,7 @@ namespace OpenSky.API.Controllers
 
                 if (!aircraft.PurchasePrice.HasValue)
                 {
-                    return new ApiResponse<string>($"Aircraft with registry {purchase.Registry} is not for sale!") { IsError = true };
+                    return new ApiResponse<string>($"Aircraft with registry {purchase.Registry.RemoveSimPrefix()} is not for sale!") { IsError = true };
                 }
 
                 if (aircraft.OwnerID == user.Id && !purchase.ForAirline)
@@ -615,7 +616,7 @@ namespace OpenSky.API.Controllers
                         UserID = aircraft.OwnerID,
                         Income = aircraft.PurchasePrice.Value,
                         Category = FinancialCategory.Aircraft,
-                        Description = $"Sale of aircraft {aircraft.Registry}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO}"
+                        Description = $"Sale of aircraft {aircraft.Registry.RemoveSimPrefix()}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO}"
                     };
                     await this.db.FinancialRecords.AddAsync(saleRecord);
                 }
@@ -630,7 +631,7 @@ namespace OpenSky.API.Controllers
                         AirlineID = aircraft.AirlineOwnerID,
                         Income = aircraft.PurchasePrice.Value,
                         Category = FinancialCategory.Aircraft,
-                        Description = $"Sale of aircraft {aircraft.Registry}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO}"
+                        Description = $"Sale of aircraft {aircraft.Registry.RemoveSimPrefix()}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO}"
                     };
                     await this.db.FinancialRecords.AddAsync(airlineSaleRecord);
                 }
@@ -652,7 +653,7 @@ namespace OpenSky.API.Controllers
                         UserID = user.Id,
                         Expense = aircraft.PurchasePrice.Value,
                         Category = FinancialCategory.Aircraft,
-                        Description = $"Purchase of aircraft {aircraft.Registry}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO}",
+                        Description = $"Purchase of aircraft {aircraft.Registry.RemoveSimPrefix()}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO}",
                         AircraftRegistry = aircraft.Registry
                     };
                     await this.db.FinancialRecords.AddAsync(purchaseRecord);
@@ -674,7 +675,7 @@ namespace OpenSky.API.Controllers
                         AirlineID = user.AirlineICAO,
                         Expense = aircraft.PurchasePrice.Value,
                         Category = FinancialCategory.Aircraft,
-                        Description = $"Purchase of aircraft {aircraft.Registry}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO} by user {user.UserName}",
+                        Description = $"Purchase of aircraft {aircraft.Registry.RemoveSimPrefix()}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO} by user {user.UserName}",
                         AircraftRegistry = aircraft.Registry
                     };
                     await this.db.FinancialRecords.AddAsync(airlinePurchaseRecord);
@@ -692,9 +693,9 @@ namespace OpenSky.API.Controllers
                 }
 
                 // Ask aircraft populator to "restock" the airport by adding a new plane in place of this one
-                await this.aircraftPopulator.CheckAndGenerateAircraftForAirport(aircraft.Airport);
+                await this.aircraftPopulator.CheckAndGenerateAircraftForAirport(aircraft.Airport, aircraft.Type.Simulator);
 
-                return new ApiResponse<string>($"Successfully purchased aircraft {purchase.Registry}");
+                return new ApiResponse<string>($"Successfully purchased aircraft {purchase.Registry.RemoveSimPrefix()}");
             }
             catch (Exception ex)
             {
@@ -856,7 +857,7 @@ namespace OpenSky.API.Controllers
                         UserID = aircraft.OwnerID,
                         Income = (int)(purchasePrice * 0.7),
                         Category = FinancialCategory.Aircraft,
-                        Description = $"Sale of aircraft {aircraft.Registry}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO}"
+                        Description = $"Sale of aircraft {aircraft.Registry.RemoveSimPrefix()}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO}"
                     };
 
                     aircraft.OwnerID = null;
@@ -897,7 +898,7 @@ namespace OpenSky.API.Controllers
                         AirlineID = aircraft.AirlineOwnerID,
                         Income = (int)(purchasePrice * 0.7),
                         Category = FinancialCategory.Aircraft,
-                        Description = $"Sale of aircraft {aircraft.Registry}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO}"
+                        Description = $"Sale of aircraft {aircraft.Registry.RemoveSimPrefix()}, type {aircraft.Type.Name} at airport {aircraft.AirportICAO}"
                     };
                     await this.db.FinancialRecords.AddAsync(airlineSaleRecord);
                 }
@@ -915,7 +916,7 @@ namespace OpenSky.API.Controllers
                     throw saveEx;
                 }
 
-                return new ApiResponse<string>($"Successfully sold aircraft {registry} for $B {purchasePrice:N0}.");
+                return new ApiResponse<string>($"Successfully sold aircraft {registry.RemoveSimPrefix()} for $B {purchasePrice:N0}.");
             }
             catch (Exception ex)
             {
@@ -1011,7 +1012,7 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("Error saving changes to aircraft", saveEx);
                 }
 
-                return new ApiResponse<string>($"Successfully updated aircraft {updateAircraft.Registry}");
+                return new ApiResponse<string>($"Successfully updated aircraft {updateAircraft.Registry.RemoveSimPrefix()}");
             }
             catch (Exception ex)
             {

@@ -10,6 +10,7 @@ namespace OpenSky.API.Model.Job
     using System.Collections.Generic;
 
     using OpenSky.API.DbModel;
+    using OpenSky.API.Helpers;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -38,14 +39,14 @@ namespace OpenSky.API.Model.Job
             this.DestinationICAO = payload.DestinationICAO;
             this.Weight = payload.Weight;
             this.Description = payload.Description;
-            this.CurrentLocation = !string.IsNullOrEmpty(payload.AirportICAO) ? payload.AirportICAO : (!string.IsNullOrEmpty(payload.AircraftRegistry) ? payload.AircraftRegistry : "???");
+            this.CurrentLocation = !string.IsNullOrEmpty(payload.AirportICAO) ? payload.AirportICAO : (!string.IsNullOrEmpty(payload.AircraftRegistry) ? payload.AircraftRegistry.RemoveSimPrefix() : "???");
             this.Flights = new Dictionary<Guid, string>();
             this.Destinations = new List<string>();
             foreach (var flightPayload in payload.FlightPayloads)
             {
                 var origin = !string.IsNullOrEmpty(flightPayload.Flight.OriginICAO) ? flightPayload.Flight.OriginICAO : "??";
                 var destination = !string.IsNullOrEmpty(flightPayload.Flight.DestinationICAO) ? flightPayload.Flight.DestinationICAO : "??";
-                var aircraft = !string.IsNullOrEmpty(flightPayload.Flight.AircraftRegistry) ? flightPayload.Flight.AircraftRegistry : "??";
+                var aircraft = !string.IsNullOrEmpty(flightPayload.Flight.AircraftRegistry) ? flightPayload.Flight.AircraftRegistry.RemoveSimPrefix() : "??";
                 var infoString = $"{flightPayload.Flight.FullFlightNumber}: {origin} ▷ {destination} [{aircraft}]";
                 this.Flights.Add(flightPayload.FlightID, infoString);
 

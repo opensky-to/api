@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="DataImportWorkerService.LittleNavmapMSFS.cs" company="OpenSky">
+// <copyright file="DataImportWorkerService.LittleNavmapXP11.cs" company="OpenSky">
 // OpenSky project 2021-2022
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
@@ -22,17 +22,17 @@ namespace OpenSky.API.Workers
 
     /// -------------------------------------------------------------------------------------------------
     /// <content>
-    /// Data import worker service - LittleNavmap MSFS code.
+    /// Data import worker service - LittleNavmap XPlane11 code.
     /// </content>
     /// -------------------------------------------------------------------------------------------------
     public partial class DataImportWorkerService
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Process uploaded LittleNavmap MSFS sqlite database in a background worker.
+        /// Process uploaded LittleNavmap XPlane11 sqlite database in a background worker.
         /// </summary>
         /// <remarks>
-        /// sushi.at, 11/05/2021.
+        /// sushi.at, 08/02/2022.
         /// </remarks>
         /// <param name="db">
         /// The OpenSky database context.
@@ -47,9 +47,9 @@ namespace OpenSky.API.Workers
         /// An asynchronous result.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        private async Task ImportLittleNavmapMSFS(OpenSkyDbContext db, DataImport dataImport, CancellationToken token)
+        private async Task ImportLittleNavmapXP11(OpenSkyDbContext db, DataImport dataImport, CancellationToken token)
         {
-            this.logger.LogInformation($"Processing LittleNavmap MSFS data import {dataImport.ID} for file {dataImport.ImportDataSource}");
+            this.logger.LogInformation($"Processing LittleNavmap XP11 data import {dataImport.ID} for file {dataImport.ImportDataSource}");
             var totalRecordsProcessed = 0;
             try
             {
@@ -66,19 +66,18 @@ namespace OpenSky.API.Workers
                     Status.Add(dataImport.ID, dataImportStatus);
                     await this.ImportLittleNavmapPopulateImportStatus(connection, dataImportStatus, token);
 
-                    var rowsAffected = await db.ResetAirportsMSFS();
-                    this.logger.LogInformation($"Successfully reset the MSFS flag on {rowsAffected} airports.");
-                    totalRecordsProcessed += await this.ImportLittleNavmapAirports(db, dataImport, connection, Simulator.MSFS, token);
+                    var rowsAffected = await db.ResetAirportsXP11();
+                    this.logger.LogInformation($"Successfully reset the XP11 flag on {rowsAffected} airports.");
+                    totalRecordsProcessed += await this.ImportLittleNavmapAirports(db, dataImport, connection, Simulator.XPlane11, token);
+                    this.logger.LogInformation("Clearing down existing XP11 runways and runway ends before importing new ones...");
+                    await db.BulkDeleteAsync(db.RunwayEnds.Where(re => re.ID >= 1000000 && re.ID < 20000000), token);
+                    await db.BulkDeleteAsync(db.Runways.Where(r => r.ID >= 1000000 && r.ID < 2000000), token);
+                    totalRecordsProcessed += await this.ImportLittleNavmapRunways(db, dataImport, connection, Simulator.XPlane11, token);
+                    totalRecordsProcessed += await this.ImportLittleNavmapRunwayEnds(db, dataImport, connection, Simulator.XPlane11, token);
 
-                    this.logger.LogInformation("Clearing down existing MSFS runways and runway ends before importing new ones...");
-                    await db.BulkDeleteAsync(db.RunwayEnds.Where(re => re.ID < 1000000), token);
-                    await db.BulkDeleteAsync(db.Runways.Where(r => r.ID < 1000000), token);
-                    totalRecordsProcessed += await this.ImportLittleNavmapRunways(db, dataImport, connection, Simulator.MSFS, token);
-                    totalRecordsProcessed += await this.ImportLittleNavmapRunwayEnds(db, dataImport, connection, Simulator.MSFS, token);
-
-                    this.logger.LogInformation("Clearing down existing MSFS approaches before importing new ones...");
-                    await db.BulkDeleteAsync(db.Approaches.Where(a => a.ID < 1000000), token);
-                    totalRecordsProcessed += await this.ImportLittleNavmapApproaches(db, dataImport, connection, Simulator.MSFS, token);
+                    this.logger.LogInformation("Clearing down existing XP11 approaches before importing new ones...");
+                    await db.BulkDeleteAsync(db.Approaches.Where(a => a.ID >= 1000000 && a.ID < 2000000), token);
+                    totalRecordsProcessed += await this.ImportLittleNavmapApproaches(db, dataImport, connection, Simulator.XPlane11, token);
 
                     // Call the general airport size calculator as part of our import
                     totalRecordsProcessed += await this.CalculateAirportSizes(db, dataImport, token);
@@ -90,7 +89,7 @@ namespace OpenSky.API.Workers
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, $"Error processing LittleNavmap MSFS data import {dataImport.ID} for file {dataImport.ImportDataSource}");
+                this.logger.LogError(ex, $"Error processing LittleNavmap XP11 data import {dataImport.ID} for file {dataImport.ImportDataSource}");
                 dataImport.ImportStatusJson = $"ERROR processing: {ex.Message}";
             }
             finally
@@ -101,7 +100,7 @@ namespace OpenSky.API.Workers
                 dataImport.ImportStatusJson = JsonSerializer.Serialize(Status[dataImport.ID]);
                 await db.SaveDatabaseChangesAsync(this.logger, $"Error saving data import result to database for {dataImport.ID}");
 
-                this.logger.LogInformation($"Finished processing LittleNavmap MSFS data import {dataImport.ID}, {totalRecordsProcessed} total records processed in {(DateTime.UtcNow - dataImport.Started).TotalMinutes:F1} minutes.");
+                this.logger.LogInformation($"Finished processing LittleNavmap XP11 data import {dataImport.ID}, {totalRecordsProcessed} total records processed in {(DateTime.UtcNow - dataImport.Started).TotalMinutes:F1} minutes.");
 
                 // Delete the temporary file
                 if (File.Exists(dataImport.ImportDataSource))
