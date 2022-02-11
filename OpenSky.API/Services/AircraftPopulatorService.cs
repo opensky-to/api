@@ -159,7 +159,7 @@ namespace OpenSky.API.Services
                         return;
                     }
 
-                    var availableForPurchaseOrRent = await this.db.Aircraft.Where(aircraft => aircraft.AirportICAO == airport.ICAO && (aircraft.RentPrice.HasValue || aircraft.PurchasePrice.HasValue && aircraft.Type.Simulator == simulator))
+                    var availableForPurchaseOrRent = await this.db.Aircraft.Where(aircraft => aircraft.AirportICAO == airport.ICAO && (aircraft.RentPrice.HasValue || aircraft.PurchasePrice.HasValue) && aircraft.Type.Simulator == simulator)
                                                                .ToListAsync(cancellationToken);
                     var totalSlots = CalculateTotalSlots(airport);
                     var requiredAircraft = Math.Ceiling(totalSlots * 0.8);

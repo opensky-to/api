@@ -157,10 +157,16 @@ namespace OpenSky.API.Workers
             // When starting up, reset airports that still have "Queued" status back to "NeedsHandling", in case the server stopped while processing an airport
             try
             {
-                var leftOverQueuedAirports = db.Airports.Where(a => a.HasBeenPopulatedMSFS == ProcessingStatus.Queued);
-                foreach (var airport in leftOverQueuedAirports)
+                var leftOverQueuedAirportsMSFS = db.Airports.Where(a => a.HasBeenPopulatedMSFS == ProcessingStatus.Queued);
+                foreach (var airport in leftOverQueuedAirportsMSFS)
                 {
                     airport.HasBeenPopulatedMSFS = ProcessingStatus.NeedsHandling;
+                }
+
+                var leftOverQueuedAirportsXP11 = db.Airports.Where(a => a.HasBeenPopulatedXP11 == ProcessingStatus.Queued);
+                foreach (var airport in leftOverQueuedAirportsMSFS)
+                {
+                    airport.HasBeenPopulatedXP11 = ProcessingStatus.NeedsHandling;
                 }
 
                 await db.SaveDatabaseChangesAsync(this.logger, "Error saving airport HasBeenPopulated resets.");
