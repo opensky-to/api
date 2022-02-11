@@ -12,7 +12,9 @@ namespace OpenSky.API.Migrations
     [Migration("20220208175312_AirportPopulationXP11")]
     partial class AirportPopulationXP11
     {
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
+#pragma warning restore CS1591 // Missing XML comment for publicly
         {
 #pragma warning disable 612, 618
             modelBuilder

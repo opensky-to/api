@@ -251,7 +251,8 @@ namespace OpenSky.API.Controllers
                     var distanceToOrigin = 0d;
                     if (flight.Latitude.HasValue && flight.Longitude.HasValue)
                     {
-                        distanceToOrigin = flight.Origin.GeoCoordinate.GetDistanceTo(new GeoCoordinate(flight.Latitude.Value, flight.Longitude.Value));
+                        // Convert meters to nautical miles, before dividing by knots
+                        distanceToOrigin = flight.Origin.GeoCoordinate.GetDistanceTo(new GeoCoordinate(flight.Latitude.Value, flight.Longitude.Value)) / 1852d;
                     }
 
                     var groundSpeed = flight.Aircraft.Type.EngineType switch
