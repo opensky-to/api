@@ -109,17 +109,30 @@ namespace OpenSky.API.Services
         /// <param name="category">
         /// (Optional) The aircraft type category to generate jobs for, set to NULL for all categories.
         /// </param>
+        /// <param name="simulator">
+        /// (Optional) The simulator.
+        /// </param>
         /// <returns>
         /// An asynchronous result returning an information string about what jobs were generated.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        public async Task<string> CheckAndGenerateJobsForAirport(string icao, JobDirection direction, AircraftTypeCategory? category = null)
+        public async Task<string> CheckAndGenerateJobsForAirport(string icao, JobDirection direction, AircraftTypeCategory? category = null, Simulator? simulator = null)
         {
             // Check if there is an airport with that ICAO code
             var airport = this.db.Airports.SingleOrDefault(a => a.ICAO == icao);
             if (airport == null)
             {
                 return $"No airport with ICAO code {icao}, not processing.";
+            }
+
+            if (simulator == Simulator.MSFS && !airport.MSFS)
+            {
+                return $"Airport {icao} is not available in MSFS, not processing.";
+            }
+
+            if (simulator == Simulator.XPlane11 && !airport.XP11)
+            {
+                return $"Airport {icao} is not available in XPlane11, not processing.";
             }
 
             // The airport doesn't have a size yet, so don't populate it
@@ -163,14 +176,23 @@ namespace OpenSky.API.Services
                 availableJobs = await this.db.Jobs.Where(j => j.OriginICAO == icao && j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now && j.Payloads.Any(p => p.DestinationICAO == icao)).ToListAsync();
             }
 
+            if (simulator == Simulator.MSFS)
+            {
+                availableJobs = availableJobs.Where(j => j.Origin.MSFS && j.Payloads.All(p => p.Destination.MSFS)).ToList();
+            }
+
+            if (simulator == Simulator.XPlane11)
+            {
+                availableJobs = availableJobs.Where(j => j.Origin.XP11 && j.Payloads.All(p => p.Destination.XP11)).ToList();
+            }
+
             if (category.HasValue)
             {
                 availableJobs = availableJobs.Where(j => j.Category == category).ToList();
             }
 
-
             // Create the different job types
-            infoText += await this.CheckAndGenerateCargoJobsForAirport(airport, availableJobs, direction, category);
+            infoText += await this.CheckAndGenerateCargoJobsForAirport(airport, availableJobs, direction, category, simulator);
 
             infoText += $"Finished processing job creation for airport {icao}, direction [{direction}] after {(DateTime.Now - started).TotalSeconds:F2} seconds.";
             return infoText;

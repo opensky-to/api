@@ -163,6 +163,9 @@ namespace OpenSky.API.Workers
                             case "LittleNavmapMSFS":
                                 await this.ImportLittleNavmapMSFS(db, unfinishedImport, stoppingToken);
                                 break;
+                            case "LittleNavmapXP11":
+                                await this.ImportLittleNavmapXP11(db, unfinishedImport, stoppingToken);
+                                break;
                         }
                     }
                     else

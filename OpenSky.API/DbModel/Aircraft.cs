@@ -375,7 +375,7 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [Key]
-        [StringLength(10, MinimumLength = 5)]
+        [StringLength(12, MinimumLength = 7)]
         [Required]
         public string Registry { get; set; }
 

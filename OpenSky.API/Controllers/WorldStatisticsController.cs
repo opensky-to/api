@@ -189,8 +189,13 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>($"No airport record found for ICAO {icao}.") { IsError = true };
                 }
 
-                var infoText = await this.aircraftPopulator.CheckAndGenerateAircraftForAirport(airport, false);
-                return new ApiResponse<string>($"Finished populating airport {icao}") { Data = infoText };
+                var infoText = string.Empty;
+                foreach (var simulator in Enum.GetValues<Simulator>())
+                {
+                    infoText += $"{simulator}: " + await this.aircraftPopulator.CheckAndGenerateAircraftForAirport(airport, simulator, false) + "\r\n\r\n";
+                }
+
+                return new ApiResponse<string>($"Finished populating airport {icao}") { Data = infoText.TrimEnd('\r', '\n') };
             }
             catch (Exception ex)
             {

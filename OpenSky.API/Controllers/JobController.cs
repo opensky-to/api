@@ -286,6 +286,102 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets the available jobs at the specified airport and simulator.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 10/12/2021.
+        /// </remarks>
+        /// <param name="icao">
+        /// The ICAO code of the airport.
+        /// </param>
+        /// <param name="direction">
+        /// The direction of the jobs to return.
+        /// </param>
+        /// <param name="simulator">
+        /// The simulator (or NULL for all simulators).
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields the jobs at airport.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet("atAirportForSim/{icao}/{direction}/{simulator}", Name = "GetJobsAtAirportForSimulator")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<Job>>>> GetJobsAtAirportForSimulator(string icao, JobDirection direction, Simulator simulator)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Job/atAirport/{icao}/{direction}/{simulator}");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<IEnumerable<Job>>("Unable to find user record!") { IsError = true, Data = new List<Job>() };
+                }
+
+                // Make sure there are enough jobs at this airport
+                var jobResult = await this.jobPopulator.CheckAndGenerateJobsForAirport(icao, direction, null, simulator);
+                this.logger.LogInformation(jobResult);
+
+                if (direction == JobDirection.From)
+                {
+                    var jobs = await this.db.Jobs.Where(j => j.OriginICAO == icao && j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now).ToListAsync();
+
+                    if (simulator == Simulator.MSFS)
+                    {
+                        jobs = jobs.Where(j => j.Origin.MSFS && j.Payloads.All(p => p.Destination.MSFS)).ToList();
+                    }
+
+                    if (simulator == Simulator.XPlane11)
+                    {
+                        jobs = jobs.Where(j => j.Origin.XP11 && j.Payloads.All(p => p.Destination.XP11)).ToList();
+                    }
+
+                    return new ApiResponse<IEnumerable<Job>>(jobs);
+                }
+
+                if (direction == JobDirection.To)
+                {
+                    var jobs = await this.db.Jobs.Where(j => j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now && j.Payloads.Any(p => p.DestinationICAO == icao)).ToListAsync();
+
+                    if (simulator == Simulator.MSFS)
+                    {
+                        jobs = jobs.Where(j => j.Origin.MSFS && j.Payloads.All(p => p.Destination.MSFS)).ToList();
+                    }
+
+                    if (simulator == Simulator.XPlane11)
+                    {
+                        jobs = jobs.Where(j => j.Origin.XP11 && j.Payloads.All(p => p.Destination.XP11)).ToList();
+                    }
+
+                    return new ApiResponse<IEnumerable<Job>>(jobs);
+                }
+
+                if (direction == JobDirection.RoundTrip)
+                {
+                    var jobs = await this.db.Jobs.Where(j => j.OriginICAO == icao && j.OperatorID == null && j.ExpiresAt > DateTime.Now && j.OperatorAirlineID == null && j.Payloads.Any(p => p.DestinationICAO == icao)).ToListAsync();
+
+                    if (simulator == Simulator.MSFS)
+                    {
+                        jobs = jobs.Where(j => j.Origin.MSFS && j.Payloads.All(p => p.Destination.MSFS)).ToList();
+                    }
+
+                    if (simulator == Simulator.XPlane11)
+                    {
+                        jobs = jobs.Where(j => j.Origin.XP11 && j.Payloads.All(p => p.Destination.XP11)).ToList();
+                    }
+
+                    return new ApiResponse<IEnumerable<Job>>(jobs);
+                }
+
+                throw new Exception("Unsupported job direction.");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Job/atAirport/{icao}/{direction}/{simulator}");
+                return new ApiResponse<IEnumerable<Job>>(ex) { Data = new List<Job>() };
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets the available jobs at the specified airport.
         /// </summary>
         /// <remarks>
@@ -346,6 +442,109 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets the available jobs at the specified airport for the specified aircraft type category and simulator.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 10/12/2021.
+        /// </remarks>
+        /// <exception cref="Exception">
+        /// Thrown when an exception error condition occurs.
+        /// </exception>
+        /// <param name="icao">
+        /// The ICAO code of the airport.
+        /// </param>
+        /// <param name="direction">
+        /// The direction of the jobs to return.
+        /// </param>
+        /// <param name="category">
+        /// The aircraft type category to return jobs for (recommended category).
+        /// </param>
+        /// <param name="simulator">
+        /// The simulator (or NULL for all simulators).
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields the jobs at airport.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet("atAirportForCategoryAndSim/{icao}/{direction}/{category}/{simulator}", Name = "GetJobsAtAirportForCategoryAndSimulator")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<Job>>>> GetJobsAtAirportForCategoryAndSimulator(string icao, JobDirection direction, AircraftTypeCategory category, Simulator simulator)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Job/atAirport/{icao}/{direction}/{category}/{simulator}");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<IEnumerable<Job>>("Unable to find user record!") { IsError = true, Data = new List<Job>() };
+                }
+
+                // Make sure there are enough jobs at this airport
+                var jobResult = await this.jobPopulator.CheckAndGenerateJobsForAirport(icao, direction, category, simulator);
+                this.logger.LogInformation(jobResult);
+
+                if (direction == JobDirection.From)
+                {
+                    var jobs = await this.db.Jobs.Where(j => j.OriginICAO == icao && j.Category == category && j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now).ToListAsync();
+
+                    if (simulator == Simulator.MSFS)
+                    {
+                        jobs = jobs.Where(j => j.Origin.MSFS && j.Payloads.All(p => p.Destination.MSFS)).ToList();
+                    }
+
+                    if (simulator == Simulator.XPlane11)
+                    {
+                        jobs = jobs.Where(j => j.Origin.XP11 && j.Payloads.All(p => p.Destination.XP11)).ToList();
+                    }
+
+                    return new ApiResponse<IEnumerable<Job>>(jobs);
+                }
+
+                if (direction == JobDirection.To)
+                {
+                    var jobs = await this.db.Jobs.Where(j => j.Category == category && j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now && j.Payloads.Any(p => p.DestinationICAO == icao)).ToListAsync();
+
+                    if (simulator == Simulator.MSFS)
+                    {
+                        jobs = jobs.Where(j => j.Origin.MSFS && j.Payloads.All(p => p.Destination.MSFS)).ToList();
+                    }
+
+                    if (simulator == Simulator.XPlane11)
+                    {
+                        jobs = jobs.Where(j => j.Origin.XP11 && j.Payloads.All(p => p.Destination.XP11)).ToList();
+                    }
+
+                    return new ApiResponse<IEnumerable<Job>>(jobs);
+                }
+
+                if (direction == JobDirection.RoundTrip)
+                {
+                    var jobs = await this.db.Jobs.Where(j => j.OriginICAO == icao && j.Category == category && j.OperatorID == null && j.ExpiresAt > DateTime.Now && j.OperatorAirlineID == null && j.Payloads.Any(p => p.DestinationICAO == icao))
+                                         .ToListAsync();
+
+                    if (simulator == Simulator.MSFS)
+                    {
+                        jobs = jobs.Where(j => j.Origin.MSFS && j.Payloads.All(p => p.Destination.MSFS)).ToList();
+                    }
+
+                    if (simulator == Simulator.XPlane11)
+                    {
+                        jobs = jobs.Where(j => j.Origin.XP11 && j.Payloads.All(p => p.Destination.XP11)).ToList();
+                    }
+
+                    return new ApiResponse<IEnumerable<Job>>(jobs);
+                }
+
+                throw new Exception("Unsupported job direction.");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Job/atAirport/{icao}/{direction}/{category}/{simulator}");
+                return new ApiResponse<IEnumerable<Job>>(ex) { Data = new List<Job>() };
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets the available jobs at the specified airport for the specified aircraft type category.
         /// </summary>
         /// <remarks>
@@ -367,7 +566,7 @@ namespace OpenSky.API.Controllers
         /// An asynchronous result that yields the jobs at airport.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpGet("atAirport/{icao}/{direction}/{category}", Name = "GetJobsAtAirportForCategory")]
+        [HttpGet("atAirportForCategory/{icao}/{direction}/{category}", Name = "GetJobsAtAirportForCategory")]
         public async Task<ActionResult<ApiResponse<IEnumerable<Job>>>> GetJobsAtAirportForCategory(string icao, JobDirection direction, AircraftTypeCategory category)
         {
             try

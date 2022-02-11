@@ -189,10 +189,17 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the HasBeenPopulated flag.
+        /// Gets or sets the HasBeenPopulated flag for MSFS.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public ProcessingStatus HasBeenPopulated { get; set; }
+        public ProcessingStatus HasBeenPopulatedMSFS { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the HasBeenPopulated flag for XPlane11.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public ProcessingStatus HasBeenPopulatedXP11 { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -276,7 +283,7 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets a value indicating whether the airport if available in MSFS 2020.
+        /// Gets or sets a value indicating whether the airport is available in MSFS 2020.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public bool MSFS { get; set; }
@@ -405,6 +412,13 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public int? UnicomFrequency { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets a value indicating whether the airport is available in XPlane 11.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public bool XP11 { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

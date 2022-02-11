@@ -22,6 +22,7 @@ namespace OpenSky.API.Controllers
 
     using OpenSky.API.DbModel;
     using OpenSky.API.DbModel.Enums;
+    using OpenSky.API.Helpers;
     using OpenSky.API.Model;
     using OpenSky.API.Model.Authentication;
     using OpenSky.API.Model.Flight;
@@ -194,7 +195,7 @@ namespace OpenSky.API.Controllers
                     if (flight.Latitude.HasValue && flight.Longitude.HasValue)
                     {
                         // Check where we are (closest airport)
-                        var closestAirportICAO = await this.GetClosestAirport(new GeoCoordinate(flight.Latitude.Value, flight.Longitude.Value));
+                        var closestAirportICAO = await this.GetClosestAirport(new GeoCoordinate(flight.Latitude.Value, flight.Longitude.Value), flight.Aircraft.Type.Simulator);
                         if (string.IsNullOrEmpty(closestAirportICAO))
                         {
                             // Landed at no airport, back to origin!
@@ -250,7 +251,8 @@ namespace OpenSky.API.Controllers
                     var distanceToOrigin = 0d;
                     if (flight.Latitude.HasValue && flight.Longitude.HasValue)
                     {
-                        distanceToOrigin = flight.Origin.GeoCoordinate.GetDistanceTo(new GeoCoordinate(flight.Latitude.Value, flight.Longitude.Value));
+                        // Convert meters to nautical miles, before dividing by knots
+                        distanceToOrigin = flight.Origin.GeoCoordinate.GetDistanceTo(new GeoCoordinate(flight.Latitude.Value, flight.Longitude.Value)) / 1852d;
                     }
 
                     var groundSpeed = flight.Aircraft.Type.EngineType switch
@@ -425,7 +427,7 @@ namespace OpenSky.API.Controllers
                     else
                     {
                         // Check where we are (closest airport)
-                        var closestAirportICAO = await this.GetClosestAirport(finalReport.FinalPositionReport.GeoCoordinate);
+                        var closestAirportICAO = await this.GetClosestAirport(finalReport.FinalPositionReport.GeoCoordinate, flight.Aircraft.Type.Simulator);
                         if (string.IsNullOrEmpty(closestAirportICAO))
                         {
                             // Landed at no airport, back to origin!
@@ -457,7 +459,7 @@ namespace OpenSky.API.Controllers
                 var flightFinancialRecord = new FinancialRecord
                 {
                     ID = Guid.NewGuid(),
-                    Description = $"Flight {flight.FullFlightNumber} with aircraft {flight.AircraftRegistry} from {flight.OriginICAO} to {flight.LandedAtICAO}",
+                    Description = $"Flight {flight.FullFlightNumber} with aircraft {flight.AircraftRegistry.RemoveSimPrefix()} from {flight.OriginICAO} to {flight.LandedAtICAO}",
                     Timestamp = DateTime.UtcNow,
                     AircraftRegistry = flight.AircraftRegistry,
                     Category = FinancialCategory.Flight
@@ -616,7 +618,7 @@ namespace OpenSky.API.Controllers
                             Expense = landingFee,
                             Category = FinancialCategory.AirportFees,
                             Timestamp = flightFinancialRecord.Timestamp,
-                            Description = $"Landing fee for aircraft {flight.AircraftRegistry} at airport {flight.LandedAtICAO}"
+                            Description = $"Landing fee for aircraft {flight.AircraftRegistry.RemoveSimPrefix()} at airport {flight.LandedAtICAO}"
                         };
                         await this.db.FinancialRecords.AddAsync(landingFeeRecord);
                         flight.Aircraft.LifeTimeExpense += landingFee;
@@ -636,7 +638,7 @@ namespace OpenSky.API.Controllers
                                 Category = FinancialCategory.Fines,
                                 Expense = fine,
                                 Timestamp = flightFinancialRecord.Timestamp,
-                                Description = $"Penalty for landing aircraft {flight.AircraftRegistry} at CLOSED airport {flight.LandedAtICAO}"
+                                Description = $"Penalty for landing aircraft {flight.AircraftRegistry.RemoveSimPrefix()} at CLOSED airport {flight.LandedAtICAO}"
                             };
                             await this.db.FinancialRecords.AddAsync(landingClosedFineRecord);
                             flight.Aircraft.LifeTimeExpense += fine;
@@ -1395,9 +1397,10 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
                 }
 
+                Aircraft aircraft = null;
                 if (flightPlan.Aircraft != null)
                 {
-                    var aircraft = await this.db.Aircraft.SingleOrDefaultAsync(a => a.Registry.Equals(flightPlan.Aircraft.Registry));
+                    aircraft = await this.db.Aircraft.SingleOrDefaultAsync(a => a.Registry.Equals(flightPlan.Aircraft.Registry));
                     if (aircraft == null)
                     {
                         return new ApiResponse<string>("Aircraft not found!") { IsError = true };
@@ -1426,6 +1429,19 @@ namespace OpenSky.API.Controllers
                     {
                         return new ApiResponse<string>("Origin airport not found!") { IsError = true };
                     }
+
+                    if (aircraft != null)
+                    {
+                        if (aircraft.Type.Simulator == Simulator.MSFS && !airport.MSFS)
+                        {
+                            return new ApiResponse<string>("Origin airport is not available for the simulator your selected aircraft uses!") { IsError = true };
+                        }
+
+                        if (aircraft.Type.Simulator == Simulator.XPlane11 && !airport.XP11)
+                        {
+                            return new ApiResponse<string>("Origin airport is not available for the simulator your selected aircraft uses!") { IsError = true };
+                        }
+                    }
                 }
 
                 if (!string.IsNullOrEmpty(flightPlan.DestinationICAO))
@@ -1435,6 +1451,19 @@ namespace OpenSky.API.Controllers
                     {
                         return new ApiResponse<string>("Destination airport not found!") { IsError = true };
                     }
+
+                    if (aircraft != null)
+                    {
+                        if (aircraft.Type.Simulator == Simulator.MSFS && !airport.MSFS)
+                        {
+                            return new ApiResponse<string>("Destination airport is not available for the simulator your selected aircraft uses!") { IsError = true };
+                        }
+
+                        if (aircraft.Type.Simulator == Simulator.XPlane11 && !airport.XP11)
+                        {
+                            return new ApiResponse<string>("Destination airport is not available for the simulator your selected aircraft uses!") { IsError = true };
+                        }
+                    }
                 }
 
                 if (!string.IsNullOrEmpty(flightPlan.AlternateICAO))
@@ -1443,6 +1472,19 @@ namespace OpenSky.API.Controllers
                     if (airport == null)
                     {
                         return new ApiResponse<string>("Alternate airport not found!") { IsError = true };
+                    }
+
+                    if (aircraft != null)
+                    {
+                        if (aircraft.Type.Simulator == Simulator.MSFS && !airport.MSFS)
+                        {
+                            return new ApiResponse<string>("Alternate airport is not available for the simulator your selected aircraft uses!") { IsError = true };
+                        }
+
+                        if (aircraft.Type.Simulator == Simulator.XPlane11 && !airport.XP11)
+                        {
+                            return new ApiResponse<string>("Alternate airport is not available for the simulator your selected aircraft uses!") { IsError = true };
+                        }
                     }
                 }
 
@@ -1757,7 +1799,7 @@ namespace OpenSky.API.Controllers
 
                             fuelRecord.AirlineID = plan.Aircraft.AirlineOwnerID;
                             fuelRecord.Expense = fuelPrice;
-                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry}: {gallonsToTransfer:F1} gallons AV gas at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons AV gas at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
                         }
                         else
                         {
@@ -1768,7 +1810,7 @@ namespace OpenSky.API.Controllers
 
                             fuelRecord.UserID = plan.Aircraft.OwnerID;
                             fuelRecord.Expense = fuelPrice;
-                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry}: {gallonsToTransfer:F1} gallons AV gas at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons AV gas at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
                         }
                     }
                     else if (plan.Aircraft.Type.FuelType == FuelType.JetFuel)
@@ -1790,7 +1832,7 @@ namespace OpenSky.API.Controllers
 
                             fuelRecord.AirlineID = plan.Aircraft.AirlineOwnerID;
                             fuelRecord.Expense = fuelPrice;
-                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry}: {gallonsToTransfer:F1} gallons jet fuel at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
                         }
                         else
                         {
@@ -1801,7 +1843,7 @@ namespace OpenSky.API.Controllers
 
                             fuelRecord.UserID = plan.Aircraft.OwnerID;
                             fuelRecord.Expense = fuelPrice;
-                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry}: {gallonsToTransfer:F1} gallons jet fuel at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
                         }
                     }
                     else
@@ -2011,16 +2053,30 @@ namespace OpenSky.API.Controllers
         /// <param name="location">
         /// The location.
         /// </param>
+        /// <param name="simulator">
+        /// The simulator.
+        /// </param>
         /// <returns>
-        /// An asynchronous result that yields the closest airport ICAO code, or NULL if there is no airport within 10 nm.
+        /// An asynchronous result that yields the closest airport ICAO code, or NULL if there is no
+        /// airport within 10 nm.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        private async Task<string> GetClosestAirport(GeoCoordinate location)
+        private async Task<string> GetClosestAirport(GeoCoordinate location, Simulator simulator)
         {
             // Check where we are (closest airport)
             var coverage = location.CircularCoverage(10);
             var cells = coverage.Cells.Select(c => c.Id).ToList();
             var airports = await this.db.Airports.Where($"@0.Contains(S2Cell{coverage.Level})", cells).ToListAsync();
+            if (simulator == Simulator.MSFS)
+            {
+                airports = airports.Where(a => a.MSFS).ToList();
+            }
+
+            if (simulator == Simulator.XPlane11)
+            {
+                airports = airports.Where(a => a.XP11).ToList();
+            }
+
             if (airports.Count == 0)
             {
                 // Landed at no airport, back to origin?

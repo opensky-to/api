@@ -47,6 +47,7 @@ namespace OpenSky.API.Model.Extensions.AirportsJSON
                 IsMilitary = airport.IsMilitary,
                 SupportsSuper = airport.SupportsSuper,
                 MSFS = airport.MSFS,
+                XP11 = airport.XP11,
                 S2Cell3 = airport.S2Cell3,
                 S2Cell4 = airport.S2Cell4,
                 S2Cell5 = airport.S2Cell5,
