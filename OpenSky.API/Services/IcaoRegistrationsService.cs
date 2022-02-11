@@ -47,13 +47,6 @@ namespace OpenSky.API.Services
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The logger.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private readonly ILogger<IcaoRegistrationsService> logger;
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// Initializes a new instance of the <see cref="IcaoRegistrationsService"/> class.
         /// </summary>
         /// <remarks>
@@ -65,7 +58,6 @@ namespace OpenSky.API.Services
         /// -------------------------------------------------------------------------------------------------
         public IcaoRegistrationsService(ILogger<IcaoRegistrationsService> logger)
         {
-            this.logger = logger;
             try
             {
                 var reader = new StreamReader("Datasets/ICAO.csv");
@@ -82,10 +74,10 @@ namespace OpenSky.API.Services
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, "Error loading ICAO registrations from CSV file \"Datasets/ICAO.csv\".");
+                logger.LogError(ex, "Error loading ICAO registrations from CSV file \"Datasets/ICAO.csv\".");
             }
 
-            this.logger.LogInformation("ICAO registration service started");
+            logger.LogInformation("ICAO registration service started");
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -104,13 +96,7 @@ namespace OpenSky.API.Services
         /// -------------------------------------------------------------------------------------------------
         public IcaoRegistration GetIcaoRegistrationForAirport(Airport airport)
         {
-            var registration = this.icaoRegistrations.FirstOrDefault(icao => airport.ICAO.ToLower()[..2].StartsWith(icao.AirportPrefix.ToLower()));
-            if (registration == null)
-            {
-                this.logger.LogWarning($"Unable to find ICAO registration for airport {airport.ICAO}.");
-            }
-
-            return registration;
+            return this.icaoRegistrations.FirstOrDefault(icao => airport.ICAO.ToLower()[..2].StartsWith(icao.AirportPrefix.ToLower()));
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -129,13 +115,7 @@ namespace OpenSky.API.Services
         /// -------------------------------------------------------------------------------------------------
         public IEnumerable<IcaoRegistration> GetIcaoRegistrationsForCountry(Country country)
         {
-            var registrations = this.icaoRegistrations.Where(icao => icao.Countries.Contains(country)).ToList();
-            if (registrations.Count == 0)
-            {
-                this.logger.LogWarning($"Unable to find ICAO registration(s) for country {country}.");
-            }
-
-            return registrations;
+            return this.icaoRegistrations.Where(icao => icao.Countries.Contains(country)).ToList();
         }
 
         /// -------------------------------------------------------------------------------------------------

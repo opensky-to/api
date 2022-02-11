@@ -164,7 +164,7 @@ namespace OpenSky.API.Workers
                 }
 
                 var leftOverQueuedAirportsXP11 = db.Airports.Where(a => a.HasBeenPopulatedXP11 == ProcessingStatus.Queued);
-                foreach (var airport in leftOverQueuedAirportsMSFS)
+                foreach (var airport in leftOverQueuedAirportsXP11)
                 {
                     airport.HasBeenPopulatedXP11 = ProcessingStatus.NeedsHandling;
                 }
