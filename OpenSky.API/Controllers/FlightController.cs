@@ -596,7 +596,7 @@ namespace OpenSky.API.Controllers
                                     flight.Aircraft.LifeTimeExpense += (int)(job.Value * (1.0 - latePenaltyMultiplier));
                                 }
 
-                                this.statisticsService.RecordCompletedJob(job.OperatorAirline != null ? FlightOperator.Airline : FlightOperator.Player, flight.Aircraft.Type.Category, job.Type);
+                                this.statisticsService.RecordCompletedJob(job.OperatorAirline != null ? FlightOperator.Airline : FlightOperator.Player, flight.Aircraft.Type.Category, job.Type, flight.Aircraft.Type.Simulator);
                                 await this.db.FinancialRecords.AddAsync(jobRecord);
                                 this.db.Payloads.RemoveRange(job.Payloads);
                                 this.db.Jobs.Remove(job);
@@ -676,7 +676,7 @@ namespace OpenSky.API.Controllers
                 // todo check final log for signs of cheating?
                 // todo calculate final reputation/xp/whatever based on flight
 
-                this.statisticsService.RecordCompletedFlight(flight.OperatorAirline != null ? FlightOperator.Airline : FlightOperator.Player, flight.Aircraft.Type.Category);
+                this.statisticsService.RecordCompletedFlight(flight.OperatorAirline != null ? FlightOperator.Airline : FlightOperator.Player, flight.Aircraft.Type.Category, flight.Aircraft.Type.Simulator);
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error completing flight");
                 if (saveEx != null)
                 {
