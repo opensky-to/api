@@ -46,17 +46,17 @@ namespace OpenSky.API.Services
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The job mutex object.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private readonly object jobMutex = new();
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// The job generated mutex object.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private readonly object jobGeneratedMutex = new();
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The job mutex object.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly object jobMutex = new();
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -177,6 +177,36 @@ namespace OpenSky.API.Services
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets job generated count.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 29/01/2022.
+        /// </remarks>
+        /// <returns>
+        /// An asynchronous result that yields the job generated count.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        public async Task<int> GetJobGeneratedCount()
+        {
+            try
+            {
+                const string jobTotalKey = "jobGenerated";
+                var jobTotalStat = await this.db.Statistics.SingleOrDefaultAsync(s => s.Key == jobTotalKey);
+                if (jobTotalStat != null)
+                {
+                    return (int)jobTotalStat.Value;
+                }
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Error retrieving job generated count");
+            }
+
+            return 0;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets the job operator pie chart series.
         /// </summary>
         /// <remarks>
@@ -242,15 +272,23 @@ namespace OpenSky.API.Services
         /// <remarks>
         /// sushi.at, 29/01/2022.
         /// </remarks>
+        /// <param name="simulator">
+        /// Optional: The simulator, NULL for all.
+        /// </param>
         /// <returns>
         /// An asynchronous result that yields the total flight count.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        public async Task<int> GetTotalFlightCount()
+        public async Task<int> GetTotalFlightCount(Simulator? simulator = null)
         {
             try
             {
-                const string flightTotalKey = "flight";
+                var flightTotalKey = "flight";
+                if (simulator.HasValue)
+                {
+                    flightTotalKey += $"|sim|{simulator.Value}";
+                }
+
                 var flightTotalStat = await this.db.Statistics.SingleOrDefaultAsync(s => s.Key == flightTotalKey);
                 if (flightTotalStat != null)
                 {
@@ -272,15 +310,23 @@ namespace OpenSky.API.Services
         /// <remarks>
         /// sushi.at, 29/01/2022.
         /// </remarks>
+        /// <param name="simulator">
+        /// Optional: The simulator, NULL for all.
+        /// </param>
         /// <returns>
         /// An asynchronous result that yields the total job count.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        public async Task<int> GetTotalJobCount()
+        public async Task<int> GetTotalJobCount(Simulator? simulator = null)
         {
             try
             {
-                const string jobTotalKey = "job";
+                var jobTotalKey = "job";
+                if (simulator.HasValue)
+                {
+                    jobTotalKey += $"|sim|{simulator.Value}";
+                }
+
                 var jobTotalStat = await this.db.Statistics.SingleOrDefaultAsync(s => s.Key == jobTotalKey);
                 if (jobTotalStat != null)
                 {
@@ -290,36 +336,6 @@ namespace OpenSky.API.Services
             catch (Exception ex)
             {
                 this.logger.LogError(ex, "Error retrieving total job count");
-            }
-
-            return 0;
-        }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets job generated count.
-        /// </summary>
-        /// <remarks>
-        /// sushi.at, 29/01/2022.
-        /// </remarks>
-        /// <returns>
-        /// An asynchronous result that yields the job generated count.
-        /// </returns>
-        /// -------------------------------------------------------------------------------------------------
-        public async Task<int> GetJobGeneratedCount()
-        {
-            try
-            {
-                const string jobTotalKey = "jobGenerated";
-                var jobTotalStat = await this.db.Statistics.SingleOrDefaultAsync(s => s.Key == jobTotalKey);
-                if (jobTotalStat != null)
-                {
-                    return (int)jobTotalStat.Value;
-                }
-            }
-            catch (Exception ex)
-            {
-                this.logger.LogError(ex, "Error retrieving job generated count");
             }
 
             return 0;
@@ -338,11 +354,15 @@ namespace OpenSky.API.Services
         /// <param name="aircraftTypeCategory">
         /// Category type of the aircraft.
         /// </param>
-        /// <returns>
+        /// <param name="simulator">
+        /// The simulator.
+        /// </param>
+        ///
+        /// ### <returns>
         /// An asynchronous result.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        public void RecordCompletedFlight(FlightOperator flightOperator, AircraftTypeCategory aircraftTypeCategory)
+        public void RecordCompletedFlight(FlightOperator flightOperator, AircraftTypeCategory aircraftTypeCategory, Simulator simulator)
         {
             try
             {
@@ -360,6 +380,22 @@ namespace OpenSky.API.Services
                             new Statistic
                             {
                                 Key = flightTotalKey,
+                                Value = 1
+                            });
+                    }
+
+                    var simulatorKey = $"flight|sim|{simulator}";
+                    var simulatorStat = this.db.Statistics.SingleOrDefault(s => s.Key == simulatorKey);
+                    if (simulatorStat != null)
+                    {
+                        simulatorStat.Value++;
+                    }
+                    else
+                    {
+                        this.db.Statistics.Add(
+                            new Statistic
+                            {
+                                Key = simulatorKey,
                                 Value = 1
                             });
                     }
@@ -407,51 +443,6 @@ namespace OpenSky.API.Services
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Record job generated count.
-        /// </summary>
-        /// <remarks>
-        /// sushi.at, 29/01/2022.
-        /// </remarks>
-        /// <param name="numberOfJobs">
-        /// Number of jobs that were generated.
-        /// </param>
-        /// <returns>
-        /// An asynchronous result.
-        /// </returns>
-        /// -------------------------------------------------------------------------------------------------
-        public void RecordJobsGenerated(int numberOfJobs)
-        {
-            try
-            {
-                lock (this.jobGeneratedMutex)
-                {
-                    const string jobGeneratedKey = "jobGenerated";
-                    var jobGeneratedStat = this.db.Statistics.SingleOrDefault(s => s.Key == jobGeneratedKey);
-                    if (jobGeneratedStat != null)
-                    {
-                        jobGeneratedStat.Value += numberOfJobs;
-                    }
-                    else
-                    {
-                        this.db.Statistics.Add(
-                            new Statistic
-                            {
-                                Key = jobGeneratedKey,
-                                Value = numberOfJobs
-                            });
-                    }
-
-                    this.db.SaveChanges();
-                }
-            }
-            catch (Exception ex)
-            {
-                this.logger.LogError(ex, "Error recording jobs generated.");
-            }
-        }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// Record completed job stats.
         /// </summary>
         /// <remarks>
@@ -466,15 +457,19 @@ namespace OpenSky.API.Services
         /// <param name="jobType">
         /// Type of the job.
         /// </param>
-        /// <returns>
+        /// <param name="simulator">
+        /// The simulator.
+        /// </param>
+        ///
+        /// ### <returns>
         /// An asynchronous result.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        public void RecordCompletedJob(FlightOperator flightOperator, AircraftTypeCategory aircraftTypeCategory, JobType jobType)
+        public void RecordCompletedJob(FlightOperator flightOperator, AircraftTypeCategory aircraftTypeCategory, JobType jobType, Simulator simulator)
         {
             try
             {
-                lock(this.jobMutex)
+                lock (this.jobMutex)
                 {
                     const string jobTotalKey = "job";
                     var jobTotalStat = this.db.Statistics.SingleOrDefault(s => s.Key == jobTotalKey);
@@ -488,6 +483,22 @@ namespace OpenSky.API.Services
                             new Statistic
                             {
                                 Key = jobTotalKey,
+                                Value = 1
+                            });
+                    }
+
+                    var simulatorKey = $"job|sim|{simulator}";
+                    var simulatorStat = this.db.Statistics.SingleOrDefault(s => s.Key == simulatorKey);
+                    if (simulatorStat != null)
+                    {
+                        simulatorStat.Value++;
+                    }
+                    else
+                    {
+                        this.db.Statistics.Add(
+                            new Statistic
+                            {
+                                Key = simulatorKey,
                                 Value = 1
                             });
                     }
@@ -546,6 +557,51 @@ namespace OpenSky.API.Services
             catch (Exception ex)
             {
                 this.logger.LogError(ex, "Error recording completed job.");
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Record job generated count.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 29/01/2022.
+        /// </remarks>
+        /// <param name="numberOfJobs">
+        /// Number of jobs that were generated.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        public void RecordJobsGenerated(int numberOfJobs)
+        {
+            try
+            {
+                lock (this.jobGeneratedMutex)
+                {
+                    const string jobGeneratedKey = "jobGenerated";
+                    var jobGeneratedStat = this.db.Statistics.SingleOrDefault(s => s.Key == jobGeneratedKey);
+                    if (jobGeneratedStat != null)
+                    {
+                        jobGeneratedStat.Value += numberOfJobs;
+                    }
+                    else
+                    {
+                        this.db.Statistics.Add(
+                            new Statistic
+                            {
+                                Key = jobGeneratedKey,
+                                Value = numberOfJobs
+                            });
+                    }
+
+                    this.db.SaveChanges();
+                }
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Error recording jobs generated.");
             }
         }
     }
