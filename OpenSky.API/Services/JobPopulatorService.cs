@@ -192,7 +192,8 @@ namespace OpenSky.API.Services
             }
 
             // Create the different job types
-            infoText += await this.CheckAndGenerateCargoJobsForAirport(airport, availableJobs, direction, category, simulator);
+            infoText += await this.CheckAndGenerateLongCargoJobsForAirport(airport, availableJobs, direction, category, simulator);
+            infoText += await this.CheckAndGenerateShortCargoJobsForAirport(airport, availableJobs, direction, category, simulator);
 
             infoText += $"Finished processing job creation for airport {icao}, direction [{direction}] after {(DateTime.Now - started).TotalSeconds:F2} seconds.";
             return infoText;

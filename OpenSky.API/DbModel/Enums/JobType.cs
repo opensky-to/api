@@ -14,11 +14,18 @@ namespace OpenSky.API.DbModel.Enums
     /// sushi.at, 09/12/2021.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
+
+    // ReSharper disable InconsistentNaming
     public enum JobType
     {
         /// <summary>
-        /// Cargo job.
+        /// Cargo job (long).
         /// </summary>
-        Cargo = 0
+        Cargo_L = 0,
+
+        /// <summary>
+        /// Cargo job (short).
+        /// </summary>
+        Cargo_S = 1
     }
 }
