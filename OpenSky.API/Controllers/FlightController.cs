@@ -559,7 +559,8 @@ namespace OpenSky.API.Controllers
                                     Income = job.Value,
                                     Category = job.Type switch
                                     {
-                                        JobType.Cargo => FinancialCategory.Cargo,
+                                        JobType.Cargo_L => FinancialCategory.Cargo,
+                                        JobType.Cargo_S => FinancialCategory.Cargo,
                                         _ => FinancialCategory.None
                                     },
                                     Timestamp = flightFinancialRecord.Timestamp,
