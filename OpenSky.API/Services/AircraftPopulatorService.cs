@@ -515,6 +515,104 @@ namespace OpenSky.API.Services
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Generates an aircraft registration number for a new aircraft being registered in the
+        /// specified country.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 14/02/2022.
+        /// </remarks>
+        /// <param name="country">
+        /// The country.
+        /// </param>
+        /// <param name="simulator">
+        /// The simulator.
+        /// </param>
+        /// <returns>
+        /// The new aircraft registration.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        public string GenerateNewAircraftRegistration(Country country, Simulator simulator)
+        {
+            var countryRegistrationEntries = this.icaoRegistrations.GetIcaoRegistrationsForCountry(country).ToList();
+
+            // Default to US Registration if there is no entry for a given country
+            if (countryRegistrationEntries.Count == 0)
+            {
+                countryRegistrationEntries.Add(
+                    new IcaoRegistration
+                    {
+                        AircraftPrefix = "N",
+                        AirportPrefix = "K",
+                        Country = "US"
+                    });
+            }
+
+            const int maxAttempts = 20;
+            var registration = string.Empty;
+
+            for (var i = 0; i < maxAttempts; i++)
+            {
+                var countryRegistrationEntry = countryRegistrationEntries[Random.Next(countryRegistrationEntries.Count)];
+                registration = countryRegistrationEntry.AircraftPrefixes[0] switch
+                {
+                    "HK" => GenerateColombiaRegistration(),
+                    "CU" => GenerateRegularRegistration(countryRegistrationEntry.AircraftPrefixes, 7),
+                    "E3" => GenerateRegularRegistration(countryRegistrationEntry.AircraftPrefixes, 7),
+                    "3DC" => GenerateRegularRegistration(countryRegistrationEntry.AircraftPrefixes, 7),
+                    "JA" => GenerateRegularRegistration(countryRegistrationEntry.AircraftPrefixes, 6, false),
+                    "UP" => GenerateRegularRegistration(countryRegistrationEntry.AircraftPrefixes, 8),
+                    "P" => GenerateNorthKoreaRegistration(),
+                    "HL" => GenerateSouthKoreaRegistration(),
+                    "RDPL" => GenerateLaosRegistration(),
+                    "N" => GenerateUsRegistration(),
+                    "B" => GenerateTaiwanRegistration(),
+                    "EK" => GenerateArmeniaRegistration(),
+                    "RA" => GenerateRussiaRegistration(),
+                    _ => GenerateRegularRegistration(countryRegistrationEntry.AircraftPrefixes, 6)
+                };
+
+                registration = simulator switch
+                {
+                    Simulator.MSFS => $"m.{registration}",
+                    Simulator.XPlane11 => $"x.{registration}",
+                    _ => $"?.{registration}"
+                };
+
+                // Lookup DB for registration
+                var registrationExists = this.db.Aircraft.Any(aircraft => aircraft.Registry == registration);
+                if (!registrationExists)
+                {
+                    // Found a non existing registration
+                    break;
+                }
+
+                if (i == maxAttempts - 1)
+                {
+                    // The US numbers have space for >1 million planes, pick a random US one if we can't find a local one
+                    if (countryRegistrationEntry.AircraftPrefix != "N")
+                    {
+                        i = 0;
+                        countryRegistrationEntries.Clear();
+                        countryRegistrationEntries.Add(
+                            new IcaoRegistration
+                            {
+                                AircraftPrefix = "N",
+                                AirportPrefix = "K",
+                                Country = "US"
+                            });
+                    }
+                    else
+                    {
+                        throw new Exception("Could not find a non-duplicate registration for aircraft");
+                    }
+                }
+            }
+
+            return registration;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Calculate total slots for the specified airport.
         /// </summary>
         /// <remarks>

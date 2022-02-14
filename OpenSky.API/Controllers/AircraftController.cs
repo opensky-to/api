@@ -219,7 +219,7 @@ namespace OpenSky.API.Controllers
                                                  a => a.AirportICAO.Equals(icao) && !a.Flights.Any(f => f.Started.HasValue && !f.Completed.HasValue) &&
                                                       (a.OwnerID == user.Id || a.AirlineOwnerID == user.AirlineICAO || a.PurchasePrice.HasValue || a.RentPrice.HasValue))
                                              .ToListAsync();
-                    
+
                     foreach (var craft in aircraft)
                     {
                         if (craft.OwnerID != user.Id && craft.AirlineOwnerID == user.AirlineICAO)
@@ -699,7 +699,139 @@ namespace OpenSky.API.Controllers
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Aircraft/purchase/purchase: {purchase.Registry}");
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Aircraft/purchase: {purchase.Registry}");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Purchase new aircraft.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 14/02/2022.
+        /// </remarks>
+        /// <param name="purchase">
+        /// The purchase new aircraft model.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields a string.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPost("purchaseNew", Name = "PurchaseNewAircraft")]
+        public async Task<ActionResult<ApiResponse<string>>> PurchaseNewAircraft([FromBody] PurchaseNewAircraft purchase)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Aircraft/purchaseNew: {purchase.TypeID}@{purchase.AirportICAO}");
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
+                }
+
+                if (string.IsNullOrEmpty(user.AirlineICAO) && purchase.ForAirline)
+                {
+                    return new ApiResponse<string> { Message = "Not member of an airline!", IsError = true };
+                }
+
+                if (!AirlineController.UserHasPermission(user, AirlinePermission.BuyAircraft) && purchase.ForAirline)
+                {
+                    return new ApiResponse<string> { Message = "You don't have the permission to buy aircraft for your airline!", IsError = true };
+                }
+
+                var aircraftType = await this.db.AircraftTypes.SingleOrDefaultAsync(at => at.ID == purchase.TypeID);
+                if (aircraftType == null)
+                {
+                    return new ApiResponse<string>("Aircraft type with specified ID not found!") { IsError = true };
+                }
+
+                var airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == purchase.AirportICAO);
+                if (airport == null)
+                {
+                    return new ApiResponse<string>("Airport with specified ICAO code not found!") { IsError = true };
+                }
+
+                if (airport.IsClosed)
+                {
+                    return new ApiResponse<string>("Can't purchase aircraft at closed airports!") { IsError = true };
+                }
+
+                if (aircraftType.Simulator == Simulator.MSFS && !airport.MSFS)
+                {
+                    return new ApiResponse<string>("Can't purchase MSFS aircraft at airports not available for this simulator!") { IsError = true };
+                }
+
+                if (aircraftType.Simulator == Simulator.XPlane11 && !airport.XP11)
+                {
+                    return new ApiResponse<string>("Can't purchase X-Plane11 aircraft at airports not available for this simulator!") { IsError = true };
+                }
+
+                var registry = this.aircraftPopulator.GenerateNewAircraftRegistration(purchase.Country, aircraftType.Simulator);
+                var aircraft = new Aircraft
+                {
+                    Registry = registry,
+                    TypeID = purchase.TypeID,
+                    AirportICAO = airport.ICAO,
+                    Fuel = aircraftType.FuelTotalCapacity * 0.25,
+                    LifeTimeExpense = aircraftType.MaxPrice,
+                };
+                await this.db.Aircraft.AddAsync(aircraft);
+
+                if (!purchase.ForAirline)
+                {
+                    if (aircraftType.MaxPrice > user.PersonalAccountBalance)
+                    {
+                        return new ApiResponse<string>("You can't afford this aircraft!") { IsError = true };
+                    }
+
+                    aircraft.OwnerID = user.Id;
+                    user.Airline.AccountBalance -= aircraftType.MaxPrice;
+                    var purchaseRecord = new FinancialRecord
+                    {
+                        ID = Guid.NewGuid(),
+                        Timestamp = DateTime.UtcNow,
+                        UserID = user.Id,
+                        Expense = aircraftType.MaxPrice,
+                        Category = FinancialCategory.Aircraft,
+                        Description = $"Purchase of new aircraft {aircraft.Registry.RemoveSimPrefix()}, type {aircraftType.Name} at airport {aircraft.AirportICAO}",
+                        AircraftRegistry = aircraft.Registry
+                    };
+                    await this.db.FinancialRecords.AddAsync(purchaseRecord);
+                }
+                else
+                {
+                    if (aircraftType.MaxPrice > user.Airline.AccountBalance)
+                    {
+                        return new ApiResponse<string>("Your airline can't afford this aircraft!") { IsError = true };
+                    }
+
+                    aircraft.AirlineOwnerID = user.AirlineICAO;
+                    user.Airline.AccountBalance -= aircraftType.MaxPrice;
+                    var airlinePurchaseRecord = new FinancialRecord
+                    {
+                        ID = Guid.NewGuid(),
+                        Timestamp = DateTime.UtcNow,
+                        AirlineID = user.AirlineICAO,
+                        Expense = aircraftType.MaxPrice,
+                        Category = FinancialCategory.Aircraft,
+                        Description = $"Purchase of new aircraft {aircraft.Registry.RemoveSimPrefix()}, type {aircraftType.Name} at airport {aircraft.AirportICAO} by user {user.UserName}",
+                        AircraftRegistry = aircraft.Registry
+                    };
+                    await this.db.FinancialRecords.AddAsync(airlinePurchaseRecord);
+                }
+
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error purchasing new aircraft");
+                if (saveEx != null)
+                {
+                    throw saveEx;
+                }
+
+                return new ApiResponse<string>($"Successfully purchased new aircraft of type \"{aircraftType.Name}\", and registered as {aircraft.Registry.RemoveSimPrefix()}");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Aircraft/purchase/purchaseNew: {purchase.TypeID}@{purchase.AirportICAO}");
                 return new ApiResponse<string>(ex);
             }
         }
