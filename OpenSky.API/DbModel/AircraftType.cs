@@ -282,6 +282,14 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets a value indicating whether this aircraft type has an image uploaded.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [NotMapped]
+        public bool HasAircraftImage => this.AircraftImage is { Length: > 0 };
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets a value indicating whether this aircraft type has variants.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -325,6 +333,13 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public bool IsGearRetractable { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets a value indicating whether this aircraft is historic (can't be purchased new).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public bool IsHistoric { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
