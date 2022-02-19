@@ -41,6 +41,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The manufacturer home airport.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private Airport manufacturerHomeAirport;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Type of the next version.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -112,6 +119,14 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the aircraft image.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        public byte[] AircraftImage { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the ATCModel property in the sim.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -174,6 +189,14 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the engine model.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [StringLength(50)]
+        public string EngineModel { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the type of the engine (engine type as reported in the sim).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -204,6 +227,11 @@ namespace OpenSky.API.DbModel
         {
             get
             {
+                if (this.OverrideFuelType != FuelType.NotUsed)
+                {
+                    return this.OverrideFuelType;
+                }
+
                 // todo Keep an eye on how FS2020 will implement electric aircraft (they are planning to release the VoloCity air taxi)
                 switch (this.EngineType)
                 {
@@ -355,6 +383,28 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the manufacturer home airport.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("ManufacturerHomeAirportICAO")]
+        [JsonIgnore]
+        public Airport ManufacturerHomeAirport
+        {
+            get => this.LazyLoader.Load(this, ref this.manufacturerHomeAirport);
+            set => this.manufacturerHomeAirport = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the manufacturer home airport icao.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [StringLength(5, MinimumLength = 3)]
+        [ForeignKey("ManufacturerHomeAirport")]
+        public string ManufacturerHomeAirportICAO { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the maximum gross weight in pounds.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -433,6 +483,13 @@ namespace OpenSky.API.DbModel
             get => this.LazyLoader.Load(this, ref this.nextVersionType);
             set => this.nextVersionType = value;
         }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the type of fuel the aircraft uses (not derived from engine type).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public FuelType OverrideFuelType { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

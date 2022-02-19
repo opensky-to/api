@@ -8,6 +8,9 @@ namespace OpenSky.API.Controllers
 {
     using System;
     using System.Collections.Generic;
+    using System.Drawing;
+    using System.Drawing.Imaging;
+    using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
 
@@ -409,6 +412,37 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Get image for the specified aircraft type.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 19/02/2022.
+        /// </remarks>
+        /// <param name="typeID">
+        /// Identifier for the type.
+        /// </param>
+        /// <returns>
+        /// The aircraft type image.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet("image/{typeID:guid}", Name = "GetAircraftTypeImage")]
+        public async Task<ActionResult<ApiResponse<byte[]>>> GetAircraftTypeImage(Guid typeID)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET AircraftType/image/{typeID}");
+
+                var type = await this.db.AircraftTypes.SingleOrDefaultAsync(t => t.ID == typeID);
+                return new ApiResponse<byte[]>(type.AircraftImage);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET AircraftType/image/{typeID}");
+                return new ApiResponse<byte[]>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets all enabled and current aircraft types.
         /// </summary>
         /// <remarks>
@@ -650,6 +684,9 @@ namespace OpenSky.API.Controllers
                 existingType.MinimumRunwayLength = type.MinimumRunwayLength;
                 existingType.IncludeInWorldPopulation = type.IncludeInWorldPopulation;
                 existingType.MaxPayloadDeltaAllowed = type.MaxPayloadDeltaAllowed;
+                existingType.EngineModel = type.EngineModel;
+                existingType.ManufacturerHomeAirportICAO = type.ManufacturerHomeAirportICAO;
+                existingType.OverrideFuelType = type.OverrideFuelType;
 
                 // Make sure to record who edited it
                 existingType.LastEditedByID = user.Id;
@@ -665,6 +702,71 @@ namespace OpenSky.API.Controllers
             catch (Exception ex)
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | PUT AircraftType");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Update the image of the specified aircraft type.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 19/02/2022.
+        /// </remarks>
+        /// <param name="typeImage">
+        /// The type image update model.
+        /// </param>
+        /// <returns>
+        /// A status string.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPost("image")]
+        public async Task<ActionResult<ApiResponse<string>>> UpdateAircraftTypeImage([FromBody] AircraftTypeImage typeImage)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST AircraftType/image/{typeImage?.ID}");
+
+                if (typeImage == null)
+                {
+                    return new ApiResponse<string> { Message = "Aircraft type image model missing!", IsError = true };
+                }
+
+                var type = await this.db.AircraftTypes.SingleOrDefaultAsync(t => t.ID == typeImage.ID);
+
+                if (typeImage.Image.ContentType is not "image/png" and not "image/jpeg")
+                {
+                    return new ApiResponse<string> { Message = "Image has to be JPG or PNG!", IsError = true };
+                }
+
+                if (typeImage.Image.Length > 1 * 1024 * 1024)
+                {
+                    return new ApiResponse<string> { Message = "Maximum image size is 1MB!", IsError = true };
+                }
+
+                var memoryStream = new MemoryStream();
+                await typeImage.Image.CopyToAsync(memoryStream);
+
+                var image = Image.FromStream(memoryStream);
+                if (image.Width > 640 || image.Height > 360)
+                {
+                    image = AccountController.ResizeImage(image, 640, 360);
+                    memoryStream = new MemoryStream();
+                    image.Save(memoryStream, ImageFormat.Png);
+                }
+
+                type.AircraftImage = memoryStream.ToArray();
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving changes to aircraft type.");
+                if (saveEx != null)
+                {
+                    return new ApiResponse<string>("Error saving changes to aircraft type", saveEx);
+                }
+
+                return new ApiResponse<string>("Aircraft type image updated.");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST AircraftType/image/{typeImage?.ID}");
                 return new ApiResponse<string>(ex);
             }
         }
