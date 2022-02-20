@@ -534,7 +534,6 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET AircraftType/image/{typeID}");
-
                 var type = await this.db.AircraftTypes.SingleOrDefaultAsync(t => t.ID == typeID);
                 return new ApiResponse<byte[]>(type.AircraftImage);
             }
@@ -568,9 +567,13 @@ namespace OpenSky.API.Controllers
                     ID = "miss",
                     Name = "Missing"
                 };
-                foreach (var type in types.Where(t => t.Manufacturer == null))
+                foreach (var type in types)
                 {
-                    type.Manufacturer = missing;
+                    type.Manufacturer ??= missing;
+                    foreach (var variant in type.Variants.Where(v => v.Manufacturer == null))
+                    {
+                        variant.Manufacturer = missing;
+                    }
                 }
 
                 return new ApiResponse<IEnumerable<AircraftType>>(types);
@@ -659,9 +662,13 @@ namespace OpenSky.API.Controllers
                     ID = "miss",
                     Name = "Missing"
                 };
-                foreach (var type in types.Where(t => t.Manufacturer == null))
+                foreach (var type in types)
                 {
-                    type.Manufacturer = missing;
+                    type.Manufacturer ??= missing;
+                    foreach (var variant in type.Variants.Where(v => v.Manufacturer == null))
+                    {
+                        variant.Manufacturer = missing;
+                    }
                 }
 
                 return new ApiResponse<IEnumerable<AircraftType>>(types);
@@ -700,9 +707,13 @@ namespace OpenSky.API.Controllers
                     ID = "miss",
                     Name = "Missing"
                 };
-                foreach (var type in types.Where(t => string.IsNullOrEmpty(t.ManufacturerID)))
+                foreach (var type in types)
                 {
-                    type.Manufacturer = missing;
+                    type.Manufacturer ??= missing;
+                    foreach (var variant in type.Variants.Where(v => v.Manufacturer == null))
+                    {
+                        variant.Manufacturer = missing;
+                    }
                 }
 
                 return new ApiResponse<IEnumerable<AircraftType>>(types);

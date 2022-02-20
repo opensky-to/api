@@ -155,6 +155,17 @@ namespace OpenSky.API.Controllers
                     aircraft.LifeTimeIncome = 0;
                 }
 
+                var missing = new AircraftManufacturer
+                {
+                    ID = "miss",
+                    Name = "Missing"
+                };
+                aircraft.Type.Manufacturer ??= missing;
+                foreach (var variant in aircraft.Type.Variants.Where(v => v.Manufacturer == null))
+                {
+                    variant.Manufacturer = missing;
+                }
+
                 return new ApiResponse<Aircraft>(aircraft);
             }
             catch (Exception ex)
@@ -195,9 +206,14 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<IEnumerable<Aircraft>> { Message = $"No airport with code {icao} exists!", IsError = true, Data = new List<Aircraft>() };
                 }
 
+                var missing = new AircraftManufacturer
+                {
+                    ID = "miss",
+                    Name = "Missing"
+                };
                 if (this.User.IsInRole(UserRoles.Moderator) || this.User.IsInRole(UserRoles.Admin))
                 {
-                    // Return all planes
+                    // Return all aircraft
                     var aircraft = await this.db.Aircraft.Where(a => a.AirportICAO.Equals(icao) && !a.Flights.Any(f => f.Started.HasValue && !f.Completed.HasValue)).ToListAsync();
 
                     foreach (var craft in aircraft)
@@ -208,13 +224,19 @@ namespace OpenSky.API.Controllers
                             craft.LifeTimeExpense = 0;
                             craft.LifeTimeIncome = 0;
                         }
+
+                        craft.Type.Manufacturer ??= missing;
+                        foreach (var variant in craft.Type.Variants.Where(v => v.Manufacturer == null))
+                        {
+                            variant.Manufacturer = missing;
+                        }
                     }
 
                     return new ApiResponse<IEnumerable<Aircraft>>(aircraft);
                 }
                 else
                 {
-                    // Only return planes that are available for purchase or rent, or owned by the player
+                    // Only return aircraft that are available for purchase or rent, or owned by the player
                     var aircraft = await this.db.Aircraft.Where(
                                                  a => a.AirportICAO.Equals(icao) && !a.Flights.Any(f => f.Started.HasValue && !f.Completed.HasValue) &&
                                                       (a.OwnerID == user.Id || a.AirlineOwnerID == user.AirlineICAO || a.PurchasePrice.HasValue || a.RentPrice.HasValue))
@@ -227,6 +249,12 @@ namespace OpenSky.API.Controllers
                             // User/Airline doesn't own this aircraft, zero out the financials
                             craft.LifeTimeExpense = 0;
                             craft.LifeTimeIncome = 0;
+                        }
+
+                        craft.Type.Manufacturer ??= missing;
+                        foreach (var variant in craft.Type.Variants.Where(v => v.Manufacturer == null))
+                        {
+                            variant.Manufacturer = missing;
                         }
                     }
 
@@ -264,6 +292,19 @@ namespace OpenSky.API.Controllers
                 }
 
                 var aircraft = await this.db.Aircraft.Where(a => a.OwnerID == user.Id).ToListAsync();
+                var missing = new AircraftManufacturer
+                {
+                    ID = "miss",
+                    Name = "Missing"
+                };
+                foreach (var craft in aircraft)
+                {
+                    craft.Type.Manufacturer ??= missing;
+                    foreach (var variant in craft.Type.Variants.Where(v => v.Manufacturer == null))
+                    {
+                        variant.Manufacturer = missing;
+                    }
+                }
                 return new ApiResponse<IEnumerable<Aircraft>>(aircraft);
             }
             catch (Exception ex)
@@ -900,6 +941,11 @@ namespace OpenSky.API.Controllers
                     }
                 }
 
+                var missing = new AircraftManufacturer
+                {
+                    ID = "miss",
+                    Name = "Missing"
+                };
                 foreach (var craft in searchResults)
                 {
                     if (craft.OwnerID != user.Id && craft.AirlineOwnerID == user.AirlineICAO)
@@ -907,6 +953,12 @@ namespace OpenSky.API.Controllers
                         // User/Airline doesn't own this aircraft, zero out the financials
                         craft.LifeTimeExpense = 0;
                         craft.LifeTimeIncome = 0;
+                    }
+
+                    craft.Type.Manufacturer ??= missing;
+                    foreach (var variant in craft.Type.Variants.Where(v => v.Manufacturer == null))
+                    {
+                        variant.Manufacturer = missing;
                     }
                 }
 
