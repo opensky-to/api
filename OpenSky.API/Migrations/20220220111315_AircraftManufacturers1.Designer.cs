@@ -2,15 +2,19 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OpenSky.API;
 
 namespace OpenSky.API.Migrations
 {
     [DbContext(typeof(OpenSkyDbContext))]
-    partial class OpenSkyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20220220111315_AircraftManufacturers1")]
+    partial class AircraftManufacturers1
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+#pragma warning restore CS1591 // Missing XML comment for publicly
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -257,6 +261,9 @@ namespace OpenSky.API.Migrations
                     b.Property<byte[]>("AircraftImage")
                         .HasColumnType("longblob");
 
+                    b.Property<string>("AircraftManufacturerID")
+                        .HasColumnType("varchar(5)");
+
                     b.Property<string>("AtcModel")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -320,10 +327,6 @@ namespace OpenSky.API.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
-                    b.Property<string>("ManufacturerID")
-                        .HasMaxLength(5)
-                        .HasColumnType("varchar(5)");
-
                     b.Property<double>("MaxGrossWeight")
                         .HasColumnType("double");
 
@@ -375,11 +378,11 @@ namespace OpenSky.API.Migrations
 
                     b.HasKey("ID");
 
+                    b.HasIndex("AircraftManufacturerID");
+
                     b.HasIndex("IsVariantOf");
 
                     b.HasIndex("LastEditedByID");
-
-                    b.HasIndex("ManufacturerID");
 
                     b.HasIndex("NextVersion");
 
@@ -1408,6 +1411,10 @@ namespace OpenSky.API.Migrations
 
             modelBuilder.Entity("OpenSky.API.DbModel.AircraftType", b =>
                 {
+                    b.HasOne("OpenSky.API.DbModel.AircraftManufacturer", null)
+                        .WithMany("Types")
+                        .HasForeignKey("AircraftManufacturerID");
+
                     b.HasOne("OpenSky.API.DbModel.AircraftType", "VariantType")
                         .WithMany("Variants")
                         .HasForeignKey("IsVariantOf");
@@ -1415,10 +1422,6 @@ namespace OpenSky.API.Migrations
                     b.HasOne("OpenSky.API.DbModel.OpenSkyUser", "LastEditedBy")
                         .WithMany()
                         .HasForeignKey("LastEditedByID");
-
-                    b.HasOne("OpenSky.API.DbModel.AircraftManufacturer", "Manufacturer")
-                        .WithMany("Types")
-                        .HasForeignKey("ManufacturerID");
 
                     b.HasOne("OpenSky.API.DbModel.AircraftType", "NextVersionType")
                         .WithMany()
@@ -1431,8 +1434,6 @@ namespace OpenSky.API.Migrations
                         .IsRequired();
 
                     b.Navigation("LastEditedBy");
-
-                    b.Navigation("Manufacturer");
 
                     b.Navigation("NextVersionType");
 

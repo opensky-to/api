@@ -875,7 +875,7 @@ namespace OpenSky.API.Controllers
                                                      a => a.AirportICAO.StartsWith(airportPrefix) && !a.Flights.Any(f => f.Started.HasValue && !f.Completed.HasValue) &&
                                                           (!search.OnlyVanilla || a.Type.IsVanilla) &&
                                                           (!search.FilterByCategory || a.Type.Category == search.Category) &&
-                                                          (string.IsNullOrEmpty(search.Manufacturer) || a.Type.Manufacturer.Contains(search.Manufacturer)) &&
+                                                          (string.IsNullOrEmpty(search.Manufacturer) || a.Type.Manufacturer.Name.Contains(search.Manufacturer)) &&
                                                           (string.IsNullOrEmpty(search.Name) || a.Type.Name.Contains(search.Name)))
                                                  .Take(search.MaxResults).ToListAsync();
                         searchResults.AddRange(aircraft);
@@ -887,7 +887,7 @@ namespace OpenSky.API.Controllers
                                                      a => a.AirportICAO.StartsWith(airportPrefix) && !a.Flights.Any(f => f.Started.HasValue && !f.Completed.HasValue) &&
                                                           (!search.OnlyVanilla || a.Type.IsVanilla) &&
                                                           (!search.FilterByCategory || a.Type.Category == search.Category) &&
-                                                          (string.IsNullOrEmpty(search.Manufacturer) || a.Type.Manufacturer.Contains(search.Manufacturer)) &&
+                                                          (string.IsNullOrEmpty(search.Manufacturer) || a.Type.Manufacturer.Name.Contains(search.Manufacturer)) &&
                                                           (string.IsNullOrEmpty(search.Name) || a.Type.Name.Contains(search.Name)) &&
                                                           (a.OwnerID == user.Id || a.AirlineOwnerID == user.AirlineICAO || a.PurchasePrice.HasValue || a.RentPrice.HasValue))
                                                  .Take(search.MaxResults).ToListAsync();

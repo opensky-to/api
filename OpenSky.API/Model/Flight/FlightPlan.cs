@@ -78,7 +78,7 @@ namespace OpenSky.API.Model.Flight
                     AtcType = string.Empty,
                     Category = AircraftTypeCategory.SEP,
                     EngineType = EngineType.None,
-                    Manufacturer = string.Empty,
+                    ManufacturerID = string.Empty,
                     Name = string.Empty,
                     UploaderID = string.Empty,
                     Simulator = Simulator.MSFS

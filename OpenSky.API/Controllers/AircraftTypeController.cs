@@ -15,6 +15,7 @@ namespace OpenSky.API.Controllers
     using System.Threading.Tasks;
 
     using Microsoft.AspNetCore.Authorization;
+    using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Identity;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.EntityFrameworkCore;
@@ -122,6 +123,16 @@ namespace OpenSky.API.Controllers
                 }
             }
 
+            var missing = new AircraftManufacturer
+            {
+                ID = "miss",
+                Name = "Missing"
+            };
+            foreach (var variantType in variants.Where(t => t.Manufacturer == null))
+            {
+                variantType.Manufacturer = missing;
+            }
+
             return variants;
         }
 
@@ -166,6 +177,16 @@ namespace OpenSky.API.Controllers
                     }
                 }
 
+                // Does the manufacturer exist?
+                if (!string.IsNullOrEmpty(type.ManufacturerID))
+                {
+                    var manufacturer = await this.db.AircraftManufacturers.SingleOrDefaultAsync(m => m.ID == type.ManufacturerID);
+                    if (manufacturer == null)
+                    {
+                        return new ApiResponse<string> { Message = "Manufacturer does not exist!", IsError = true };
+                    }
+                }
+
                 // Set a few defaults that the user should not be able to set differently
                 type.ID = Guid.NewGuid();
                 type.Enabled = false;
@@ -173,6 +194,56 @@ namespace OpenSky.API.Controllers
                 type.UploaderID = user.Id;
                 type.NextVersion = null;
                 await this.db.AircraftTypes.AddAsync(type);
+
+                if (Equals(type.ManufacturerID, "miss"))
+                {
+                    type.ManufacturerID = null;
+                }
+
+                // Are there any delivery locations added?
+                if (type.DeliveryLocations?.Count > 0 && !string.IsNullOrEmpty(type.ManufacturerID))
+                {
+                    foreach (var deliveryLocation in type.DeliveryLocations)
+                    {
+                        if (string.IsNullOrEmpty(deliveryLocation.AirportICAO))
+                        {
+                            continue;
+                        }
+
+                        // Does the delivery location airport exist?
+                        var airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == deliveryLocation.AirportICAO);
+                        if (airport == null)
+                        {
+                            return new ApiResponse<string> { Message = $"Delivery location airport {deliveryLocation.AirportICAO} does not exist!", IsError = true };
+                        }
+
+                        if (airport.IsClosed)
+                        {
+                            return new ApiResponse<string> { Message = $"Delivery location airport {deliveryLocation.AirportICAO} is closed!", IsError = true };
+                        }
+
+                        if (type.Simulator == Simulator.MSFS && !airport.MSFS)
+                        {
+                            return new ApiResponse<string> { Message = $"Delivery location airport {deliveryLocation.AirportICAO} is not available for aircraft type simulator!", IsError = true };
+                        }
+
+                        if (type.Simulator == Simulator.XPlane11 && !airport.XP11)
+                        {
+                            return new ApiResponse<string> { Message = $"Delivery location airport {deliveryLocation.AirportICAO} is not available for aircraft type simulator!", IsError = true };
+                        }
+
+                        var newDeliveryLocation = new AircraftManufacturerDeliveryLocation
+                        {
+                            ManufacturerID = type.ManufacturerID,
+                            AircraftTypeID = type.ID,
+                            AirportICAO = deliveryLocation.AirportICAO
+                        };
+                        await this.db.AircraftManufacturerDeliveryLocations.AddAsync(newDeliveryLocation);
+                    }
+
+                    type.DeliveryLocations.Clear();
+                }
+
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving new aircraft type.");
                 if (saveEx != null)
                 {
@@ -412,6 +483,39 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Get the list aircraft manufacturers.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 20/02/2022.
+        /// </remarks>
+        /// <returns>
+        /// The aircraft manufacturers.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet("manufacturers", Name = "GetAircraftManufacturers")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<AircraftManufacturer>>>> GetAircraftManufacturers()
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET AircraftType/manufacturers");
+                var manufacturers = await this.db.AircraftManufacturers.ToListAsync();
+                manufacturers.Add(
+                    new AircraftManufacturer
+                    {
+                        ID = "miss",
+                        Name = "Missing"
+                    });
+                return new ApiResponse<IEnumerable<AircraftManufacturer>>(manufacturers);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET AircraftType/manufacturers");
+                return new ApiResponse<IEnumerable<AircraftManufacturer>>(ex) { Data = new List<AircraftManufacturer>() };
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Get image for the specified aircraft type.
         /// </summary>
         /// <remarks>
@@ -459,6 +563,16 @@ namespace OpenSky.API.Controllers
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET AircraftType");
                 var types = await this.db.AircraftTypes.Where(t => t.Enabled && !t.NextVersion.HasValue).ToListAsync();
+                var missing = new AircraftManufacturer
+                {
+                    ID = "miss",
+                    Name = "Missing"
+                };
+                foreach (var type in types.Where(t => t.Manufacturer == null))
+                {
+                    type.Manufacturer = missing;
+                }
+
                 return new ApiResponse<IEnumerable<AircraftType>>(types);
             }
             catch (Exception ex)
@@ -540,6 +654,16 @@ namespace OpenSky.API.Controllers
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET AircraftType/all");
                 var types = await this.db.AircraftTypes.ToListAsync();
+                var missing = new AircraftManufacturer
+                {
+                    ID = "miss",
+                    Name = "Missing"
+                };
+                foreach (var type in types.Where(t => t.Manufacturer == null))
+                {
+                    type.Manufacturer = missing;
+                }
+
                 return new ApiResponse<IEnumerable<AircraftType>>(types);
             }
             catch (Exception ex)
@@ -571,6 +695,16 @@ namespace OpenSky.API.Controllers
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET AircraftType/simulator/{simulator}");
                 var types = await this.db.AircraftTypes.Where(at => at.Simulator == simulator).ToListAsync();
+                var missing = new AircraftManufacturer
+                {
+                    ID = "miss",
+                    Name = "Missing"
+                };
+                foreach (var type in types.Where(t => string.IsNullOrEmpty(t.ManufacturerID)))
+                {
+                    type.Manufacturer = missing;
+                }
+
                 return new ApiResponse<IEnumerable<AircraftType>>(types);
             }
             catch (Exception ex)
@@ -667,7 +801,7 @@ namespace OpenSky.API.Controllers
 
                 // Transfer the editable properties
                 existingType.Name = type.Name;
-                existingType.Manufacturer = type.Manufacturer;
+                existingType.ManufacturerID = Equals(type.ManufacturerID, "miss") ? null : type.ManufacturerID;
                 existingType.VersionNumber = type.VersionNumber;
                 existingType.Category = type.Category;
                 existingType.IsVanilla = type.IsVanilla;
@@ -685,8 +819,66 @@ namespace OpenSky.API.Controllers
                 existingType.IncludeInWorldPopulation = type.IncludeInWorldPopulation;
                 existingType.MaxPayloadDeltaAllowed = type.MaxPayloadDeltaAllowed;
                 existingType.EngineModel = type.EngineModel;
-                existingType.ManufacturerHomeAirportICAO = type.ManufacturerHomeAirportICAO;
                 existingType.OverrideFuelType = type.OverrideFuelType;
+                existingType.IsHistoric = type.IsHistoric;
+
+                // Process changes to delivery locations
+                if (type.DeliveryLocations?.Count > 0)
+                {
+                    var existingICAOs = existingType.DeliveryLocations.Select(dl => dl.AirportICAO).ToHashSet();
+
+                    foreach (var deliveryLocation in type.DeliveryLocations)
+                    {
+                        if (string.IsNullOrEmpty(deliveryLocation.AirportICAO))
+                        {
+                            continue;
+                        }
+
+                        // Does the delivery location airport exist?
+                        var airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == deliveryLocation.AirportICAO);
+                        if (airport == null)
+                        {
+                            return new ApiResponse<string> { Message = $"Delivery location airport {deliveryLocation.AirportICAO} does not exist!", IsError = true };
+                        }
+
+                        if (airport.IsClosed)
+                        {
+                            return new ApiResponse<string> { Message = $"Delivery location airport {deliveryLocation.AirportICAO} is closed!", IsError = true };
+                        }
+
+                        if (type.Simulator == Simulator.MSFS && !airport.MSFS)
+                        {
+                            return new ApiResponse<string> { Message = $"Delivery location airport {deliveryLocation.AirportICAO} is not available for aircraft type simulator!", IsError = true };
+                        }
+
+                        if (type.Simulator == Simulator.XPlane11 && !airport.XP11)
+                        {
+                            return new ApiResponse<string> { Message = $"Delivery location airport {deliveryLocation.AirportICAO} is not available for aircraft type simulator!", IsError = true };
+                        }
+
+                        if (!existingICAOs.Contains(deliveryLocation.AirportICAO))
+                        {
+                            var newDeliveryLocation = new AircraftManufacturerDeliveryLocation
+                            {
+                                ManufacturerID = type.ManufacturerID,
+                                AircraftTypeID = type.ID,
+                                AirportICAO = deliveryLocation.AirportICAO
+                            };
+                            await this.db.AircraftManufacturerDeliveryLocations.AddAsync(newDeliveryLocation);
+                        }
+                        else
+                        {
+                            existingICAOs.Remove(deliveryLocation.AirportICAO);
+                        }
+                    }
+
+                    // Remove the locations still left in the hashset
+                    this.db.RemoveRange(this.db.AircraftManufacturerDeliveryLocations.Where(dl => existingICAOs.Contains(dl.AirportICAO) && dl.AircraftTypeID == existingType.ID));
+                }
+                else
+                {
+                    this.db.RemoveRange(this.db.AircraftManufacturerDeliveryLocations.Where(dl => dl.AircraftTypeID == existingType.ID));
+                }
 
                 // Make sure to record who edited it
                 existingType.LastEditedByID = user.Id;
@@ -713,39 +905,38 @@ namespace OpenSky.API.Controllers
         /// <remarks>
         /// sushi.at, 19/02/2022.
         /// </remarks>
-        /// <param name="typeImage">
-        /// The type image update model.
+        /// <param name="typeID">
+        /// Identifier for the aircraft type.
+        /// </param>
+        /// <param name="fileUpload">
+        /// The file upload containing the new image.
         /// </param>
         /// <returns>
         /// A status string.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpPost("image")]
-        public async Task<ActionResult<ApiResponse<string>>> UpdateAircraftTypeImage([FromBody] AircraftTypeImage typeImage)
+        [HttpPost("image/{typeID:guid}", Name = "UpdateAircraftTypeImage")]
+        [Roles(UserRoles.Moderator, UserRoles.Admin)]
+        public async Task<ActionResult<ApiResponse<string>>> UpdateAircraftTypeImage(Guid typeID, IFormFile fileUpload)
         {
             try
             {
-                this.logger.LogInformation($"{this.User.Identity?.Name} | POST AircraftType/image/{typeImage?.ID}");
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST AircraftType/image/{typeID}");
 
-                if (typeImage == null)
-                {
-                    return new ApiResponse<string> { Message = "Aircraft type image model missing!", IsError = true };
-                }
+                var type = await this.db.AircraftTypes.SingleOrDefaultAsync(t => t.ID == typeID);
 
-                var type = await this.db.AircraftTypes.SingleOrDefaultAsync(t => t.ID == typeImage.ID);
-
-                if (typeImage.Image.ContentType is not "image/png" and not "image/jpeg")
+                if (fileUpload.ContentType is not "image/png" and not "image/jpeg")
                 {
                     return new ApiResponse<string> { Message = "Image has to be JPG or PNG!", IsError = true };
                 }
 
-                if (typeImage.Image.Length > 1 * 1024 * 1024)
+                if (fileUpload.Length > 1 * 1024 * 1024)
                 {
                     return new ApiResponse<string> { Message = "Maximum image size is 1MB!", IsError = true };
                 }
 
                 var memoryStream = new MemoryStream();
-                await typeImage.Image.CopyToAsync(memoryStream);
+                await fileUpload.CopyToAsync(memoryStream);
 
                 var image = Image.FromStream(memoryStream);
                 if (image.Width > 640 || image.Height > 360)
@@ -766,7 +957,7 @@ namespace OpenSky.API.Controllers
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST AircraftType/image/{typeImage?.ID}");
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST AircraftType/image/{typeID}");
                 return new ApiResponse<string>(ex);
             }
         }

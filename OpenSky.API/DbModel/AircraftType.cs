@@ -27,6 +27,13 @@ namespace OpenSky.API.DbModel
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The delivery locations.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<AircraftManufacturerDeliveryLocation> deliveryLocations;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The fuel weight per gallon.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -41,10 +48,10 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The manufacturer home airport.
+        /// The manufacturer.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private Airport manufacturerHomeAirport;
+        private AircraftManufacturer manufacturer;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -112,9 +119,10 @@ namespace OpenSky.API.DbModel
             {
                 AtcModel = "XXXX",
                 AtcType = "XXXX",
-                Manufacturer = "XXXX",
                 Name = "XXXX",
-                UploaderID = "XXXX"
+                UploaderID = "XXXX",
+                ManufacturerID = "XXXX",
+                Manufacturer = AircraftManufacturer.ValidEmptyModel
             };
 
         /// -------------------------------------------------------------------------------------------------
@@ -157,6 +165,17 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string Comments { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the delivery locations.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public ICollection<AircraftManufacturerDeliveryLocation> DeliveryLocations
+        {
+            get => this.LazyLoader.Load(this, ref this.deliveryLocations);
+            set => this.deliveryLocations = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -392,31 +411,21 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the manufacturer.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [Required]
-        [StringLength(50)]
-        public string Manufacturer { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the manufacturer home airport.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [ForeignKey("ManufacturerHomeAirportICAO")]
-        [JsonIgnore]
-        public Airport ManufacturerHomeAirport
+        [ForeignKey("ManufacturerID")]
+        public AircraftManufacturer Manufacturer
         {
-            get => this.LazyLoader.Load(this, ref this.manufacturerHomeAirport);
-            set => this.manufacturerHomeAirport = value;
+            get => this.LazyLoader.Load(this, ref this.manufacturer);
+            set => this.manufacturer = value;
         }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the manufacturer home airport icao.
+        /// Gets or sets the identifier of the manufacturer.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("Manufacturer")]
         [StringLength(5, MinimumLength = 3)]
-        [ForeignKey("ManufacturerHomeAirport")]
-        public string ManufacturerHomeAirportICAO { get; set; }
+        public string ManufacturerID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

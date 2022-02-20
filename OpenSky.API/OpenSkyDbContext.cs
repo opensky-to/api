@@ -53,6 +53,20 @@ namespace OpenSky.API
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the aircraft manufacturer delivery locations.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public virtual DbSet<AircraftManufacturerDeliveryLocation> AircraftManufacturerDeliveryLocations { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the aircraft manufacturers.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public virtual DbSet<AircraftManufacturer> AircraftManufacturers { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the aircraft types.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -274,6 +288,7 @@ namespace OpenSky.API
             builder.Entity<AirlineUserPermission>().HasKey(p => new { p.AirlineICAO, p.UserID });
             builder.Entity<FlightNavlogFix>().HasKey(nf => new { nf.FlightID, nf.FixNumber });
             builder.Entity<FlightPayload>().HasKey(fp => new { fp.FlightID, fp.PayloadID });
+            builder.Entity<AircraftManufacturerDeliveryLocation>().HasKey(dl => new { dl.ManufacturerID, dl.AircraftTypeID, dl.AirportICAO });
 
             // Custom relationships
             builder.Entity<AircraftType>().HasMany(t => t.Variants).WithOne(t => t.VariantType).HasForeignKey(t => t.IsVariantOf);
