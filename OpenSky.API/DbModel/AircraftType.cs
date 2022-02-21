@@ -27,6 +27,13 @@ namespace OpenSky.API.DbModel
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The delivery locations.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<AircraftManufacturerDeliveryLocation> deliveryLocations;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The fuel weight per gallon.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -38,6 +45,13 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private OpenSkyUser lastEditedBy;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The manufacturer.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private AircraftManufacturer manufacturer;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -105,10 +119,19 @@ namespace OpenSky.API.DbModel
             {
                 AtcModel = "XXXX",
                 AtcType = "XXXX",
-                Manufacturer = "XXXX",
                 Name = "XXXX",
-                UploaderID = "XXXX"
+                UploaderID = "XXXX",
+                ManufacturerID = "XXXX",
+                Manufacturer = AircraftManufacturer.ValidEmptyModel
             };
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the aircraft image.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        public byte[] AircraftImage { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -145,6 +168,17 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the delivery locations.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public ICollection<AircraftManufacturerDeliveryLocation> DeliveryLocations
+        {
+            get => this.LazyLoader.Load(this, ref this.deliveryLocations);
+            set => this.deliveryLocations = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets a value indicating whether the detailed checks are TEMPORARILY disabled - only
         /// use this on patch days until a new version of the plane can be added.
         /// </summary>
@@ -171,6 +205,14 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public int EngineCount { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the engine model.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [StringLength(50)]
+        public string EngineModel { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -204,6 +246,11 @@ namespace OpenSky.API.DbModel
         {
             get
             {
+                if (this.OverrideFuelType != FuelType.NotUsed)
+                {
+                    return this.OverrideFuelType;
+                }
+
                 // todo Keep an eye on how FS2020 will implement electric aircraft (they are planning to release the VoloCity air taxi)
                 switch (this.EngineType)
                 {
@@ -254,6 +301,14 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets a value indicating whether this aircraft type has an image uploaded.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [NotMapped]
+        public bool HasAircraftImage => this.AircraftImage is { Length: > 0 };
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets a value indicating whether this aircraft type has variants.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -297,6 +352,13 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public bool IsGearRetractable { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets a value indicating whether this aircraft is historic (can't be purchased new).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public bool IsHistoric { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -349,9 +411,21 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the manufacturer.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [Required]
-        [StringLength(50)]
-        public string Manufacturer { get; set; }
+        [ForeignKey("ManufacturerID")]
+        public AircraftManufacturer Manufacturer
+        {
+            get => this.LazyLoader.Load(this, ref this.manufacturer);
+            set => this.manufacturer = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the identifier of the manufacturer.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("Manufacturer")]
+        [StringLength(5, MinimumLength = 3)]
+        public string ManufacturerID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -433,6 +507,13 @@ namespace OpenSky.API.DbModel
             get => this.LazyLoader.Load(this, ref this.nextVersionType);
             set => this.nextVersionType = value;
         }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the type of fuel the aircraft uses (not derived from engine type).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public FuelType OverrideFuelType { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

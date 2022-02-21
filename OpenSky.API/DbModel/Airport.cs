@@ -63,6 +63,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The aircraft types delivered here.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<AircraftManufacturerDeliveryLocation> deliveredHere;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The payloads currently stored at this airport.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -280,6 +287,18 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public double Longitude { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the aircraft types delivered here.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        public ICollection<AircraftManufacturerDeliveryLocation> DeliveredHere
+        {
+            get => this.LazyLoader.Load(this, ref this.deliveredHere);
+            set => this.deliveredHere = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

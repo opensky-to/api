@@ -95,5 +95,10 @@ namespace OpenSky.API.DbModel.Enums
         /// Fines and penalties for late delivery, rule violations, job cancellation etc.
         /// </summary>
         Fines = 14,
+
+        /// <summary>
+        /// Ferry flight costs.
+        /// </summary>
+        Ferry = 15,
     }
 }

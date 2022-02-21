@@ -29,6 +29,21 @@ namespace OpenSky.API.DbModel.Enums
         /// <summary>
         /// No fuel.
         /// </summary>
-        None = 2
+        None = 2,
+
+        /// <summary>
+        /// Hydrogen fuel cell.
+        /// </summary>
+        Hydrogen = 3,
+
+        /// <summary>
+        /// Battery powered, charged with electricity.
+        /// </summary>
+        Electricity = 4,
+
+        /// <summary>
+        /// Not used, used for override column - instead of null.
+        /// </summary>
+        NotUsed = 99,
     }
 }
