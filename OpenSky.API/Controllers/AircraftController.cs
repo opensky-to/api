@@ -764,7 +764,7 @@ namespace OpenSky.API.Controllers
         {
             try
             {
-                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Aircraft/purchaseNew: {purchase.TypeID}@{purchase.AirportICAO}");
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Aircraft/purchaseNew: {purchase.TypeID}@{purchase.DeliveryAirportICAO}");
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
@@ -787,79 +787,182 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("Aircraft type with specified ID not found!") { IsError = true };
                 }
 
-                var airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == purchase.AirportICAO);
-                if (airport == null)
+                var deliveryAirport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == purchase.DeliveryAirportICAO);
+                if (deliveryAirport == null)
                 {
-                    return new ApiResponse<string>("Airport with specified ICAO code not found!") { IsError = true };
+                    return new ApiResponse<string>("Delivery airport with specified ICAO code not found!") { IsError = true };
                 }
 
-                if (airport.IsClosed)
+                if (deliveryAirport.IsClosed)
                 {
                     return new ApiResponse<string>("Can't purchase aircraft at closed airports!") { IsError = true };
                 }
 
-                if (aircraftType.Simulator == Simulator.MSFS && !airport.MSFS)
+                if (aircraftType.Simulator == Simulator.MSFS && !deliveryAirport.MSFS)
                 {
                     return new ApiResponse<string>("Can't purchase MSFS aircraft at airports not available for this simulator!") { IsError = true };
                 }
 
-                if (aircraftType.Simulator == Simulator.XPlane11 && !airport.XP11)
+                if (aircraftType.Simulator == Simulator.XPlane11 && !deliveryAirport.XP11)
                 {
                     return new ApiResponse<string>("Can't purchase X-Plane11 aircraft at airports not available for this simulator!") { IsError = true };
                 }
 
-                var registry = this.aircraftPopulator.GenerateNewAircraftRegistration(purchase.Country, aircraftType.Simulator);
-                var aircraft = new Aircraft
+                if (aircraftType.DeliveryLocations.All(dl => dl.AirportICAO != purchase.DeliveryAirportICAO))
                 {
-                    Registry = registry,
-                    TypeID = purchase.TypeID,
-                    AirportICAO = airport.ICAO,
-                    Fuel = aircraftType.FuelTotalCapacity * 0.25,
-                    LifeTimeExpense = aircraftType.MaxPrice,
+                    return new ApiResponse<string>("The manufacturer does not deliver this aircraft type from the specified airport!") { IsError = true };
+                }
+
+                var deliveryCostPerAircraft = 0;
+                var aircraftDestinationICAO = purchase.DeliveryAirportICAO;
+                if (purchase.DeliveryOption == NewAircraftDeliveryOption.ManufacturerFerry)
+                {
+                    var ferryAirport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == purchase.FerryAirportICAO);
+                    if (ferryAirport == null)
+                    {
+                        return new ApiResponse<string>("Ferry airport with specified ICAO code not found!") { IsError = true };
+                    }
+
+                    if (ferryAirport.IsClosed)
+                    {
+                        return new ApiResponse<string>("Can't ferry aircraft to closed airports!") { IsError = true };
+                    }
+
+                    if (aircraftType.Simulator == Simulator.MSFS && !ferryAirport.MSFS)
+                    {
+                        return new ApiResponse<string>("Can't ferry MSFS aircraft to airports not available for this simulator!") { IsError = true };
+                    }
+
+                    if (aircraftType.Simulator == Simulator.XPlane11 && !ferryAirport.XP11)
+                    {
+                        return new ApiResponse<string>("Can't ferry X-Plane11 aircraft to airports not available for this simulator!") { IsError = true };
+                    }
+
+                    aircraftDestinationICAO = purchase.FerryAirportICAO;
+                    var ferryDistance = deliveryAirport.GeoCoordinate.GetDistanceTo(ferryAirport.GeoCoordinate) / 1852.0;
+                    var manufacturerFerryCostPerNm = aircraftType.Category switch
+                    {
+                        AircraftTypeCategory.SEP => 15,
+                        AircraftTypeCategory.MEP => 25,
+                        AircraftTypeCategory.SET => 30,
+                        AircraftTypeCategory.MET => 50,
+                        AircraftTypeCategory.JET => 100,
+                        AircraftTypeCategory.HEL => 100,
+                        AircraftTypeCategory.REG => 150,
+                        AircraftTypeCategory.NBA => 250,
+                        AircraftTypeCategory.WBA => 400,
+                        _ => 0
+                    };
+                    deliveryCostPerAircraft = (int)(ferryDistance * manufacturerFerryCostPerNm);
+                }
+
+                if (purchase.DeliveryOption == NewAircraftDeliveryOption.OutsourceFerry)
+                {
+                    // todo implement outsourced ferry flights
+                    return new ApiResponse<string>("Sorry not yet implemented!") { IsError = true };
+                }
+
+                var volumeDiscount = purchase.NumberOfAircraft switch
+                {
+                    >= 50 => 0.25,
+                    >= 10 => 0.1,
+                    >= 3 => 0.05,
+                    _ => 0
                 };
-                await this.db.Aircraft.AddAsync(aircraft);
+
+                var grandTotalPrice = (int)((aircraftType.MaxPrice - volumeDiscount + deliveryCostPerAircraft) * purchase.NumberOfAircraft);
+
+                var registries = string.Empty;
+                for (var i = 0; i < purchase.NumberOfAircraft; i++)
+                {
+                    var registry = this.aircraftPopulator.GenerateNewAircraftRegistration(purchase.Country, aircraftType.Simulator);
+                    registries += $"{registry.RemoveSimPrefix()},";
+                    var aircraft = new Aircraft
+                    {
+                        Registry = registry,
+                        TypeID = purchase.TypeID,
+                        AirportICAO = aircraftDestinationICAO,
+                        Fuel = aircraftType.FuelTotalCapacity * 0.25,
+                        LifeTimeExpense = (int)(aircraftType.MaxPrice - volumeDiscount + deliveryCostPerAircraft),
+                    };
+
+                    if (!purchase.ForAirline)
+                    {
+                        aircraft.OwnerID = user.Id;
+                    }
+                    else
+                    {
+                        aircraft.AirlineOwnerID = user.AirlineICAO;
+                    }
+
+                    await this.db.Aircraft.AddAsync(aircraft);
+                }
+
+                registries = registries.TrimEnd(',');
 
                 if (!purchase.ForAirline)
                 {
-                    if (aircraftType.MaxPrice > user.PersonalAccountBalance)
+                    if (grandTotalPrice > user.PersonalAccountBalance)
                     {
-                        return new ApiResponse<string>("You can't afford this aircraft!") { IsError = true };
+                        return new ApiResponse<string>("You can't afford this aircraft purchase!") { IsError = true };
                     }
 
-                    aircraft.OwnerID = user.Id;
-                    user.Airline.AccountBalance -= aircraftType.MaxPrice;
+                    user.PersonalAccountBalance -= aircraftType.MaxPrice;
                     var purchaseRecord = new FinancialRecord
                     {
                         ID = Guid.NewGuid(),
                         Timestamp = DateTime.UtcNow,
                         UserID = user.Id,
-                        Expense = aircraftType.MaxPrice,
+                        Expense = (int)((aircraftType.MaxPrice - volumeDiscount) * purchase.NumberOfAircraft),
                         Category = FinancialCategory.Aircraft,
-                        Description = $"Purchase of new aircraft {aircraft.Registry.RemoveSimPrefix()}, type {aircraftType.Name} at airport {aircraft.AirportICAO}",
-                        AircraftRegistry = aircraft.Registry
+                        Description = $"Purchase of {purchase.NumberOfAircraft} new aircraft of type {aircraftType.Name} at airport {deliveryAirport.ICAO}"
                     };
                     await this.db.FinancialRecords.AddAsync(purchaseRecord);
+                    if (deliveryCostPerAircraft > 0)
+                    {
+                        var ferryRecord = new FinancialRecord
+                        {
+                            ID = Guid.NewGuid(),
+                            Timestamp = DateTime.UtcNow,
+                            UserID = user.Id,
+                            Expense = (int)(deliveryCostPerAircraft * purchase.NumberOfAircraft),
+                            Category = FinancialCategory.Ferry,
+                            Description = $"Ferry cost for {purchase.NumberOfAircraft} aircraft of type {aircraftType.Name} from {deliveryAirport.ICAO} to {aircraftDestinationICAO}."
+                        };
+                        await this.db.FinancialRecords.AddAsync(ferryRecord);
+                    }
                 }
                 else
                 {
-                    if (aircraftType.MaxPrice > user.Airline.AccountBalance)
+                    if (grandTotalPrice > user.Airline.AccountBalance)
                     {
-                        return new ApiResponse<string>("Your airline can't afford this aircraft!") { IsError = true };
+                        return new ApiResponse<string>("Your airline can't afford this aircraft purchase!") { IsError = true };
                     }
 
-                    aircraft.AirlineOwnerID = user.AirlineICAO;
                     user.Airline.AccountBalance -= aircraftType.MaxPrice;
                     var airlinePurchaseRecord = new FinancialRecord
                     {
                         ID = Guid.NewGuid(),
                         Timestamp = DateTime.UtcNow,
                         AirlineID = user.AirlineICAO,
-                        Expense = aircraftType.MaxPrice,
+                        Expense = (int)((aircraftType.MaxPrice - volumeDiscount) * purchase.NumberOfAircraft),
                         Category = FinancialCategory.Aircraft,
-                        Description = $"Purchase of new aircraft {aircraft.Registry.RemoveSimPrefix()}, type {aircraftType.Name} at airport {aircraft.AirportICAO} by user {user.UserName}",
-                        AircraftRegistry = aircraft.Registry
+                        Description = $"Purchase of {purchase.NumberOfAircraft} new aircraft of type {aircraftType.Name} at airport {deliveryAirport.ICAO} by user {user.UserName}"
                     };
                     await this.db.FinancialRecords.AddAsync(airlinePurchaseRecord);
+                    if (deliveryCostPerAircraft > 0)
+                    {
+                        var ferryRecord = new FinancialRecord
+                        {
+                            ID = Guid.NewGuid(),
+                            Timestamp = DateTime.UtcNow,
+                            AirlineID = user.AirlineICAO,
+                            Expense = (int)(deliveryCostPerAircraft * purchase.NumberOfAircraft),
+                            Category = FinancialCategory.Ferry,
+                            Description = $"Ferry cost for {purchase.NumberOfAircraft} aircraft of type {aircraftType.Name} from {deliveryAirport.ICAO} to {aircraftDestinationICAO}."
+                        };
+                        await this.db.FinancialRecords.AddAsync(ferryRecord);
+                    }
                 }
 
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error purchasing new aircraft");
@@ -868,11 +971,11 @@ namespace OpenSky.API.Controllers
                     throw saveEx;
                 }
 
-                return new ApiResponse<string>($"Successfully purchased new aircraft of type \"{aircraftType.Name}\", and registered as {aircraft.Registry.RemoveSimPrefix()}");
+                return new ApiResponse<string>($"Successfully purchased {purchase.NumberOfAircraft} new aircraft of type \"{aircraftType.Name}\", and registered as {registries}");
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Aircraft/purchase/purchaseNew: {purchase.TypeID}@{purchase.AirportICAO}");
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Aircraft/purchase/purchaseNew: {purchase.TypeID}@{purchase.DeliveryAirportICAO}");
                 return new ApiResponse<string>(ex);
             }
         }
