@@ -128,9 +128,13 @@ namespace OpenSky.API.Controllers
                 ID = "miss",
                 Name = "Missing"
             };
-            foreach (var variantType in variants.Where(t => t.Manufacturer == null))
+            foreach (var variantType in variants)
             {
-                variantType.Manufacturer = missing;
+                variantType.Manufacturer ??= missing;
+                foreach (var subVariant in variantType.Variants.Where(t => t.Manufacturer == null))
+                {
+                    subVariant.Manufacturer = missing;
+                }
             }
 
             return variants;

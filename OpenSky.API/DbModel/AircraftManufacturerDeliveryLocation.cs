@@ -125,7 +125,7 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [NotMapped]
-        public string AirportName => this.Airport.Name;
+        public string AirportName => this.Airport?.Name;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
