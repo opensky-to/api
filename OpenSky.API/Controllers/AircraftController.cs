@@ -529,8 +529,12 @@ namespace OpenSky.API.Controllers
                         lbsToTransfer += aircraftPayload.Weight;
                         aircraftPayload.AirportICAO = aircraft.AirportICAO;
                         aircraftPayload.AircraftRegistry = null;
-                        jobIDsToCheck.Add(aircraftPayload.JobID);
-                        payloadsArrived.Add(aircraftPayload.ID);
+
+                        if (aircraftPayload.DestinationICAO == aircraft.AirportICAO)
+                        {
+                            jobIDsToCheck.Add(aircraftPayload.JobID);
+                            payloadsArrived.Add(aircraftPayload.ID);
+                        }
                     }
                 }
 
