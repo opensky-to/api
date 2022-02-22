@@ -495,9 +495,11 @@ namespace OpenSky.API.Controllers
                     var lbsToTransfer = 0.0;
                     var jobIDsToCheck = new HashSet<Guid>();
                     var payloadsArrived = new List<Guid>();
+
+                    // Check for arriving flight payloads
                     foreach (var flightPayload in flight.FlightPayloads)
                     {
-                        if (flightPayload.Payload.DestinationICAO == flight.LandedAtICAO)
+                        if (flightPayload.Payload.DestinationICAO == flight.LandedAtICAO && flightPayload.Payload.AircraftRegistry == flight.Aircraft.Registry)
                         {
                             lbsToTransfer += flightPayload.Payload.Weight;
                             flightPayload.Payload.AirportICAO = flight.LandedAtICAO;
@@ -507,12 +509,26 @@ namespace OpenSky.API.Controllers
                         }
                     }
 
+                    // Check for arriving aircraft payloads, not regarding of flight planning
+                    foreach (var aircraftPayload in flight.Aircraft.Payloads)
+                    {
+                        if (aircraftPayload.AirportICAO == flight.LandedAtICAO && aircraftPayload.AircraftRegistry == flight.Aircraft.Registry)
+                        {
+                            lbsToTransfer += aircraftPayload.Weight;
+                            aircraftPayload.AirportICAO = flight.LandedAtICAO;
+                            aircraftPayload.AircraftRegistry = null;
+                            jobIDsToCheck.Add(aircraftPayload.JobID);
+                            payloadsArrived.Add(aircraftPayload.ID);
+                        }
+                    }
+
                     if (lbsPerMinute > 0 && lbsToTransfer > 0)
                     {
                         // Start payload loading timer (starts after warp is complete)
                         flight.Aircraft.LoadingUntil = DateTime.UtcNow.AddSeconds(flight.TimeWarpTimeSavedSeconds).AddMinutes(1 + (lbsToTransfer / lbsPerMinute));
                     }
 
+                    // Check for completed jobs
                     foreach (var jobID in jobIDsToCheck)
                     {
                         var job = await this.db.Jobs.SingleOrDefaultAsync(j => j.ID == jobID);
@@ -671,7 +687,6 @@ namespace OpenSky.API.Controllers
 
                 // todo find any other ground handling fees financial records from the beginning of the flight and add here
 
-                // todo calculate landing fees
                 // todo calculate wear and tear on the aircraft
                 // todo check final log for signs of cheating?
                 // todo calculate final reputation/xp/whatever based on flight
@@ -1671,35 +1686,35 @@ namespace OpenSky.API.Controllers
         /// <remarks>
         /// sushi.at, 10/11/2021.
         /// </remarks>
-        /// <param name="flightID">
-        /// Identifier for the flight plan to start.
+        /// <param name="startFlight">
+        /// The start flight model.
         /// </param>
         /// <returns>
         /// An asynchronous result that yields an ActionResult&lt;ApiResponse&lt;string&gt;&gt;
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpPost("start/{flightID:guid}", Name = "StartFlight")]
-        public async Task<ActionResult<ApiResponse<string>>> StartFlight(Guid flightID)
+        [HttpPost("start", Name = "StartFlight")]
+        public async Task<ActionResult<ApiResponse<StartFlightStatus>>> StartFlight([FromBody] StartFlight startFlight)
         {
             try
             {
-                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Flight/startFlight/{flightID}");
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Flight/startFlight/{startFlight.FlightID}");
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
-                    return new ApiResponse<string>("Unable to find user record!") { IsError = true };
+                    return new ApiResponse<StartFlightStatus>("Unable to find user record!") { IsError = true, Data = StartFlightStatus.Error };
                 }
 
-                var plan = await this.db.Flights.SingleOrDefaultAsync(f => f.ID == flightID);
+                var plan = await this.db.Flights.SingleOrDefaultAsync(f => f.ID == startFlight.FlightID);
                 if (plan == null)
                 {
-                    return new ApiResponse<string>("No flight plan with that ID was found!") { IsError = true };
+                    return new ApiResponse<StartFlightStatus>("No flight plan with that ID was found!") { IsError = true, Data = StartFlightStatus.Error };
                 }
 
                 // User operated flight, but not the current user?
                 if (!string.IsNullOrEmpty(plan.OperatorID) && !plan.OperatorID.Equals(user.Id))
                 {
-                    return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                    return new ApiResponse<StartFlightStatus>("Unauthorized request!") { IsError = true, Data = StartFlightStatus.Error };
                 }
 
                 // Airline flight, but not the assigned pilot?
@@ -1707,84 +1722,84 @@ namespace OpenSky.API.Controllers
                 {
                     if (!plan.OperatorAirlineID.Equals(user.AirlineICAO))
                     {
-                        return new ApiResponse<string>("Unauthorized request!") { IsError = true };
+                        return new ApiResponse<StartFlightStatus>("Unauthorized request!") { IsError = true, Data = StartFlightStatus.Error };
                     }
 
                     if (string.IsNullOrEmpty(plan.AssignedAirlinePilotID))
                     {
-                        return new ApiResponse<string>("This airline flight plan has no assigned pilot!") { IsError = true };
+                        return new ApiResponse<StartFlightStatus>("This airline flight plan has no assigned pilot!") { IsError = true, Data = StartFlightStatus.Error };
                     }
 
                     if (!plan.AssignedAirlinePilotID.Equals(user.Id))
                     {
-                        return new ApiResponse<string>("This flight is assigned to another pilot in your airline!") { IsError = true };
+                        return new ApiResponse<StartFlightStatus>("This flight is assigned to another pilot in your airline!") { IsError = true, Data = StartFlightStatus.Error };
                     }
                 }
 
                 // Origin or destination missing?
                 if (string.IsNullOrEmpty(plan.OriginICAO))
                 {
-                    return new ApiResponse<string>("Flight plan has no origin airport!") { IsError = true };
+                    return new ApiResponse<StartFlightStatus>("Flight plan has no origin airport!") { IsError = true, Data = StartFlightStatus.Error };
                 }
 
                 if (string.IsNullOrEmpty(plan.DestinationICAO))
                 {
-                    return new ApiResponse<string>("Flight plan has no destination airport!") { IsError = true };
+                    return new ApiResponse<StartFlightStatus>("Flight plan has no destination airport!") { IsError = true, Data = StartFlightStatus.Error };
                 }
 
                 // Aircraft not selected?
                 if (string.IsNullOrEmpty(plan.AircraftRegistry) || plan.Aircraft == null)
                 {
-                    return new ApiResponse<string>("Flight plan has no assigned aircraft!") { IsError = true };
+                    return new ApiResponse<StartFlightStatus>("Flight plan has no assigned aircraft!") { IsError = true, Data = StartFlightStatus.Error };
                 }
 
                 // Invalid UTC offset
                 if (plan.UtcOffset is < -12.0 or > 14.0)
                 {
-                    return new ApiResponse<string>("UTC offset has to be between -12 and +14 hours!") { IsError = true };
+                    return new ApiResponse<StartFlightStatus>("UTC offset has to be between -12 and +14 hours!") { IsError = true, Data = StartFlightStatus.Error };
                 }
 
                 // Invalid flight number
                 if (plan.FlightNumber is < 1 or > 9999)
                 {
-                    return new ApiResponse<string>("Flight number is out of range (1-9999)!") { IsError = true };
+                    return new ApiResponse<StartFlightStatus>("Flight number is out of range (1-9999)!") { IsError = true, Data = StartFlightStatus.Error };
                 }
 
                 // No fuel
                 if (!plan.FuelGallons.HasValue)
                 {
-                    return new ApiResponse<string>("Flight plan has no fuel value!") { IsError = true };
+                    return new ApiResponse<StartFlightStatus>("Flight plan has no fuel value!") { IsError = true, Data = StartFlightStatus.Error };
                 }
 
                 // Invalid fuel value?
                 if (plan.FuelGallons.Value < 0 || plan.FuelGallons.Value > plan.Aircraft.Type.FuelTotalCapacity)
                 {
-                    return new ApiResponse<string>("Invalid fuel amount!") { IsError = true };
+                    return new ApiResponse<StartFlightStatus>("Invalid fuel amount!") { IsError = true, Data = StartFlightStatus.Error };
                 }
 
                 // Has the flight started already?
                 if (plan.Started.HasValue)
                 {
-                    return new ApiResponse<string>("Can't start flight already in progress!") { IsError = true };
+                    return new ApiResponse<StartFlightStatus>("Can't start flight already in progress!") { IsError = true, Data = StartFlightStatus.Error };
                 }
 
                 // Another flight in progress?
                 var otherFlightInProgress = await this.db.Flights.AnyAsync(f => (f.OperatorID == user.Id || f.AssignedAirlinePilotID == user.Id) && f.Started.HasValue && !(f.Paused.HasValue || f.Completed.HasValue));
                 if (otherFlightInProgress)
                 {
-                    return new ApiResponse<string>("You already have another flight in progress! Please complete or pause the other flight before starting a new one.") { IsError = true };
+                    return new ApiResponse<StartFlightStatus>("You already have another flight in progress! Please complete or pause the other flight before starting a new one.") { IsError = true, Data = StartFlightStatus.Error };
                 }
 
                 // Is the aircraft at the origin airport?
                 if (!plan.OriginICAO.Equals(plan.Aircraft?.AirportICAO))
                 {
-                    return new ApiResponse<string>("The selected aircraft is not at the departure airport!") { IsError = true, Data = "AircraftNotAtOrigin" };
+                    return new ApiResponse<StartFlightStatus>(StartFlightStatus.AircraftNotAtOrigin);
                 }
 
                 // Can the aircraft start a new flight?
                 if (plan.Aircraft?.CanStartFlight != true)
                 {
-                    return new ApiResponse<string>("The selected aircraft isn't available right now!") { IsError = true };
+                    return new ApiResponse<StartFlightStatus>("The selected aircraft isn't available right now!") { IsError = true, Data = StartFlightStatus.Error };
                 }
 
                 // Are all payloads either at the origin airport or already onboard the aircraft?
@@ -1792,12 +1807,24 @@ namespace OpenSky.API.Controllers
                 {
                     if (!string.IsNullOrEmpty(flightPayload.Payload.AirportICAO) && flightPayload.Payload.AirportICAO != plan.OriginICAO)
                     {
-                        return new ApiResponse<string>("At least one payload hasn't reached the departure airport yet!") { IsError = true };
+                        return new ApiResponse<StartFlightStatus>("At least one payload hasn't reached the departure airport yet!") { IsError = true, Data = StartFlightStatus.Error };
                     }
 
                     if (!string.IsNullOrEmpty(flightPayload.Payload.AircraftRegistry) && flightPayload.Payload.AircraftRegistry != plan.AircraftRegistry)
                     {
-                        return new ApiResponse<string>("At least one payload is currently loaded on another aircraft!") { IsError = true };
+                        return new ApiResponse<StartFlightStatus>("At least one payload is currently loaded on another aircraft!") { IsError = true, Data = StartFlightStatus.Error };
+                    }
+                }
+
+                // Are there payloads onboard the aircraft that aren't on the flight plan?
+                if (!startFlight.OverrideStates.Contains(StartFlightStatus.NonFlightPlanPayloadsFound))
+                {
+                    foreach (var aircraftPayload in plan.Aircraft.Payloads)
+                    {
+                        if (plan.FlightPayloads.All(p => p.PayloadID != aircraftPayload.ID))
+                        {
+                            return new ApiResponse<StartFlightStatus>(StartFlightStatus.NonFlightPlanPayloadsFound);
+                        }
                     }
                 }
 
@@ -1834,73 +1861,98 @@ namespace OpenSky.API.Controllers
                         if (!plan.Aircraft.Airport.HasAvGas)
                         {
                             // todo check for fbo in the future
-                            return new ApiResponse<string>($"Airport {plan.Aircraft.AirportICAO} does not sell AV gas!") { IsError = true };
-                        }
-
-                        var fuelPrice = (int)(gallonsToTransfer * plan.Aircraft.Airport.AvGasPrice);
-                        plan.Aircraft.LifeTimeExpense += fuelPrice;
-                        if (!string.IsNullOrEmpty(plan.Aircraft.AirlineOwnerID))
-                        {
-                            if (fuelPrice > plan.Aircraft.AirlineOwner.AccountBalance)
+                            if (startFlight.OverrideStates.Contains(StartFlightStatus.OriginDoesntSellAvGas))
                             {
-                                return new ApiResponse<string>("Your airline can't afford this fuel purchase!") { IsError = true };
+                                // User chose to skip fuelling and start anyway
+                                gallonsToTransfer = 0;
+                                fuelRecord = null;
                             }
-
-                            fuelRecord.AirlineID = plan.Aircraft.AirlineOwnerID;
-                            fuelRecord.Expense = fuelPrice;
-                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons AV gas at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                            else
+                            {
+                                return new ApiResponse<StartFlightStatus>(StartFlightStatus.OriginDoesntSellAvGas);
+                            }
                         }
                         else
                         {
-                            if (fuelPrice > plan.Aircraft.Owner.PersonalAccountBalance)
+                            var fuelPrice = (int)(gallonsToTransfer * plan.Aircraft.Airport.AvGasPrice);
+                            plan.Aircraft.LifeTimeExpense += fuelPrice;
+                            if (!string.IsNullOrEmpty(plan.Aircraft.AirlineOwnerID))
                             {
-                                return new ApiResponse<string>("You can't afford this fuel purchase!") { IsError = true };
-                            }
+                                if (fuelPrice > plan.Aircraft.AirlineOwner.AccountBalance)
+                                {
+                                    return new ApiResponse<StartFlightStatus>("Your airline can't afford this fuel purchase!") { IsError = true, Data = StartFlightStatus.Error };
+                                }
 
-                            fuelRecord.UserID = plan.Aircraft.OwnerID;
-                            fuelRecord.Expense = fuelPrice;
-                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons AV gas at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                                fuelRecord.AirlineID = plan.Aircraft.AirlineOwnerID;
+                                fuelRecord.Expense = fuelPrice;
+                                fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons AV gas at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                            }
+                            else
+                            {
+                                if (fuelPrice > plan.Aircraft.Owner.PersonalAccountBalance)
+                                {
+                                    return new ApiResponse<StartFlightStatus>("You can't afford this fuel purchase!") { IsError = true, Data = StartFlightStatus.Error };
+                                }
+
+                                fuelRecord.UserID = plan.Aircraft.OwnerID;
+                                fuelRecord.Expense = fuelPrice;
+                                fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons AV gas at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                            }
                         }
                     }
                     else if (plan.Aircraft.Type.FuelType == FuelType.JetFuel)
                     {
-                        if (!plan.Aircraft.Airport.HasAvGas)
+                        if (!plan.Aircraft.Airport.HasJetFuel)
                         {
                             // todo check for fbo in the future
-                            return new ApiResponse<string>($"Airport {plan.Aircraft.AirportICAO} does not sell jet fuel!") { IsError = true };
-                        }
-
-                        var fuelPrice = (int)(gallonsToTransfer * plan.Aircraft.Airport.JetFuelPrice);
-                        plan.Aircraft.LifeTimeExpense += fuelPrice;
-                        if (!string.IsNullOrEmpty(plan.Aircraft.AirlineOwnerID))
-                        {
-                            if (fuelPrice > plan.Aircraft.AirlineOwner.AccountBalance)
+                            if (startFlight.OverrideStates.Contains(StartFlightStatus.OriginDoesntSellJetFuel))
                             {
-                                return new ApiResponse<string>("Your airline can't afford this fuel purchase!") { IsError = true };
+                                // User chose to skip fuelling and start anyway
+                                gallonsToTransfer = 0;
+                                fuelRecord = null;
                             }
-
-                            fuelRecord.AirlineID = plan.Aircraft.AirlineOwnerID;
-                            fuelRecord.Expense = fuelPrice;
-                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                            else
+                            {
+                                return new ApiResponse<StartFlightStatus>(StartFlightStatus.OriginDoesntSellJetFuel);
+                            }
                         }
                         else
                         {
-                            if (fuelPrice > plan.Aircraft.Owner.PersonalAccountBalance)
+                            var fuelPrice = (int)(gallonsToTransfer * plan.Aircraft.Airport.JetFuelPrice);
+                            plan.Aircraft.LifeTimeExpense += fuelPrice;
+                            if (!string.IsNullOrEmpty(plan.Aircraft.AirlineOwnerID))
                             {
-                                return new ApiResponse<string>("You can't afford this fuel purchase!") { IsError = true };
-                            }
+                                if (fuelPrice > plan.Aircraft.AirlineOwner.AccountBalance)
+                                {
+                                    return new ApiResponse<StartFlightStatus>("Your airline can't afford this fuel purchase!") { IsError = true, Data = StartFlightStatus.Error };
+                                }
 
-                            fuelRecord.UserID = plan.Aircraft.OwnerID;
-                            fuelRecord.Expense = fuelPrice;
-                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                                fuelRecord.AirlineID = plan.Aircraft.AirlineOwnerID;
+                                fuelRecord.Expense = fuelPrice;
+                                fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                            }
+                            else
+                            {
+                                if (fuelPrice > plan.Aircraft.Owner.PersonalAccountBalance)
+                                {
+                                    return new ApiResponse<StartFlightStatus>("You can't afford this fuel purchase!") { IsError = true, Data = StartFlightStatus.Error };
+                                }
+
+                                fuelRecord.UserID = plan.Aircraft.OwnerID;
+                                fuelRecord.Expense = fuelPrice;
+                                fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                            }
                         }
                     }
                     else
                     {
-                        return new ApiResponse<string>("This aircraft doesn't use fuel and can therefore not be fueled!") { IsError = true };
+                        return new ApiResponse<StartFlightStatus>("This aircraft doesn't use fuel and can therefore not be fueled!") { IsError = true, Data = StartFlightStatus.Error };
                     }
 
-                    await this.db.FinancialRecords.AddAsync(fuelRecord);
+                    if (fuelRecord != null)
+                    {
+                        await this.db.FinancialRecords.AddAsync(fuelRecord);
+                    }
                 }
 
                 plan.FuelLoadingComplete = gallonsPerMinute > 0 && gallonsToTransfer > 0 ? DateTime.UtcNow.AddMinutes(3 + (gallonsToTransfer / gallonsPerMinute)) : DateTime.UtcNow;
@@ -1953,18 +2005,21 @@ namespace OpenSky.API.Controllers
                     plan.AlternateICAO = plan.OriginICAO;
                 }
 
-                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, $"Error starting flight {flightID}.");
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, $"Error starting flight {startFlight.FlightID}.");
                 if (saveEx != null)
                 {
                     throw saveEx;
                 }
 
-                return new ApiResponse<string>($"Flight {plan.FullFlightNumber} started successfully, remember to keep the rubber on the runway and your troubles on the ground!");
+                return new ApiResponse<StartFlightStatus>(StartFlightStatus.Started)
+                {
+                    Message = $"Flight {plan.FullFlightNumber} started successfully, remember to keep the rubber on the runway and your troubles on the ground!"
+                };
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Flight/startFlight/{flightID}");
-                return new ApiResponse<string>(ex);
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Flight/startFlight/{startFlight.FlightID}");
+                return new ApiResponse<StartFlightStatus>(ex) { Data = StartFlightStatus.Error };
             }
         }
 

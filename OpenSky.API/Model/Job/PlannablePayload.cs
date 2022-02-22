@@ -39,7 +39,7 @@ namespace OpenSky.API.Model.Job
             this.DestinationICAO = payload.DestinationICAO;
             this.Weight = payload.Weight;
             this.Description = payload.Description;
-            this.CurrentLocation = !string.IsNullOrEmpty(payload.AirportICAO) ? payload.AirportICAO : (!string.IsNullOrEmpty(payload.AircraftRegistry) ? payload.AircraftRegistry.RemoveSimPrefix() : "???");
+            this.CurrentLocation = !string.IsNullOrEmpty(payload.AirportICAO) ? payload.AirportICAO : (!string.IsNullOrEmpty(payload.AircraftRegistry) ? payload.AircraftRegistry : "???");
             this.Flights = new Dictionary<Guid, string>();
             this.Destinations = new List<string>();
             foreach (var flightPayload in payload.FlightPayloads)

@@ -24,6 +24,7 @@ namespace OpenSky.API.Controllers
     using OpenSky.API.Model.Aircraft;
     using OpenSky.API.Model.Authentication;
     using OpenSky.API.Services;
+    using OpenSky.API.Services.Models;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -76,6 +77,13 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The statistics service.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly StatisticsService statisticsService;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Initializes a new instance of the <see cref="AircraftController"/> class.
         /// </summary>
         /// <remarks>
@@ -96,14 +104,18 @@ namespace OpenSky.API.Controllers
         /// <param name="aircraftPopulator">
         /// The aircraft populator service.
         /// </param>
+        /// <param name="statisticsService">
+        /// The statistics service.
+        /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public AircraftController(ILogger<AirportController> logger, OpenSkyDbContext db, UserManager<OpenSkyUser> userManager, IcaoRegistrationsService icaoRegistrations, AircraftPopulatorService aircraftPopulator)
+        public AircraftController(ILogger<AirportController> logger, OpenSkyDbContext db, UserManager<OpenSkyUser> userManager, IcaoRegistrationsService icaoRegistrations, AircraftPopulatorService aircraftPopulator, StatisticsService statisticsService)
         {
             this.logger = logger;
             this.db = db;
             this.userManager = userManager;
             this.icaoRegistrations = icaoRegistrations;
             this.aircraftPopulator = aircraftPopulator;
+            this.statisticsService = statisticsService;
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -440,7 +452,7 @@ namespace OpenSky.API.Controllers
                         }
                         else if (aircraft.Type.FuelType == FuelType.JetFuel)
                         {
-                            if (!aircraft.Airport.HasAvGas)
+                            if (!aircraft.Airport.HasJetFuel)
                             {
                                 // todo check for fbo in the future
                                 return new ApiResponse<string>($"Airport {aircraft.AirportICAO} does not sell jet fuel!") { IsError = true };
@@ -506,6 +518,8 @@ namespace OpenSky.API.Controllers
                     _ => 0.0
                 };
                 var lbsToTransfer = 0.0;
+                var jobIDsToCheck = new HashSet<Guid>();
+                var payloadsArrived = new List<Guid>();
 
                 // First check for payloads to be removed
                 foreach (var aircraftPayload in aircraft.Payloads.ToList())
@@ -515,6 +529,8 @@ namespace OpenSky.API.Controllers
                         lbsToTransfer += aircraftPayload.Weight;
                         aircraftPayload.AirportICAO = aircraft.AirportICAO;
                         aircraftPayload.AircraftRegistry = null;
+                        jobIDsToCheck.Add(aircraftPayload.JobID);
+                        payloadsArrived.Add(aircraftPayload.ID);
                     }
                 }
 
@@ -555,6 +571,96 @@ namespace OpenSky.API.Controllers
                     {
                         // New loading operation, add 1 minute for arrival of cargo/pax
                         aircraft.LoadingUntil = DateTime.UtcNow.AddMinutes(1 + (lbsToTransfer / lbsPerMinute));
+                    }
+                }
+
+                // Check for completed jobs
+                foreach (var jobID in jobIDsToCheck)
+                {
+                    var job = await this.db.Jobs.SingleOrDefaultAsync(j => j.ID == jobID);
+                    if (job != null)
+                    {
+                        var allPayloadsArrived = true;
+                        foreach (var payload in job.Payloads)
+                        {
+                            if (payload.AirportICAO != payload.DestinationICAO && !payloadsArrived.Contains(payload.ID))
+                            {
+                                allPayloadsArrived = false;
+                            }
+                        }
+
+                        if (allPayloadsArrived)
+                        {
+                            // Job complete, pay out the money and then delete it
+                            var latePenaltyMultiplier = 1.0;
+                            if (DateTime.UtcNow > job.ExpiresAt)
+                            {
+                                // 30% off as soon as it is late
+                                latePenaltyMultiplier = 0.7;
+
+                                // 5% off for each additional day late (after 14 days, payout is 0)
+                                var daysLate = (DateTime.UtcNow - job.ExpiresAt).TotalDays;
+                                if (daysLate is >= 1.0 and < 14.0)
+                                {
+                                    latePenaltyMultiplier -= 0.05 * (int)daysLate;
+                                }
+                                else if (daysLate >= 14.0)
+                                {
+                                    latePenaltyMultiplier = 0;
+                                }
+                            }
+
+                            var value = (int)(job.Value * latePenaltyMultiplier);
+                            var jobRecord = new FinancialRecord
+                            {
+                                ID = Guid.NewGuid(),
+                                UserID = job.OperatorID,
+                                AirlineID = job.OperatorAirlineID,
+                                AircraftRegistry = aircraft.Registry,
+                                Income = job.Value,
+                                Category = job.Type switch
+                                {
+                                    JobType.Cargo_L => FinancialCategory.Cargo,
+                                    JobType.Cargo_S => FinancialCategory.Cargo,
+                                    _ => FinancialCategory.None
+                                },
+                                Timestamp = DateTime.UtcNow,
+                                Description = $"{job.Type} job{(string.IsNullOrEmpty(job.UserIdentifier) ? string.Empty : $" ({job.UserIdentifier})")} of category {job.Category} from {job.OriginICAO} completed."
+                            };
+                            aircraft.LifeTimeIncome += job.Value;
+
+                            if (job.Operator != null)
+                            {
+                                job.Operator.PersonalAccountBalance += value;
+                            }
+
+                            if (job.OperatorAirline != null)
+                            {
+                                job.OperatorAirline.AccountBalance += value;
+                            }
+
+                            if (job.ExpiresAt <= DateTime.UtcNow)
+                            {
+                                var penaltyRecord = new FinancialRecord
+                                {
+                                    ID = Guid.NewGuid(),
+                                    UserID = job.OperatorID,
+                                    AirlineID = job.OperatorAirlineID,
+                                    AircraftRegistry = aircraft.Registry,
+                                    Category = FinancialCategory.Fines,
+                                    Expense = (int)(job.Value * (1.0 - latePenaltyMultiplier)),
+                                    Timestamp = DateTime.UtcNow,
+                                    Description = $"Late delivery penalty ({(int)((1.0 - latePenaltyMultiplier) * 100)} %) for {job.Type} job{(string.IsNullOrEmpty(job.UserIdentifier) ? string.Empty : $" ({job.UserIdentifier})")} of category {job.Category} from {job.OriginICAO}"
+                                };
+                                await this.db.FinancialRecords.AddAsync(penaltyRecord);
+                                aircraft.LifeTimeExpense += (int)(job.Value * (1.0 - latePenaltyMultiplier));
+                            }
+
+                            this.statisticsService.RecordCompletedJob(job.OperatorAirline != null ? FlightOperator.Airline : FlightOperator.Player, aircraft.Type.Category, job.Type, aircraft.Type.Simulator);
+                            await this.db.FinancialRecords.AddAsync(jobRecord);
+                            this.db.Payloads.RemoveRange(job.Payloads);
+                            this.db.Jobs.Remove(job);
+                        }
                     }
                 }
 
