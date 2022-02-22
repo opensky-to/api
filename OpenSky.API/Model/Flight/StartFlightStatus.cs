@@ -8,31 +8,6 @@ namespace OpenSky.API.Model.Flight
 {
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Start flight result model.
-    /// </summary>
-    /// <remarks>
-    /// sushi.at, 22/02/2022.
-    /// </remarks>
-    /// -------------------------------------------------------------------------------------------------
-    public class StartFlightResult
-    {
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the message.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public string Message { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the status.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public StartFlightStatus Status { get; set; }
-    }
-
-    /// -------------------------------------------------------------------------------------------------
-    /// <summary>
     /// Start flight status.
     /// </summary>
     /// <remarks>
@@ -41,6 +16,11 @@ namespace OpenSky.API.Model.Flight
     /// -------------------------------------------------------------------------------------------------
     public enum StartFlightStatus
     {
+        /// <summary>
+        /// A non-overridable error has occurred and the flight cannot start.
+        /// </summary>
+        Error = -1,
+
         /// <summary>
         /// Flight started successfully.
         /// </summary>

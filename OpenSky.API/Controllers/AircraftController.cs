@@ -452,7 +452,7 @@ namespace OpenSky.API.Controllers
                         }
                         else if (aircraft.Type.FuelType == FuelType.JetFuel)
                         {
-                            if (!aircraft.Airport.HasAvGas)
+                            if (!aircraft.Airport.HasJetFuel)
                             {
                                 // todo check for fbo in the future
                                 return new ApiResponse<string>($"Airport {aircraft.AirportICAO} does not sell jet fuel!") { IsError = true };
