@@ -9,6 +9,7 @@ namespace OpenSky.API.Controllers
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Linq.Dynamic.Core;
     using System.Threading.Tasks;
 
     using Microsoft.AspNetCore.Authorization;
@@ -25,6 +26,7 @@ namespace OpenSky.API.Controllers
     using OpenSky.API.Model.Authentication;
     using OpenSky.API.Services;
     using OpenSky.API.Services.Models;
+    using OpenSky.S2Geometry.Extensions;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -70,17 +72,17 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The user manager.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private readonly UserManager<OpenSkyUser> userManager;
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// The statistics service.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private readonly StatisticsService statisticsService;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The user manager.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly UserManager<OpenSkyUser> userManager;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -108,7 +110,13 @@ namespace OpenSky.API.Controllers
         /// The statistics service.
         /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public AircraftController(ILogger<AirportController> logger, OpenSkyDbContext db, UserManager<OpenSkyUser> userManager, IcaoRegistrationsService icaoRegistrations, AircraftPopulatorService aircraftPopulator, StatisticsService statisticsService)
+        public AircraftController(
+            ILogger<AirportController> logger,
+            OpenSkyDbContext db,
+            UserManager<OpenSkyUser> userManager,
+            IcaoRegistrationsService icaoRegistrations,
+            AircraftPopulatorService aircraftPopulator,
+            StatisticsService statisticsService)
         {
             this.logger = logger;
             this.db = db;
@@ -186,6 +194,8 @@ namespace OpenSky.API.Controllers
                 return new ApiResponse<Aircraft>(ex);
             }
         }
+
+
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -317,6 +327,7 @@ namespace OpenSky.API.Controllers
                         variant.Manufacturer = missing;
                     }
                 }
+
                 return new ApiResponse<IEnumerable<Aircraft>>(aircraft);
             }
             catch (Exception ex)
@@ -654,7 +665,8 @@ namespace OpenSky.API.Controllers
                                     Category = FinancialCategory.Fines,
                                     Expense = (int)(job.Value * (1.0 - latePenaltyMultiplier)),
                                     Timestamp = DateTime.UtcNow,
-                                    Description = $"Late delivery penalty ({(int)((1.0 - latePenaltyMultiplier) * 100)} %) for {job.Type} job{(string.IsNullOrEmpty(job.UserIdentifier) ? string.Empty : $" ({job.UserIdentifier})")} of category {job.Category} from {job.OriginICAO}"
+                                    Description =
+                                        $"Late delivery penalty ({(int)((1.0 - latePenaltyMultiplier) * 100)} %) for {job.Type} job{(string.IsNullOrEmpty(job.UserIdentifier) ? string.Empty : $" ({job.UserIdentifier})")} of category {job.Category} from {job.OriginICAO}"
                                 };
                                 await this.db.FinancialRecords.AddAsync(penaltyRecord);
                                 aircraft.LifeTimeExpense += (int)(job.Value * (1.0 - latePenaltyMultiplier));
@@ -1087,6 +1099,104 @@ namespace OpenSky.API.Controllers
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Aircraft/purchase/purchaseNew: {purchase.TypeID}@{purchase.DeliveryAirportICAO}");
                 return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Searches for aircraft around a given airport.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 24/02/2022.
+        /// </remarks>
+        /// <returns>
+        /// An asynchronous result that yields the aircraft.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPost("searchAroundAirport", Name = "SearchAircraftAroundAirport")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<Aircraft>>>> SearchAircraftAroundAirport([FromBody] AircraftSearchAroundAirport search)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Aircraft/aroundAirport");
+                if (search.Radius is < 10 or > 500)
+                {
+                    return new ApiResponse<IEnumerable<Aircraft>> { Message = "Search radius must be between 10 and 500 nautical miles!", IsError = true, Data = new List<Aircraft>() };
+                }
+
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<IEnumerable<Aircraft>> { Message = "Unable to find user record!", IsError = true, Data = new List<Aircraft>() };
+                }
+
+                var airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO.Equals(search.AirportICAO));
+                if (airport == null)
+                {
+                    return new ApiResponse<IEnumerable<Aircraft>> { Message = $"No airport with code {search.AirportICAO} exists!", IsError = true, Data = new List<Aircraft>() };
+                }
+
+                var coverage = airport.GeoCoordinate.CircularCoverage(search.Radius);
+                var cells = coverage.Cells.Select(c => c.Id).ToList();
+
+                var airports = await this.db.Airports.Where(
+                    $"!IsClosed and !IsMilitary and @0.Contains(S2Cell{coverage.Level})",
+                    cells).Select(a => a.ICAO).ToListAsync();
+
+                var searchResults = new List<Aircraft>();
+                if (this.User.IsInRole(UserRoles.Moderator) || this.User.IsInRole(UserRoles.Admin))
+                {
+                    // Return all matching planes
+                    var aircraft = await this.db.Aircraft.Where(
+                                                 a => airports.Contains(a.AirportICAO) && !a.Flights.Any(f => f.Started.HasValue && !f.Completed.HasValue) &&
+                                                      (!search.OnlyVanilla || a.Type.IsVanilla) &&
+                                                      (!search.FilterByCategory || a.Type.Category == search.Category) &&
+                                                      (string.IsNullOrEmpty(search.Manufacturer) || a.Type.Manufacturer.Name.Contains(search.Manufacturer)) &&
+                                                      (string.IsNullOrEmpty(search.Name) || a.Type.Name.Contains(search.Name)))
+                                             .Take(search.MaxResults).ToListAsync();
+                    searchResults.AddRange(aircraft);
+                }
+                else
+                {
+                    // Only return planes that are available for purchase or rent, or owned by the player/airline
+                    var aircraft = await this.db.Aircraft.Where(
+                                                 a => airports.Contains(a.AirportICAO) && !a.Flights.Any(f => f.Started.HasValue && !f.Completed.HasValue) &&
+                                                      (!search.OnlyVanilla || a.Type.IsVanilla) &&
+                                                      (!search.FilterByCategory || a.Type.Category == search.Category) &&
+                                                      (string.IsNullOrEmpty(search.Manufacturer) || a.Type.Manufacturer.Name.Contains(search.Manufacturer)) &&
+                                                      (string.IsNullOrEmpty(search.Name) || a.Type.Name.Contains(search.Name)) &&
+                                                      (a.OwnerID == user.Id || a.AirlineOwnerID == user.AirlineICAO || a.PurchasePrice.HasValue || a.RentPrice.HasValue))
+                                             .Take(search.MaxResults).ToListAsync();
+                    searchResults.AddRange(aircraft);
+                }
+
+                var missing = new AircraftManufacturer
+                {
+                    ID = "miss",
+                    Name = "Missing"
+                };
+                foreach (var craft in searchResults)
+                {
+                    if (craft.OwnerID != user.Id && craft.AirlineOwnerID == user.AirlineICAO)
+                    {
+                        // User/Airline doesn't own this aircraft, zero out the financials
+                        craft.LifeTimeExpense = 0;
+                        craft.LifeTimeIncome = 0;
+                    }
+
+                    craft.Type.Manufacturer ??= missing;
+                    foreach (var variant in craft.Type.Variants.Where(v => v.Manufacturer == null))
+                    {
+                        variant.Manufacturer = missing;
+                    }
+                }
+
+                return new ApiResponse<IEnumerable<Aircraft>>(searchResults);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Aircraft/aroundAirport");
+                return new ApiResponse<IEnumerable<Aircraft>>(ex) { Data = new List<Aircraft>() };
             }
         }
 
