@@ -480,7 +480,7 @@ namespace OpenSky.API.Controllers
 
                                 fuelRecord.AirlineID = aircraft.AirlineOwnerID;
                                 fuelRecord.Expense = fuelPrice;
-                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
+                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {aircraft.AirportICAO} for $B {aircraft.Airport.JetFuelPrice:F2} / gallon";
                             }
                             else
                             {
@@ -491,7 +491,7 @@ namespace OpenSky.API.Controllers
 
                                 fuelRecord.UserID = aircraft.OwnerID;
                                 fuelRecord.Expense = fuelPrice;
-                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
+                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {aircraft.AirportICAO} for $B {aircraft.Airport.JetFuelPrice:F2} / gallon";
                             }
                         }
                         else
