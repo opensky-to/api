@@ -135,7 +135,6 @@ namespace OpenSky.API.DbModel
         /// Gets the approaches.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [JsonIgnore]
         public ICollection<Approach> Approaches
         {
             get => this.LazyLoader.Load(this, ref this.approaches);

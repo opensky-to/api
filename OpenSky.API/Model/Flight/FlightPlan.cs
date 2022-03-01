@@ -78,7 +78,12 @@ namespace OpenSky.API.Model.Flight
                     AtcType = string.Empty,
                     Category = AircraftTypeCategory.SEP,
                     EngineType = EngineType.None,
-                    ManufacturerID = string.Empty,
+                    ManufacturerID = "miss",
+                    Manufacturer = new AircraftManufacturer
+                    {
+                        ID = "miss",
+                        Name = "Missing"
+                    },
                     Name = string.Empty,
                     UploaderID = string.Empty,
                     Simulator = Simulator.MSFS

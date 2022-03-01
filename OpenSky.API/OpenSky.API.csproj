@@ -52,7 +52,7 @@
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="5.0.4" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
     <PackageReference Include="System.Data.SQLite.Core" Version="1.0.115.5" />
-    <PackageReference Include="Z.EntityFramework.Extensions.EFCore" Version="5.13.9" />
+    <PackageReference Include="Z.EntityFramework.Extensions.EFCore" Version="5.13.12" />
   </ItemGroup>
 
   <ItemGroup>
