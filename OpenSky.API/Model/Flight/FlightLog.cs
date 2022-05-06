@@ -95,7 +95,6 @@ namespace OpenSky.API.Model.Flight
 
             this.FuelConsumption = (flight.FuelGallons ?? 0.0) - (finalFuel ?? 0);
             this.FuelWeightPerGallon = flight.Aircraft.Type.FuelWeightPerGallon;
-            this.UtcOffset = flight.UtcOffset;
             this.TimeWarpTimeSavedSeconds = flight.TimeWarpTimeSavedSeconds;
             this.Route = flight.Route;
             this.AlternateRoute = flight.AlternateRoute;
@@ -320,12 +319,5 @@ namespace OpenSky.API.Model.Flight
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public int TimeWarpTimeSavedSeconds { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the UTC offset for the flight.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public double UtcOffset { get; set; }
     }
 }
