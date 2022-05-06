@@ -1552,11 +1552,6 @@ namespace OpenSky.API.Controllers
                     }
                 }
 
-                if (flightPlan.UtcOffset is < -12.0 or > 14.0)
-                {
-                    return new ApiResponse<string>("UTC offset has to be between -12 and +14 hours!") { IsError = true };
-                }
-
                 if (flightPlan.FlightNumber is < 1 or > 9999)
                 {
                     return new ApiResponse<string>("Flight number is out of range (1-9999)!") { IsError = true };
@@ -1574,7 +1569,6 @@ namespace OpenSky.API.Controllers
                         DestinationICAO = flightPlan.DestinationICAO,
                         AlternateICAO = flightPlan.AlternateICAO,
                         FuelGallons = flightPlan.FuelGallons,
-                        UtcOffset = flightPlan.UtcOffset,
                         DispatcherID = user.Id,
                         DispatcherRemarks = flightPlan.DispatcherRemarks,
                         PlannedDepartureTime = flightPlan.PlannedDepartureTime,
@@ -1632,7 +1626,6 @@ namespace OpenSky.API.Controllers
                     existingFlight.DestinationICAO = flightPlan.DestinationICAO;
                     existingFlight.AlternateICAO = flightPlan.AlternateICAO;
                     existingFlight.FuelGallons = flightPlan.FuelGallons;
-                    existingFlight.UtcOffset = flightPlan.UtcOffset;
                     existingFlight.DispatcherID = user.Id;
                     existingFlight.DispatcherRemarks = flightPlan.DispatcherRemarks;
                     existingFlight.PlannedDepartureTime = flightPlan.PlannedDepartureTime;
@@ -1751,12 +1744,6 @@ namespace OpenSky.API.Controllers
                 if (string.IsNullOrEmpty(plan.AircraftRegistry) || plan.Aircraft == null)
                 {
                     return new ApiResponse<StartFlightStatus>("Flight plan has no assigned aircraft!") { IsError = true, Data = StartFlightStatus.Error };
-                }
-
-                // Invalid UTC offset
-                if (plan.UtcOffset is < -12.0 or > 14.0)
-                {
-                    return new ApiResponse<StartFlightStatus>("UTC offset has to be between -12 and +14 hours!") { IsError = true, Data = StartFlightStatus.Error };
                 }
 
                 // Invalid flight number

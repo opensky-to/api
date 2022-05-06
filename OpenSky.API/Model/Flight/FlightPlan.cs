@@ -93,7 +93,6 @@ namespace OpenSky.API.Model.Flight
             this.DestinationICAO = flight.DestinationICAO;
             this.AlternateICAO = flight.AlternateICAO;
             this.FuelGallons = flight.FuelGallons;
-            this.UtcOffset = flight.UtcOffset;
             this.IsAirlineFlight = !string.IsNullOrEmpty(flight.OperatorAirlineID);
             this.PlannedDepartureTime = flight.PlannedDepartureTime;
             this.DispatcherID = flight.DispatcherID;
@@ -237,12 +236,5 @@ namespace OpenSky.API.Model.Flight
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string Route { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the UTC offset for the flight.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public double UtcOffset { get; set; }
     }
 }
