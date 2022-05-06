@@ -38,6 +38,7 @@ namespace OpenSky.API.Model.Extensions.AirportsJSON
             {
                 ICAO = airport.ICAO,
                 Name = airport.Name,
+                City = airport.City,
                 Latitude = airport.Latitude,
                 Longitude = airport.Longitude,
                 Size = airport.Size ?? -1,

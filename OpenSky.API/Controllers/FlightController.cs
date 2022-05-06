@@ -1003,7 +1003,7 @@ namespace OpenSky.API.Controllers
                     ID = "miss",
                     Name = "Missing"
                 };
-                foreach (var plan in plans)
+                foreach (var plan in plans.Where(p => p.Aircraft != null))
                 {
                     plan.Aircraft.Type.Manufacturer ??= missing;
                     foreach (var variant in plan.Aircraft.Type.Variants.Where(v => v.Manufacturer == null))
