@@ -9,8 +9,8 @@ using OpenSky.API;
 namespace OpenSky.API.Migrations
 {
     [DbContext(typeof(OpenSkyDbContext))]
-    [Migration("20220124191753_FinancialRecords")]
-    partial class FinancialRecords
+    [Migration("20220525144737_Alpha4")]
+    partial class Alpha4
     {
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -19,7 +19,7 @@ namespace OpenSky.API.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("Relational:MaxIdentifierLength", 64)
-                .HasAnnotation("ProductVersion", "5.0.13");
+                .HasAnnotation("ProductVersion", "5.0.17");
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -152,8 +152,8 @@ namespace OpenSky.API.Migrations
             modelBuilder.Entity("OpenSky.API.DbModel.Aircraft", b =>
                 {
                     b.Property<string>("Registry")
-                        .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
+                        .HasMaxLength(12)
+                        .HasColumnType("varchar(12)");
 
                     b.Property<string>("AirlineOwnerID")
                         .IsConcurrencyToken()
@@ -170,6 +170,12 @@ namespace OpenSky.API.Migrations
 
                     b.Property<DateTime?>("FuellingUntil")
                         .HasColumnType("datetime(6)");
+
+                    b.Property<long>("LifeTimeExpense")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("LifeTimeIncome")
+                        .HasColumnType("bigint");
 
                     b.Property<DateTime?>("LoadingUntil")
                         .HasColumnType("datetime(6)");
@@ -208,11 +214,52 @@ namespace OpenSky.API.Migrations
                     b.ToTable("Aircraft");
                 });
 
+            modelBuilder.Entity("OpenSky.API.DbModel.AircraftManufacturer", b =>
+                {
+                    b.Property<string>("ID")
+                        .HasMaxLength(5)
+                        .HasColumnType("varchar(5)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("AircraftManufacturers");
+                });
+
+            modelBuilder.Entity("OpenSky.API.DbModel.AircraftManufacturerDeliveryLocation", b =>
+                {
+                    b.Property<string>("ManufacturerID")
+                        .HasMaxLength(5)
+                        .HasColumnType("varchar(5)");
+
+                    b.Property<Guid>("AircraftTypeID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("AirportICAO")
+                        .HasMaxLength(5)
+                        .HasColumnType("varchar(5)");
+
+                    b.HasKey("ManufacturerID", "AircraftTypeID", "AirportICAO");
+
+                    b.HasIndex("AircraftTypeID");
+
+                    b.HasIndex("AirportICAO");
+
+                    b.ToTable("AircraftManufacturerDeliveryLocations");
+                });
+
             modelBuilder.Entity("OpenSky.API.DbModel.AircraftType", b =>
                 {
                     b.Property<Guid>("ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
+
+                    b.Property<byte[]>("AircraftImage")
+                        .HasColumnType("longblob");
 
                     b.Property<string>("AtcModel")
                         .IsRequired()
@@ -230,6 +277,10 @@ namespace OpenSky.API.Migrations
                     b.Property<string>("Comments")
                         .HasColumnType("longtext");
 
+                    b.Property<string>("CustomAgentModule")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
                     b.Property<bool>("DetailedChecksDisabled")
                         .HasColumnType("tinyint(1)");
 
@@ -241,6 +292,10 @@ namespace OpenSky.API.Migrations
 
                     b.Property<int>("EngineCount")
                         .HasColumnType("int");
+
+                    b.Property<string>("EngineModel")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.Property<int>("EngineType")
                         .HasColumnType("int");
@@ -260,6 +315,9 @@ namespace OpenSky.API.Migrations
                     b.Property<bool>("IsGearRetractable")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<bool>("IsHistoric")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<bool>("IsVanilla")
                         .HasColumnType("tinyint(1)");
 
@@ -270,10 +328,9 @@ namespace OpenSky.API.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
-                    b.Property<string>("Manufacturer")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                    b.Property<string>("ManufacturerID")
+                        .HasMaxLength(5)
+                        .HasColumnType("varchar(5)");
 
                     b.Property<double>("MaxGrossWeight")
                         .HasColumnType("double");
@@ -304,6 +361,9 @@ namespace OpenSky.API.Migrations
                     b.Property<Guid?>("NextVersion")
                         .HasColumnType("char(36)");
 
+                    b.Property<int>("OverrideFuelType")
+                        .HasColumnType("int");
+
                     b.Property<bool>("RequiresManualFuelling")
                         .HasColumnType("tinyint(1)");
 
@@ -326,6 +386,8 @@ namespace OpenSky.API.Migrations
                     b.HasIndex("IsVariantOf");
 
                     b.HasIndex("LastEditedByID");
+
+                    b.HasIndex("ManufacturerID");
 
                     b.HasIndex("NextVersion");
 
@@ -420,6 +482,9 @@ namespace OpenSky.API.Migrations
                     b.Property<int?>("AtisFrequency")
                         .HasColumnType("int");
 
+                    b.Property<float>("AvGasPrice")
+                        .HasColumnType("float");
+
                     b.Property<string>("City")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
@@ -433,7 +498,10 @@ namespace OpenSky.API.Migrations
                     b.Property<bool>("HasAvGas")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<int>("HasBeenPopulated")
+                    b.Property<int>("HasBeenPopulatedMSFS")
+                        .HasColumnType("int");
+
+                    b.Property<int>("HasBeenPopulatedXP11")
                         .HasColumnType("int");
 
                     b.Property<bool>("HasJetFuel")
@@ -444,6 +512,9 @@ namespace OpenSky.API.Migrations
 
                     b.Property<bool>("IsMilitary")
                         .HasColumnType("tinyint(1)");
+
+                    b.Property<float>("JetFuelPrice")
+                        .HasColumnType("float");
 
                     b.Property<double>("Latitude")
                         .HasColumnType("double");
@@ -505,6 +576,9 @@ namespace OpenSky.API.Migrations
 
                     b.Property<int?>("UnicomFrequency")
                         .HasColumnType("int");
+
+                    b.Property<bool>("XP11")
+                        .HasColumnType("tinyint(1)");
 
                     b.HasKey("ICAO");
 
@@ -615,9 +689,16 @@ namespace OpenSky.API.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
+                    b.Property<string>("AircraftRegistry")
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)");
+
                     b.Property<string>("AirlineID")
                         .HasMaxLength(3)
                         .HasColumnType("varchar(3)");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("int");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -811,9 +892,6 @@ namespace OpenSky.API.Migrations
 
                     b.Property<int>("TimeWarpTimeSavedSeconds")
                         .HasColumnType("int");
-
-                    b.Property<double>("UtcOffset")
-                        .HasColumnType("double");
 
                     b.Property<double>("VerticalSpeedSeconds")
                         .HasColumnType("double");
@@ -1211,6 +1289,19 @@ namespace OpenSky.API.Migrations
                     b.ToTable("RunwayEnds");
                 });
 
+            modelBuilder.Entity("OpenSky.API.DbModel.Statistic", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<double>("Value")
+                        .HasColumnType("double");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("Statistics");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -1293,6 +1384,33 @@ namespace OpenSky.API.Migrations
                     b.Navigation("Type");
                 });
 
+            modelBuilder.Entity("OpenSky.API.DbModel.AircraftManufacturerDeliveryLocation", b =>
+                {
+                    b.HasOne("OpenSky.API.DbModel.AircraftType", "AircraftType")
+                        .WithMany("DeliveryLocations")
+                        .HasForeignKey("AircraftTypeID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("OpenSky.API.DbModel.Airport", "Airport")
+                        .WithMany("DeliveredHere")
+                        .HasForeignKey("AirportICAO")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("OpenSky.API.DbModel.AircraftManufacturer", "Manufacturer")
+                        .WithMany("DeliveryLocations")
+                        .HasForeignKey("ManufacturerID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AircraftType");
+
+                    b.Navigation("Airport");
+
+                    b.Navigation("Manufacturer");
+                });
+
             modelBuilder.Entity("OpenSky.API.DbModel.AircraftType", b =>
                 {
                     b.HasOne("OpenSky.API.DbModel.AircraftType", "VariantType")
@@ -1302,6 +1420,10 @@ namespace OpenSky.API.Migrations
                     b.HasOne("OpenSky.API.DbModel.OpenSkyUser", "LastEditedBy")
                         .WithMany()
                         .HasForeignKey("LastEditedByID");
+
+                    b.HasOne("OpenSky.API.DbModel.AircraftManufacturer", "Manufacturer")
+                        .WithMany("Types")
+                        .HasForeignKey("ManufacturerID");
 
                     b.HasOne("OpenSky.API.DbModel.AircraftType", "NextVersionType")
                         .WithMany()
@@ -1314,6 +1436,8 @@ namespace OpenSky.API.Migrations
                         .IsRequired();
 
                     b.Navigation("LastEditedBy");
+
+                    b.Navigation("Manufacturer");
 
                     b.Navigation("NextVersionType");
 
@@ -1584,8 +1708,17 @@ namespace OpenSky.API.Migrations
                     b.Navigation("Payloads");
                 });
 
+            modelBuilder.Entity("OpenSky.API.DbModel.AircraftManufacturer", b =>
+                {
+                    b.Navigation("DeliveryLocations");
+
+                    b.Navigation("Types");
+                });
+
             modelBuilder.Entity("OpenSky.API.DbModel.AircraftType", b =>
                 {
+                    b.Navigation("DeliveryLocations");
+
                     b.Navigation("Variants");
                 });
 
@@ -1605,6 +1738,8 @@ namespace OpenSky.API.Migrations
             modelBuilder.Entity("OpenSky.API.DbModel.Airport", b =>
                 {
                     b.Navigation("Approaches");
+
+                    b.Navigation("DeliveredHere");
 
                     b.Navigation("Jobs");
 
