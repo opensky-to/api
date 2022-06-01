@@ -268,6 +268,31 @@ namespace OpenSky.API.Controllers
                     var returnFlightDuration = (distanceToOrigin > 0 && groundSpeed > 0) ? TimeSpan.FromHours(distanceToOrigin / groundSpeed) : DateTime.UtcNow - flight.Started.Value;
                     flight.Aircraft.WarpingUntil = flight.TimeWarpTimeSavedSeconds > 0 ? DateTime.UtcNow.AddSeconds(flight.TimeWarpTimeSavedSeconds).Add(returnFlightDuration) : DateTime.UtcNow.Add(returnFlightDuration);
 
+                    // Increase airframe and engine hours
+                    var hours = (DateTime.UtcNow - flight.Started.Value).TotalHours + returnFlightDuration.TotalHours;
+                    flight.Aircraft.AirframeHours += hours;
+                    switch (flight.Aircraft.Type.EngineCount)
+                    {
+                        case 1:
+                            flight.Aircraft.Engine1Hours += hours;
+                            break;
+                        case 2:
+                            flight.Aircraft.Engine1Hours += hours;
+                            flight.Aircraft.Engine2Hours += hours;
+                            break;
+                        case 3:
+                            flight.Aircraft.Engine1Hours += hours;
+                            flight.Aircraft.Engine2Hours += hours;
+                            flight.Aircraft.Engine3Hours += hours;
+                            break;
+                        case 4:
+                            flight.Aircraft.Engine1Hours += hours;
+                            flight.Aircraft.Engine2Hours += hours;
+                            flight.Aircraft.Engine3Hours += hours;
+                            flight.Aircraft.Engine4Hours += hours;
+                            break;
+                    }
+
                     // Return aircraft back to Origin airport
                     flight.Started = null;
                     flight.PayloadLoadingComplete = null;
@@ -454,6 +479,31 @@ namespace OpenSky.API.Controllers
                                        finalReport.FinalPositionReport.FuelTankLeftMainQuantity + finalReport.FinalPositionReport.FuelTankLeftAuxQuantity + finalReport.FinalPositionReport.FuelTankLeftTipQuantity +
                                        finalReport.FinalPositionReport.FuelTankRightMainQuantity + finalReport.FinalPositionReport.FuelTankRightAuxQuantity + finalReport.FinalPositionReport.FuelTankRightTipQuantity +
                                        finalReport.FinalPositionReport.FuelTankExternal1Quantity + finalReport.FinalPositionReport.FuelTankExternal2Quantity;
+
+                // Increase airframe and engine hours
+                var hours = (DateTime.UtcNow - flight.Started.Value).TotalHours;
+                flight.Aircraft.AirframeHours += hours;
+                switch (flight.Aircraft.Type.EngineCount)
+                {
+                    case 1:
+                        flight.Aircraft.Engine1Hours += hours;
+                        break;
+                    case 2:
+                        flight.Aircraft.Engine1Hours += hours;
+                        flight.Aircraft.Engine2Hours += hours;
+                        break;
+                    case 3:
+                        flight.Aircraft.Engine1Hours += hours;
+                        flight.Aircraft.Engine2Hours += hours;
+                        flight.Aircraft.Engine3Hours += hours;
+                        break;
+                    case 4:
+                        flight.Aircraft.Engine1Hours += hours;
+                        flight.Aircraft.Engine2Hours += hours;
+                        flight.Aircraft.Engine3Hours += hours;
+                        flight.Aircraft.Engine4Hours += hours;
+                        break;
+                }
 
                 // Create the top-level financial record for this flight that will sum up all income and expenses
                 var flightFinancialRecord = new FinancialRecord

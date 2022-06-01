@@ -113,7 +113,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the airframe hours.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public float AirframeHours { get; set; }
+        public double AirframeHours { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -200,28 +200,28 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the engine 1 hours.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public float Engine1Hours { get; set; }
+        public double Engine1Hours { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
         /// Gets or sets the engine 2 hours.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public float Engine2Hours { get; set; }
+        public double Engine2Hours { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
         /// Gets or sets the engine 3 hours.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public float Engine3Hours { get; set; }
+        public double Engine3Hours { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
         /// Gets or sets the engine 4 hours.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public float Engine4Hours { get; set; }
+        public double Engine4Hours { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

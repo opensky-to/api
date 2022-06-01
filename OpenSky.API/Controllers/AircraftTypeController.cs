@@ -207,6 +207,7 @@ namespace OpenSky.API.Controllers
                 // Are there any delivery locations added?
                 if (type.DeliveryLocations?.Count > 0 && !string.IsNullOrEmpty(type.ManufacturerID))
                 {
+                    var newDeliveryLocations = new List<AircraftManufacturerDeliveryLocation>();
                     foreach (var deliveryLocation in type.DeliveryLocations)
                     {
                         if (string.IsNullOrEmpty(deliveryLocation.AirportICAO))
@@ -242,10 +243,11 @@ namespace OpenSky.API.Controllers
                             AircraftTypeID = type.ID,
                             AirportICAO = deliveryLocation.AirportICAO
                         };
-                        await this.db.AircraftManufacturerDeliveryLocations.AddAsync(newDeliveryLocation);
+                        newDeliveryLocations.Add(newDeliveryLocation);
                     }
 
                     type.DeliveryLocations.Clear();
+                    await this.db.AircraftManufacturerDeliveryLocations.AddRangeAsync(newDeliveryLocations);
                 }
 
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving new aircraft type.");
