@@ -19,17 +19,6 @@ namespace OpenSky.API.DbModel
     using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Helpers;
 
-    /*
-     * AIRPORT EXAMPLE RECORD FROM DB (LOWW - Vienna International)
-     *
-     * INSERT INTO `Airports` (`ICAO`, `Altitude`, `AtisFrequency`, `City`, `GaRamps`, `Gates`, `HasAvGas`, `HasJetFuel`, `IsClosed`, `IsMilitary`, `Latitude`,
-     * `LongestRunwayLength`, `LongestRunwaySurface`, `Longitude`, `Name`, `RunwayCount`, `TowerFrequency`, `UnicomFrequency`, `Size`, `MSFS`, `SupportsSuper`,
-     * `HasBeenPopulated`)
-     *
-     * VALUES ('LOWW', '0', '121730', 'Schwechat', '29', '31', '1', '1', '0', '0', '48.11007308959961',
-     * '11811', 'A', '16.569616317749023', 'Flughafen Wien-Schwechat', '2', '119400', '118525', '5', '1', '1', '0')
-     */
-
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
     /// Airport model.
@@ -56,6 +45,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The aircraft types delivered here.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<AircraftManufacturerDeliveryLocation> deliveredHere;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The jobs.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -63,10 +59,10 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The aircraft types delivered here.
+        /// The maintenance records for this airport.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private ICollection<AircraftManufacturerDeliveryLocation> deliveredHere;
+        private ICollection<AircraftMaintenance> maintenanceRecords;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -162,6 +158,18 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         [StringLength(50)]
         public string City { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the aircraft types delivered here.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        public ICollection<AircraftManufacturerDeliveryLocation> DeliveredHere
+        {
+            get => this.LazyLoader.Load(this, ref this.deliveredHere);
+            set => this.deliveredHere = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -289,14 +297,14 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the aircraft types delivered here.
+        /// Gets or sets the maintenance records.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [JsonIgnore]
-        public ICollection<AircraftManufacturerDeliveryLocation> DeliveredHere
+        public ICollection<AircraftMaintenance> MaintenanceRecords
         {
-            get => this.LazyLoader.Load(this, ref this.deliveredHere);
-            set => this.deliveredHere = value;
+            get => this.LazyLoader.Load(this, ref this.maintenanceRecords);
+            set => this.maintenanceRecords = value;
         }
 
         /// -------------------------------------------------------------------------------------------------

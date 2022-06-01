@@ -48,6 +48,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The maintenance records for this aircraft.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<AircraftMaintenance> maintenanceRecords;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The owner of the aircraft (or NULL if no user owner).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -107,6 +114,18 @@ namespace OpenSky.API.DbModel
                 Registry = "XXXX",
                 Type = AircraftType.ValidEmptyModel
             };
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the aircraft maintenance records for this aircraft.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        public ICollection<AircraftMaintenance> MaintenanceRecords
+        {
+            get => this.LazyLoader.Load(this, ref this.maintenanceRecords);
+            set => this.maintenanceRecords = value;
+        }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

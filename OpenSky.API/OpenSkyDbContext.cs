@@ -74,6 +74,13 @@ namespace OpenSky.API
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the aircraft maintenance records.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public virtual DbSet<AircraftMaintenance> AircraftMaintenances { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the airlines.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -289,6 +296,7 @@ namespace OpenSky.API
             builder.Entity<FlightNavlogFix>().HasKey(nf => new { nf.FlightID, nf.FixNumber });
             builder.Entity<FlightPayload>().HasKey(fp => new { fp.FlightID, fp.PayloadID });
             builder.Entity<AircraftManufacturerDeliveryLocation>().HasKey(dl => new { dl.ManufacturerID, dl.AircraftTypeID, dl.AirportICAO });
+            builder.Entity<AircraftMaintenance>().HasKey(am => new { am.AircraftRegistry, am.RecordNumber });
 
             // Custom relationships
             builder.Entity<AircraftType>().HasMany(t => t.Variants).WithOne(t => t.VariantType).HasForeignKey(t => t.IsVariantOf);

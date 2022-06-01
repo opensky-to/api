@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="MaintenanceHistory.cs" company="OpenSky">
+// <copyright file="AircraftMaintenance.cs" company="OpenSky">
 // OpenSky project 2021-2022
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
@@ -32,6 +32,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The planned at airport - or NULL for next available.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private Airport plannedAtAirport;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Initializes a new instance of the <see cref="AircraftMaintenance"/> class.
         /// </summary>
         /// <remarks>
@@ -41,13 +48,6 @@ namespace OpenSky.API.DbModel
         public AircraftMaintenance()
         {
         }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets the lazy loader.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private Action<object, string> LazyLoader { get; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -67,6 +67,18 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the aircraft.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [ForeignKey("AircraftRegistry")]
+        public Aircraft Aircraft
+        {
+            get => this.LazyLoader.Load(this, ref this.aircraft);
+            set => this.aircraft = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the aircraft registry.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -74,29 +86,6 @@ namespace OpenSky.API.DbModel
         [StringLength(10, MinimumLength = 5)]
         [JsonIgnore]
         public string AircraftRegistry { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the date/time the maintenance is planned for (NULL for immediately once aircraft is IDLE)
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public DateTime? PlannedFor { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets an optional airport ICAO code the maintenance should be performed at (NULL for
-        /// next airport with required facilities)
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        [StringLength(5, MinimumLength = 5)]
-        public string PlannedAtICAO { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// The planned at airport - or NULL for next available.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private Airport plannedAtAirport;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -111,10 +100,26 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the Date/Time of when the maintenance was started.
+        /// Gets or sets an optional airport ICAO code the maintenance should be performed at (NULL for
+        /// next airport with required facilities)
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public DateTime? Started { get; set; }
+        [StringLength(5, MinimumLength = 5)]
+        public string PlannedAtICAO { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the date/time the maintenance is planned for (NULL for immediately once aircraft is IDLE)
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public DateTime? PlannedFor { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the aircraft maintenance record number.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int RecordNumber { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -125,6 +130,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the Date/Time of when the maintenance was started.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public DateTime? Started { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the number of technicians assigned (divides the man hours).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -132,14 +144,9 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the aircraft.
+        /// Gets the lazy loader.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [ForeignKey("AircraftRegistry")]
-        public Aircraft Aircraft
-        {
-            get => this.LazyLoader.Load(this, ref this.aircraft);
-            set => this.aircraft = value;
-        }
+        private Action<object, string> LazyLoader { get; }
     }
 }
