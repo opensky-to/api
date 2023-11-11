@@ -159,7 +159,9 @@ namespace OpenSky.API.Services
                         return;
                     }
 
-                    var availableForPurchaseOrRent = await this.db.Aircraft.Where(aircraft => aircraft.AirportICAO == airport.ICAO && (aircraft.RentPrice.HasValue || aircraft.PurchasePrice.HasValue) && aircraft.Type.Simulator == simulator)
+                    var availableForPurchaseOrRent = await this.db.Aircraft
+                                                               .Where(aircraft => aircraft.AirportICAO == airport.ICAO && (aircraft.RentPrice.HasValue || aircraft.PurchasePrice.HasValue) && aircraft.Type.Simulator == simulator)
+                                                               .Include(aircraft => aircraft.Type)
                                                                .ToListAsync(cancellationToken);
                     var totalSlots = CalculateTotalSlots(airport);
                     var requiredAircraft = Math.Ceiling(totalSlots * 0.8);
@@ -330,7 +332,10 @@ namespace OpenSky.API.Services
             string infoText;
 
             // ReSharper disable once AccessToModifiedClosure
-            var availableForPurchaseOrRent = await this.db.Aircraft.Where(aircraft => aircraft.AirportICAO == airport.ICAO && (aircraft.RentPrice.HasValue || aircraft.PurchasePrice.HasValue) && aircraft.Type.Simulator == simulator).ToListAsync();
+            var availableForPurchaseOrRent = await this.db.Aircraft
+                                                       .Where(aircraft => aircraft.AirportICAO == airport.ICAO && (aircraft.RentPrice.HasValue || aircraft.PurchasePrice.HasValue) && aircraft.Type.Simulator == simulator)
+                                                       .Include(aircraft => aircraft.Type)
+                                                       .ToListAsync();
             var aircraftTypes = await this.db.AircraftTypes.Where(type => type.Enabled && type.Simulator == simulator && !type.IsVariantOf.HasValue && (type.IsVanilla || type.IncludeInWorldPopulation)).ToListAsync();
             var totalSlots = CalculateTotalSlots(airport);
 

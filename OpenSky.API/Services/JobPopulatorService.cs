@@ -119,7 +119,9 @@ namespace OpenSky.API.Services
         public async Task<string> CheckAndGenerateJobsForAirport(string icao, JobDirection direction, AircraftTypeCategory? category = null, Simulator? simulator = null)
         {
             // Check if there is an airport with that ICAO code
-            var airport = this.db.Airports.SingleOrDefault(a => a.ICAO == icao);
+            var airport = this.db.Airports
+                              .Include(airport => airport.Jobs)
+                              .SingleOrDefault(a => a.ICAO == icao);
             if (airport == null)
             {
                 return $"No airport with ICAO code {icao}, not processing.";
@@ -163,17 +165,32 @@ namespace OpenSky.API.Services
             var availableJobs = new List<Job>();
             if (direction == JobDirection.From)
             {
-                availableJobs = await this.db.Jobs.Where(j => j.OriginICAO == icao && j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now).ToListAsync();
+                availableJobs = await this.db.Jobs
+                                          .Where(j => j.OriginICAO == icao && j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now)
+                                          .Include(job => job.Origin)
+                                          .Include(job => job.Payloads)
+                                          .ThenInclude(payload => payload.Destination)
+                                          .ToListAsync();
             }
 
             if (direction == JobDirection.To)
             {
-                availableJobs = await this.db.Jobs.Where(j => j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now && j.Payloads.Any(p => p.DestinationICAO == icao)).ToListAsync();
+                availableJobs = await this.db.Jobs
+                                          .Where(j => j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now && j.Payloads.Any(p => p.DestinationICAO == icao))
+                                          .Include(job => job.Origin)
+                                          .Include(job => job.Payloads)
+                                          .ThenInclude(payload => payload.Destination)
+                                          .ToListAsync();
             }
 
             if (direction == JobDirection.RoundTrip)
             {
-                availableJobs = await this.db.Jobs.Where(j => j.OriginICAO == icao && j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now && j.Payloads.Any(p => p.DestinationICAO == icao)).ToListAsync();
+                availableJobs = await this.db.Jobs
+                                          .Where(j => j.OriginICAO == icao && j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now && j.Payloads.Any(p => p.DestinationICAO == icao))
+                                          .Include(job => job.Origin)
+                                          .Include(job => job.Payloads)
+                                          .ThenInclude(payload => payload.Destination)
+                                          .ToListAsync();
             }
 
             if (simulator == Simulator.MSFS)

@@ -146,13 +146,21 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET Aircraft/{registry}");
+                
+                // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
                     return new ApiResponse<Aircraft> { Message = "Unable to find user record!", IsError = true };
                 }
 
-                var aircraft = await this.db.Aircraft.SingleOrDefaultAsync(a => a.Registry.Equals(registry));
+                var aircraft = await this.db.Aircraft
+                                         .Include(aircraft => aircraft.Type)
+                                         .ThenInclude(aircraftType => aircraftType.Manufacturer)
+                                         .Include(aircraft => aircraft.Type)
+                                         .ThenInclude(aircraftType => aircraftType.Variants)
+                                         .ThenInclude(aircraftType => aircraftType.Manufacturer)
+                                         .SingleOrDefaultAsync(a => a.Registry.Equals(registry));
                 if (aircraft == null)
                 {
                     return new ApiResponse<Aircraft>("Aircraft not found!") { IsError = true };
@@ -217,6 +225,8 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET Aircraft/atAirport/{icao}");
+
+                // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
@@ -236,7 +246,13 @@ namespace OpenSky.API.Controllers
                 if (this.User.IsInRole(UserRoles.Moderator) || this.User.IsInRole(UserRoles.Admin))
                 {
                     // Return all aircraft
-                    var aircraft = await this.db.Aircraft.Where(a => a.AirportICAO.Equals(icao) && !a.Flights.Any(f => f.Started.HasValue && !f.Completed.HasValue)).ToListAsync();
+                    var aircraft = await this.db.Aircraft.Where(a => a.AirportICAO.Equals(icao) && !a.Flights.Any(f => f.Started.HasValue && !f.Completed.HasValue))
+                                             .Include(aircraft => aircraft.Type)
+                                             .ThenInclude(aircraftType => aircraftType.Manufacturer)
+                                             .Include(aircraft => aircraft.Type)
+                                             .ThenInclude(aircraftType => aircraftType.Variants)
+                                             .ThenInclude(aircraftType => aircraftType.Manufacturer)
+                                             .ToListAsync();
 
                     foreach (var craft in aircraft)
                     {
@@ -262,6 +278,11 @@ namespace OpenSky.API.Controllers
                     var aircraft = await this.db.Aircraft.Where(
                                                  a => a.AirportICAO.Equals(icao) && !a.Flights.Any(f => f.Started.HasValue && !f.Completed.HasValue) &&
                                                       (a.OwnerID == user.Id || a.AirlineOwnerID == user.AirlineICAO || a.PurchasePrice.HasValue || a.RentPrice.HasValue))
+                                             .Include(aircraft => aircraft.Type)
+                                             .ThenInclude(aircraftType => aircraftType.Manufacturer)
+                                             .Include(aircraft => aircraft.Type)
+                                             .ThenInclude(aircraftType => aircraftType.Variants)
+                                             .ThenInclude(aircraftType => aircraftType.Manufacturer)
                                              .ToListAsync();
 
                     foreach (var craft in aircraft)
@@ -307,13 +328,21 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET Aircraft/myAircraft");
+
+                // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
                     return new ApiResponse<IEnumerable<Aircraft>> { Message = "Unable to find user record!", IsError = true, Data = new List<Aircraft>() };
                 }
 
-                var aircraft = await this.db.Aircraft.Where(a => a.OwnerID == user.Id).ToListAsync();
+                var aircraft = await this.db.Aircraft.Where(a => a.OwnerID == user.Id)
+                                         .Include(aircraft => aircraft.Type)
+                                         .ThenInclude(aircraftType => aircraftType.Manufacturer)
+                                         .Include(aircraft => aircraft.Type)
+                                         .ThenInclude(aircraftType => aircraftType.Variants)
+                                         .ThenInclude(aircraftType => aircraftType.Manufacturer)
+                                         .ToListAsync();
                 var missing = new AircraftManufacturer
                 {
                     ID = "miss",
@@ -358,13 +387,20 @@ namespace OpenSky.API.Controllers
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | PUT Aircraft/groundOperations/{operations.Registry}");
 
+                // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
                     return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
                 }
 
-                var aircraft = await this.db.Aircraft.SingleOrDefaultAsync(a => a.Registry.Equals(operations.Registry));
+                var aircraft = await this.db.Aircraft
+                                         .Include(aircraft => aircraft.AirlineOwner)
+                                         .Include(aircraft => aircraft.Owner)
+                                         .Include(aircraft => aircraft.Airport)
+                                         .Include(aircraft => aircraft.Payloads)
+                                         .Include(aircraft => aircraft.Type)
+                                         .SingleOrDefaultAsync(a => a.Registry.Equals(operations.Registry));
                 if (aircraft == null)
                 {
                     return new ApiResponse<string>("Aircraft not found!") { IsError = true };
@@ -592,7 +628,11 @@ namespace OpenSky.API.Controllers
                 // Check for completed jobs
                 foreach (var jobID in jobIDsToCheck)
                 {
-                    var job = await this.db.Jobs.SingleOrDefaultAsync(j => j.ID == jobID);
+                    var job = await this.db.Jobs
+                                        .Include(job => job.Operator)
+                                        .Include(job => job.OperatorAirline)
+                                        .Include(job => job.Payloads)
+                                        .SingleOrDefaultAsync(j => j.ID == jobID);
                     if (job != null)
                     {
                         var allPayloadsArrived = true;
@@ -715,6 +755,8 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | POST Aircraft/purchase: {purchase.Registry}");
+               
+                // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
@@ -731,7 +773,13 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string> { Message = "You don't have the permission to buy aircraft for your airline!", IsError = true };
                 }
 
-                var aircraft = await this.db.Aircraft.SingleOrDefaultAsync(a => a.Registry.Equals(purchase.Registry));
+                var aircraft = await this.db.Aircraft
+                                         .Include(aircraft => aircraft.Flights)
+                                         .Include(aircraft => aircraft.Owner)
+                                         .Include(aircraft => aircraft.AirlineOwner)
+                                         .Include(aircraft => aircraft.Airport)
+                                         .Include(aircraft => aircraft.Type)
+                                         .SingleOrDefaultAsync(a => a.Registry.Equals(purchase.Registry));
                 if (aircraft == null)
                 {
                     return new ApiResponse<string>("Aircraft not found!") { IsError = true };
@@ -887,6 +935,8 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | POST Aircraft/purchaseNew: {purchase.TypeID}@{purchase.DeliveryAirportICAO}");
+
+                // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
@@ -903,7 +953,9 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string> { Message = "You don't have the permission to buy aircraft for your airline!", IsError = true };
                 }
 
-                var aircraftType = await this.db.AircraftTypes.SingleOrDefaultAsync(at => at.ID == purchase.TypeID);
+                var aircraftType = await this.db.AircraftTypes
+                                             .Include(aircraftType => aircraftType.DeliveryLocations)
+                                             .SingleOrDefaultAsync(at => at.ID == purchase.TypeID);
                 if (aircraftType == null)
                 {
                     return new ApiResponse<string>("Aircraft type with specified ID not found!") { IsError = true };
@@ -1124,6 +1176,7 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<IEnumerable<Aircraft>> { Message = "Search radius must be between 10 and 500 nautical miles!", IsError = true, Data = new List<Aircraft>() };
                 }
 
+                // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
@@ -1220,6 +1273,8 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET Aircraft/searchInCountry");
+
+                // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
@@ -1314,13 +1369,19 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | POST Aircraft/sellToSystem/{registry}");
+
+                // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
                     return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
                 }
 
-                var aircraft = await this.db.Aircraft.SingleOrDefaultAsync(a => a.Registry.Equals(registry));
+                var aircraft = await this.db.Aircraft
+                                         .Include(aircraft => aircraft.Owner)
+                                         .Include(aircraft => aircraft.AirlineOwner)
+                                         .Include(aircraft => aircraft.Type)
+                                         .SingleOrDefaultAsync(a => a.Registry.Equals(registry));
                 if (aircraft == null)
                 {
                     return new ApiResponse<string>("Aircraft not found!") { IsError = true };
@@ -1452,13 +1513,17 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | PUT Aircraft/update/{updateAircraft.Registry}");
+
+                // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
                     return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
                 }
 
-                var aircraft = await this.db.Aircraft.SingleOrDefaultAsync(a => a.Registry.Equals(updateAircraft.Registry));
+                var aircraft = await this.db.Aircraft
+                                         .Include(aircraft => aircraft.Type)
+                                         .SingleOrDefaultAsync(a => a.Registry.Equals(updateAircraft.Registry));
                 if (aircraft == null)
                 {
                     return new ApiResponse<string>("Aircraft not found!") { IsError = true };

@@ -114,13 +114,18 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | POST Job/abort/{jobID}");
+
+                // ReSharper disable AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
                     return new ApiResponse<string>("Unable to find user record!") { IsError = true };
                 }
 
-                var job = await this.db.Jobs.SingleOrDefaultAsync(j => j.ID == jobID);
+                var job = await this.db.Jobs
+                                    .Include(job => job.OperatorAirline)
+                                    .Include(job => job.Payloads)
+                                    .SingleOrDefaultAsync(j => j.ID == jobID);
                 if (job == null)
                 {
                     return new ApiResponse<string>("Job not found!") { IsError = true };
@@ -322,7 +327,12 @@ namespace OpenSky.API.Controllers
 
                 if (direction == JobDirection.From)
                 {
-                    var jobs = await this.db.Jobs.Where(j => j.OriginICAO == icao && j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now).ToListAsync();
+                    var jobs = await this.db.Jobs
+                                         .Where(j => j.OriginICAO == icao && j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now)
+                                         .Include(job => job.Origin)
+                                         .Include(job => job.Payloads)
+                                         .ThenInclude(payload => payload.Destination)
+                                         .ToListAsync();
 
                     if (simulator == Simulator.MSFS)
                     {
@@ -339,7 +349,12 @@ namespace OpenSky.API.Controllers
 
                 if (direction == JobDirection.To)
                 {
-                    var jobs = await this.db.Jobs.Where(j => j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now && j.Payloads.Any(p => p.DestinationICAO == icao)).ToListAsync();
+                    var jobs = await this.db.Jobs
+                                         .Where(j => j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now && j.Payloads.Any(p => p.DestinationICAO == icao))
+                                         .Include(job => job.Origin)
+                                         .Include(job => job.Payloads)
+                                         .ThenInclude(payload => payload.Destination)
+                                         .ToListAsync();
 
                     if (simulator == Simulator.MSFS)
                     {
@@ -356,7 +371,12 @@ namespace OpenSky.API.Controllers
 
                 if (direction == JobDirection.RoundTrip)
                 {
-                    var jobs = await this.db.Jobs.Where(j => j.OriginICAO == icao && j.OperatorID == null && j.ExpiresAt > DateTime.Now && j.OperatorAirlineID == null && j.Payloads.Any(p => p.DestinationICAO == icao)).ToListAsync();
+                    var jobs = await this.db.Jobs
+                                         .Where(j => j.OriginICAO == icao && j.OperatorID == null && j.ExpiresAt > DateTime.Now && j.OperatorAirlineID == null && j.Payloads.Any(p => p.DestinationICAO == icao))
+                                         .Include(job => job.Origin)
+                                         .Include(job => job.Payloads)
+                                         .ThenInclude(payload => payload.Destination)
+                                         .ToListAsync();
 
                     if (simulator == Simulator.MSFS)
                     {
@@ -403,6 +423,8 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET Job/atAirport/{icao}/{direction}");
+
+                // ReSharper disable AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
@@ -472,6 +494,8 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET Job/atAirport/{icao}/{direction}/{category}/{simulator}");
+
+                // ReSharper disable AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
@@ -484,7 +508,12 @@ namespace OpenSky.API.Controllers
 
                 if (direction == JobDirection.From)
                 {
-                    var jobs = await this.db.Jobs.Where(j => j.OriginICAO == icao && j.Category == category && j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now).ToListAsync();
+                    var jobs = await this.db.Jobs
+                                         .Where(j => j.OriginICAO == icao && j.Category == category && j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now)
+                                         .Include(job => job.Origin)
+                                         .Include(job => job.Payloads)
+                                         .ThenInclude(payload => payload.Destination)
+                                         .ToListAsync();
 
                     if (simulator == Simulator.MSFS)
                     {
@@ -501,7 +530,12 @@ namespace OpenSky.API.Controllers
 
                 if (direction == JobDirection.To)
                 {
-                    var jobs = await this.db.Jobs.Where(j => j.Category == category && j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now && j.Payloads.Any(p => p.DestinationICAO == icao)).ToListAsync();
+                    var jobs = await this.db.Jobs
+                                         .Where(j => j.Category == category && j.OperatorID == null && j.OperatorAirlineID == null && j.ExpiresAt > DateTime.Now && j.Payloads.Any(p => p.DestinationICAO == icao))
+                                         .Include(job => job.Origin)
+                                         .Include(job => job.Payloads)
+                                         .ThenInclude(payload => payload.Destination)
+                                         .ToListAsync();
 
                     if (simulator == Simulator.MSFS)
                     {
@@ -518,7 +552,11 @@ namespace OpenSky.API.Controllers
 
                 if (direction == JobDirection.RoundTrip)
                 {
-                    var jobs = await this.db.Jobs.Where(j => j.OriginICAO == icao && j.Category == category && j.OperatorID == null && j.ExpiresAt > DateTime.Now && j.OperatorAirlineID == null && j.Payloads.Any(p => p.DestinationICAO == icao))
+                    var jobs = await this.db.Jobs
+                                         .Where(j => j.OriginICAO == icao && j.Category == category && j.OperatorID == null && j.ExpiresAt > DateTime.Now && j.OperatorAirlineID == null && j.Payloads.Any(p => p.DestinationICAO == icao))
+                                         .Include(job => job.Origin)
+                                         .Include(job => job.Payloads)
+                                         .ThenInclude(payload => payload.Destination)
                                          .ToListAsync();
 
                     if (simulator == Simulator.MSFS)

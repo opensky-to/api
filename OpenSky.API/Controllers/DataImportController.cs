@@ -128,9 +128,9 @@ namespace OpenSky.API.Controllers
         public async Task<ActionResult<ApiResponse<DataImportStatus>>> GetImportStatus(Guid importID)
         {
             this.logger.LogInformation($"{this.User.Identity?.Name} | GET DataImport/status/{importID}");
-            if (DataImportWorkerService.Status.ContainsKey(importID))
+            if (DataImportWorkerService.Status.TryGetValue(importID, out var status))
             {
-                return new ApiResponse<DataImportStatus> { Data = DataImportWorkerService.Status[importID] };
+                return new ApiResponse<DataImportStatus> { Data = status };
             }
 
             var dataImport = await this.db.DataImports.SingleOrDefaultAsync(i => i.ID == importID);

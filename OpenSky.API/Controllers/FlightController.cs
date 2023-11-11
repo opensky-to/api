@@ -121,13 +121,18 @@ namespace OpenSky.API.Controllers
             this.logger.LogInformation($"{this.User.Identity?.Name} | POST Flight/abort/{flightID}");
             try
             {
+                // ReSharper disable AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
                     return new ApiResponse<string>("Unable to find user record!") { IsError = true };
                 }
 
-                var flight = await this.db.Flights.SingleOrDefaultAsync(f => f.ID == flightID);
+                var flight = await this.db.Flights
+                                       .Include(flight => flight.Origin)
+                                       .Include(flight => flight.Aircraft)
+                                       .ThenInclude(aircraft => aircraft.Type)
+                                       .SingleOrDefaultAsync(f => f.ID == flightID);
                 if (flight == null)
                 {
                     return new ApiResponse<string>("No flight with that ID was found!") { IsError = true };
@@ -351,7 +356,19 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("Unable to find user record!") { IsError = true };
                 }
 
-                var flight = await this.db.Flights.SingleOrDefaultAsync(f => f.ID == finalReport.FinalPositionReport.ID);
+                var flight = await this.db.Flights
+                                       .Include(flight => flight.NavlogFixes)
+                                       .Include(flight => flight.Destination)
+                                       .Include(flight => flight.Alternate)
+                                       .Include(flight => flight.Origin)
+                                       .Include(flight => flight.OperatorAirline)
+                                       .Include(flight => flight.FlightPayloads)
+                                       .ThenInclude(flightPayload => flightPayload.Payload)
+                                       .Include(flight => flight.Aircraft)
+                                       .ThenInclude(aircraft => aircraft.Payloads)
+                                       .Include(flight => flight.Aircraft)
+                                       .ThenInclude(aircraft => aircraft.Type)
+                                       .SingleOrDefaultAsync(f => f.ID == finalReport.FinalPositionReport.ID);
                 if (flight == null)
                 {
                     return new ApiResponse<string>("No flight with that ID was found!") { IsError = true };
@@ -581,7 +598,11 @@ namespace OpenSky.API.Controllers
                     // Check for completed jobs
                     foreach (var jobID in jobIDsToCheck)
                     {
-                        var job = await this.db.Jobs.SingleOrDefaultAsync(j => j.ID == jobID);
+                        var job = await this.db.Jobs
+                                            .Include(job => job.Operator)
+                                            .Include(job => job.OperatorAirline)
+                                            .Include(job => job.Payloads)
+                                            .SingleOrDefaultAsync(j => j.ID == jobID);
                         if (job != null)
                         {
                             var allPayloadsArrived = true;
@@ -911,7 +932,15 @@ namespace OpenSky.API.Controllers
                     Name = "Missing"
                 };
 
-                var flight = await this.db.Flights.SingleOrDefaultAsync(f => f.OperatorID == user.Id && f.Started.HasValue && !f.Paused.HasValue && !f.Completed.HasValue);
+                var flight = await this.db.Flights
+                                       .Include(flight => flight.Aircraft)
+                                       .ThenInclude(aircraft => aircraft.Type)
+                                       .ThenInclude(aircraftType => aircraftType.Manufacturer)
+                                       .Include(flight => flight.Aircraft)
+                                       .ThenInclude(aircraft => aircraft.Type)
+                                       .ThenInclude(aircraftType => aircraftType.Variants)
+                                       .ThenInclude(aircraftType => aircraftType.Manufacturer)
+                                       .SingleOrDefaultAsync(f => f.OperatorID == user.Id && f.Started.HasValue && !f.Paused.HasValue && !f.Completed.HasValue);
                 if (flight != null)
                 {
                     flight.Aircraft.Type.Manufacturer ??= missing;
@@ -924,7 +953,15 @@ namespace OpenSky.API.Controllers
 
                 if (!string.IsNullOrEmpty(user.AirlineICAO))
                 {
-                    flight = await this.db.Flights.SingleOrDefaultAsync(f => f.OperatorAirlineID == user.AirlineICAO && f.AssignedAirlinePilotID == user.Id && f.Started.HasValue && !f.Paused.HasValue && !f.Completed.HasValue);
+                    flight = await this.db.Flights
+                                       .Include(f => f.Aircraft)
+                                       .ThenInclude(aircraft => aircraft.Type)
+                                       .ThenInclude(aircraftType => aircraftType.Manufacturer)
+                                       .Include(f => f.Aircraft)
+                                       .ThenInclude(aircraft => aircraft.Type)
+                                       .ThenInclude(aircraftType => aircraftType.Variants)
+                                       .ThenInclude(aircraftType => aircraftType.Manufacturer)
+                                       .SingleOrDefaultAsync(f => f.OperatorAirlineID == user.AirlineICAO && f.AssignedAirlinePilotID == user.Id && f.Started.HasValue && !f.Paused.HasValue && !f.Completed.HasValue);
                 }
 
                 if (flight != null)
@@ -1034,7 +1071,16 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<IEnumerable<FlightPlan>>("Unable to find user record!") { IsError = true, Data = new List<FlightPlan>() };
                 }
 
-                var plans = await this.db.Flights.Where(f => f.OperatorID == user.Id && !f.Started.HasValue).ToListAsync();
+                var plans = await this.db.Flights
+                                      .Where(f => f.OperatorID == user.Id && !f.Started.HasValue)
+                                      .Include(flight => flight.Aircraft)
+                                      .ThenInclude(aircraft => aircraft.Type)
+                                      .ThenInclude(aircraftType => aircraftType.Manufacturer)
+                                      .Include(flight => flight.Aircraft)
+                                      .ThenInclude(aircraft => aircraft.Type)
+                                      .ThenInclude(aircraftType => aircraftType.Variants)
+                                      .ThenInclude(aircraftType => aircraftType.Manufacturer)
+                                      .ToListAsync();
 
                 if (!string.IsNullOrEmpty(user.AirlineICAO))
                 {
@@ -1133,7 +1179,16 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<IEnumerable<Flight>>("Unable to find user record!") { IsError = true, Data = new List<Flight>() };
                 }
 
-                var flights = await this.db.Flights.Where(f => f.OperatorID == user.Id && f.Started.HasValue && !f.Completed.HasValue).ToListAsync();
+                var flights = await this.db.Flights
+                                        .Where(f => f.OperatorID == user.Id && f.Started.HasValue && !f.Completed.HasValue)
+                                        .Include(flight => flight.Aircraft)
+                                        .ThenInclude(aircraft => aircraft.Type)
+                                        .ThenInclude(aircraftType => aircraftType.Manufacturer)
+                                        .Include(flight => flight.Aircraft)
+                                        .ThenInclude(aircraft => aircraft.Type)
+                                        .ThenInclude(aircraftType => aircraftType.Variants)
+                                        .ThenInclude(aircraftType => aircraftType.Manufacturer)
+                                        .ToListAsync();
 
                 if (!string.IsNullOrEmpty(user.AirlineICAO))
                 {
@@ -1514,7 +1569,9 @@ namespace OpenSky.API.Controllers
                 Aircraft aircraft = null;
                 if (flightPlan.Aircraft != null)
                 {
-                    aircraft = await this.db.Aircraft.SingleOrDefaultAsync(a => a.Registry.Equals(flightPlan.Aircraft.Registry));
+                    aircraft = await this.db.Aircraft
+                                         .Include(a => a.Type)
+                                         .SingleOrDefaultAsync(a => a.Registry.Equals(flightPlan.Aircraft.Registry));
                     if (aircraft == null)
                     {
                         return new ApiResponse<string>("Aircraft not found!") { IsError = true };
@@ -1607,7 +1664,10 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("Flight number is out of range (1-9999)!") { IsError = true };
                 }
 
-                var existingFlight = await this.db.Flights.SingleOrDefaultAsync(f => f.ID == flightPlan.ID);
+                var existingFlight = await this.db.Flights
+                                               .Include(flight => flight.NavlogFixes)
+                                               .Include(flight => flight.FlightPayloads)
+                                               .SingleOrDefaultAsync(f => f.ID == flightPlan.ID);
                 if (existingFlight == null)
                 {
                     var newFlight = new Flight
@@ -1748,7 +1808,20 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<StartFlightStatus>("Unable to find user record!") { IsError = true, Data = StartFlightStatus.Error };
                 }
 
-                var plan = await this.db.Flights.SingleOrDefaultAsync(f => f.ID == startFlight.FlightID);
+                var plan = await this.db.Flights
+                                     .Include(flight => flight.Aircraft)
+                                     .ThenInclude(aircraft => aircraft.Payloads)
+                                     .Include(flight => flight.Aircraft)
+                                     .ThenInclude(aircraft => aircraft.AirlineOwner)
+                                     .Include(flight => flight.Aircraft)
+                                     .ThenInclude(aircraft => aircraft.Owner)
+                                     .Include(flight => flight.Aircraft)
+                                     .ThenInclude(aircraft => aircraft.Airport)
+                                     .Include(flight => flight.Aircraft)
+                                     .ThenInclude(aircraft => aircraft.Type)
+                                     .Include(flight => flight.FlightPayloads)
+                                     .ThenInclude(flightPayload => flightPayload.Payload)
+                                     .SingleOrDefaultAsync(f => f.ID == startFlight.FlightID);
                 if (plan == null)
                 {
                     return new ApiResponse<StartFlightStatus>("No flight plan with that ID was found!") { IsError = true, Data = StartFlightStatus.Error };
