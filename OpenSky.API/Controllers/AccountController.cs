@@ -4,6 +4,7 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
+#pragma warning disable CA1416
 namespace OpenSky.API.Controllers
 {
     using System;
@@ -12,6 +13,8 @@ namespace OpenSky.API.Controllers
     using System.Drawing.Imaging;
     using System.IO;
     using System.Threading.Tasks;
+
+    using JetBrains.Annotations;
 
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Http;
@@ -92,7 +95,7 @@ namespace OpenSky.API.Controllers
         /// The resized image.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        public static Bitmap ResizeImage(Image image, int width, int height)
+        public static Bitmap ResizeImage([NotNull] Image image, int width, int height)
         {
             var destRect = new Rectangle(0, 0, width, height);
             var destImage = new Bitmap(width, height);
@@ -133,6 +136,8 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET Account/accountOverview");
+                
+                // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
@@ -178,6 +183,8 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET Account/linkedAccounts");
+                
+                // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
@@ -219,6 +226,8 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | PUT Account/tokenRenewalCountryVerification/{enableVerification}");
+                
+                // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
@@ -256,6 +265,8 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | PUT Account/linkedAccounts");
+
+                // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
@@ -295,6 +306,8 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | POST Account/profileImage");
+                
+                // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {

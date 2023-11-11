@@ -173,6 +173,8 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET Authentication/tokens");
+                
+                // ReSharper disable AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
@@ -217,6 +219,8 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | POST Authentication/changePassword");
+                
+                // ReSharper disable AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
@@ -266,6 +270,7 @@ namespace OpenSky.API.Controllers
             this.logger.LogInformation($"Processing forgot password request for {forgotPassword.Email}");
 
             // Check Google reCAPTCHAv3
+            // ReSharper disable AssignNullToNotNullAttribute
             if (bool.Parse(this.configuration["GoogleReCaptchaV3:Enabled"]))
             {
                 var reCAPTCHARequest = new ReCaptchaRequest(this.configuration["GoogleReCaptchaV3:ApiUrl"], this.configuration["GoogleReCaptchaV3:Secret"], forgotPassword.RecaptchaToken, this.GetRemoteIPAddress());
@@ -328,6 +333,8 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | POST Authentication/applicationToken, application name: {applicationToken.Name}");
+                
+                // ReSharper disable AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
@@ -338,7 +345,7 @@ namespace OpenSky.API.Controllers
                 var userRoles = await this.userManager.GetRolesAsync(user);
 
                 // Check if this user is a global admin (from the config json file)
-                var globalAdmins = this.configuration["OpenSky:GlobalAdmins"].Split(',');
+                var globalAdmins = this.configuration["OpenSky:GlobalAdmins"]?.Split(',');
                 if (globalAdmins.Contains(user.Email) && !userRoles.Contains(UserRoles.Admin))
                 {
                     userRoles.Add(UserRoles.Admin);
@@ -485,7 +492,7 @@ namespace OpenSky.API.Controllers
                     var userRoles = await this.userManager.GetRolesAsync(user);
 
                     // Check if this user is a global admin (from the config json file)
-                    var globalAdmins = this.configuration["OpenSky:GlobalAdmins"].Split(',');
+                    var globalAdmins = this.configuration["OpenSky:GlobalAdmins"]?.Split(',');
                     if (globalAdmins.Contains(user.Email) && !userRoles.Contains(UserRoles.Admin))
                     {
                         userRoles.Add(UserRoles.Admin);
@@ -647,7 +654,7 @@ namespace OpenSky.API.Controllers
                 var userRoles = await this.userManager.GetRolesAsync(user);
 
                 // Check if this user is a global admin (from the config json file)
-                var globalAdmins = this.configuration["OpenSky:GlobalAdmins"].Split(',');
+                var globalAdmins = this.configuration["OpenSky:GlobalAdmins"]?.Split(',');
                 if (globalAdmins.Contains(user.Email) && !userRoles.Contains(UserRoles.Admin))
                 {
                     userRoles.Add(UserRoles.Admin);

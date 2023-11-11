@@ -4,6 +4,7 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
+#pragma warning disable CA1416
 namespace OpenSky.API.Controllers
 {
     using System;
@@ -160,6 +161,8 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | POST AircraftType");
+                
+                // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
@@ -207,6 +210,7 @@ namespace OpenSky.API.Controllers
                 // Are there any delivery locations added?
                 if (type.DeliveryLocations?.Count > 0 && !string.IsNullOrEmpty(type.ManufacturerID))
                 {
+                    var newDeliveryLocations = new List<AircraftManufacturerDeliveryLocation>();
                     foreach (var deliveryLocation in type.DeliveryLocations)
                     {
                         if (string.IsNullOrEmpty(deliveryLocation.AirportICAO))
@@ -242,10 +246,11 @@ namespace OpenSky.API.Controllers
                             AircraftTypeID = type.ID,
                             AirportICAO = deliveryLocation.AirportICAO
                         };
-                        await this.db.AircraftManufacturerDeliveryLocations.AddAsync(newDeliveryLocation);
+                        newDeliveryLocations.Add(newDeliveryLocation);
                     }
 
                     type.DeliveryLocations.Clear();
+                    await this.db.AircraftManufacturerDeliveryLocations.AddRangeAsync(newDeliveryLocations);
                 }
 
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving new aircraft type.");
@@ -565,7 +570,12 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET AircraftType");
-                var types = await this.db.AircraftTypes.Where(t => t.Enabled && !t.NextVersion.HasValue).ToListAsync();
+                var types = await this.db.AircraftTypes
+                                      .Where(t => t.Enabled && !t.NextVersion.HasValue)
+                                      .Include(aircraftType => aircraftType.Manufacturer)
+                                      .Include(aircraftType => aircraftType.Variants)
+                                      .ThenInclude(aircraftType => aircraftType.Manufacturer)
+                                      .ToListAsync();
                 var missing = new AircraftManufacturer
                 {
                     ID = "miss",
@@ -608,7 +618,10 @@ namespace OpenSky.API.Controllers
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET AircraftType/upgrades");
                 var updates = new List<AircraftTypeUpgrade>();
-                var types = await this.db.AircraftTypes.Where(t => t.NextVersion.HasValue).ToListAsync();
+                var types = await this.db.AircraftTypes
+                                      .Where(t => t.NextVersion.HasValue)
+                                      .Include(aircraftType => aircraftType.NextVersionType)
+                                      .ToListAsync();
                 foreach (var type in types)
                 {
                     AircraftType to = null;
@@ -660,7 +673,11 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET AircraftType/all");
-                var types = await this.db.AircraftTypes.ToListAsync();
+                var types = await this.db.AircraftTypes
+                                      .Include(aircraftType => aircraftType.Manufacturer)
+                                      .Include(aircraftType => aircraftType.Variants)
+                                      .ThenInclude(aircraftType => aircraftType.Manufacturer)
+                                      .ToListAsync();
                 var missing = new AircraftManufacturer
                 {
                     ID = "miss",
@@ -705,7 +722,12 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET AircraftType/simulator/{simulator}");
-                var types = await this.db.AircraftTypes.Where(at => at.Simulator == simulator).ToListAsync();
+                var types = await this.db.AircraftTypes
+                                      .Where(at => at.Simulator == simulator)
+                                      .Include(aircraftType => aircraftType.Manufacturer)
+                                      .Include(aircraftType => aircraftType.Variants)
+                                      .ThenInclude(aircraftType => aircraftType.Manufacturer)
+                                      .ToListAsync();
                 var missing = new AircraftManufacturer
                 {
                     ID = "miss",
@@ -786,6 +808,8 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | PUT AircraftType");
+
+                // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
@@ -998,7 +1022,9 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | POST AircraftType/upgrade");
-                var from = await this.db.AircraftTypes.SingleOrDefaultAsync(t => t.ID == upgrade.From.ID);
+                var from = await this.db.AircraftTypes
+                                     .Include(aircraftType => aircraftType.NextVersionType)
+                                     .SingleOrDefaultAsync(t => t.ID == upgrade.From.ID);
                 if (from == null)
                 {
                     return new ApiResponse<string>("No such aircraft type!") { IsError = true };

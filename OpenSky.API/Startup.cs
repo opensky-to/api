@@ -113,6 +113,7 @@ namespace OpenSky.API
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
 
             // Apply automatic database migrations?
+            // ReSharper disable once AssignNullToNotNullAttribute
             if (bool.Parse(config["ConnectionStrings:ApplyMigrations"]))
             {
                 dbContext.Database.Migrate();
@@ -189,6 +190,7 @@ namespace OpenSky.API
                 });
 
             // Email service
+            // ReSharper disable AssignNullToNotNullAttribute
             services.AddSingleton(
                 new SendMail(
                     this.Configuration["Email:SmtpServer"],
@@ -196,6 +198,7 @@ namespace OpenSky.API
                     this.Configuration["Email:UserName"],
                     this.Configuration["Email:Password"],
                     Enum.Parse<SecureSocketOptions>(this.Configuration["Email:SecureSocketOptions"])));
+            // ReSharper restore AssignNullToNotNullAttribute
 
             // Set identity with rules inspired by reading https://blog.codinghorror.com/password-rules-are-bullshit/
             services.AddIdentity<OpenSkyUser, IdentityRole>(
@@ -225,6 +228,7 @@ namespace OpenSky.API
                             ValidAudience = this.Configuration["JWT:ValidAudience"],
                             ValidIssuer = this.Configuration["JWT:ValidIssuer"],
                             ValidateIssuerSigningKey = true,
+                            // ReSharper disable AssignNullToNotNullAttribute
                             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.Configuration["JWT:Secret"])),
                             ValidateLifetime = true
                         };
