@@ -781,7 +781,7 @@ namespace OpenSky.API.Controllers
 
                 // Transfer the editable properties
                 existingType.Name = type.Name;
-                existingType.ManufacturerID = type.ManufacturerID;
+                existingType.ManufacturerID = string.IsNullOrEmpty(type.ManufacturerID) ? "miss" : type.ManufacturerID;
                 existingType.VersionNumber = type.VersionNumber;
                 existingType.Category = type.Category;
                 existingType.IsVanilla = type.IsVanilla;
