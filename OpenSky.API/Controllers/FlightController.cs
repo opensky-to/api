@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="FlightController.cs" company="OpenSky">
-// OpenSky project 2021-2022
+// OpenSky project 2021-2023
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -926,12 +926,6 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<Flight>("Unable to find user record!") { IsError = true, Data = Flight.ValidEmptyModel };
                 }
 
-                var missing = new AircraftManufacturer
-                {
-                    ID = "miss",
-                    Name = "Missing"
-                };
-
                 var flight = await this.db.Flights
                                        .Include(flight => flight.Aircraft)
                                        .ThenInclude(aircraft => aircraft.Type)
@@ -943,11 +937,6 @@ namespace OpenSky.API.Controllers
                                        .SingleOrDefaultAsync(f => f.OperatorID == user.Id && f.Started.HasValue && !f.Paused.HasValue && !f.Completed.HasValue);
                 if (flight != null)
                 {
-                    flight.Aircraft.Type.Manufacturer ??= missing;
-                    foreach (var variant in flight.Aircraft.Type.Variants.Where(v => v.Manufacturer == null))
-                    {
-                        variant.Manufacturer = missing;
-                    }
                     return new ApiResponse<Flight>(flight);
                 }
 
@@ -962,15 +951,6 @@ namespace OpenSky.API.Controllers
                                        .ThenInclude(aircraftType => aircraftType.Variants)
                                        .ThenInclude(aircraftType => aircraftType.Manufacturer)
                                        .SingleOrDefaultAsync(f => f.OperatorAirlineID == user.AirlineICAO && f.AssignedAirlinePilotID == user.Id && f.Started.HasValue && !f.Paused.HasValue && !f.Completed.HasValue);
-                }
-
-                if (flight != null)
-                {
-                    flight.Aircraft.Type.Manufacturer ??= missing;
-                    foreach (var variant in flight.Aircraft.Type.Variants.Where(v => v.Manufacturer == null))
-                    {
-                        variant.Manufacturer = missing;
-                    }
                 }
 
                 return new ApiResponse<Flight>(flight ?? Flight.ValidEmptyModel);
@@ -1094,20 +1074,6 @@ namespace OpenSky.API.Controllers
                     }
                 }
 
-                var missing = new AircraftManufacturer
-                {
-                    ID = "miss",
-                    Name = "Missing"
-                };
-                foreach (var plan in plans.Where(p => p.Aircraft != null))
-                {
-                    plan.Aircraft.Type.Manufacturer ??= missing;
-                    foreach (var variant in plan.Aircraft.Type.Variants.Where(v => v.Manufacturer == null))
-                    {
-                        variant.Manufacturer = missing;
-                    }
-                }
-
                 return new ApiResponse<IEnumerable<FlightPlan>>(plans.Select(f => new FlightPlan(f)));
             }
             catch (Exception ex)
@@ -1193,20 +1159,6 @@ namespace OpenSky.API.Controllers
                 if (!string.IsNullOrEmpty(user.AirlineICAO))
                 {
                     flights.AddRange(await this.db.Flights.Where(f => f.OperatorAirlineID == user.AirlineICAO && f.AssignedAirlinePilotID == user.Id && f.Started.HasValue && !f.Completed.HasValue).ToListAsync());
-                }
-
-                var missing = new AircraftManufacturer
-                {
-                    ID = "miss",
-                    Name = "Missing"
-                };
-                foreach (var flight in flights)
-                {
-                    flight.Aircraft.Type.Manufacturer ??= missing;
-                    foreach (var variant in flight.Aircraft.Type.Variants.Where(v => v.Manufacturer == null))
-                    {
-                        variant.Manufacturer = missing;
-                    }
                 }
 
                 return new ApiResponse<IEnumerable<Flight>>(flights);
