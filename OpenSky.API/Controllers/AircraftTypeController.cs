@@ -124,20 +124,6 @@ namespace OpenSky.API.Controllers
                 }
             }
 
-            var missing = new AircraftManufacturer
-            {
-                ID = "miss",
-                Name = "Missing"
-            };
-            foreach (var variantType in variants)
-            {
-                variantType.Manufacturer ??= missing;
-                foreach (var subVariant in variantType.Variants.Where(t => t.Manufacturer == null))
-                {
-                    subVariant.Manufacturer = missing;
-                }
-            }
-
             return variants;
         }
 
@@ -202,11 +188,6 @@ namespace OpenSky.API.Controllers
                 type.NextVersion = null;
                 await this.db.AircraftTypes.AddAsync(type);
 
-                if (Equals(type.ManufacturerID, "miss"))
-                {
-                    type.ManufacturerID = null;
-                }
-
                 // Are there any delivery locations added?
                 if (type.DeliveryLocations?.Count > 0 && !string.IsNullOrEmpty(type.ManufacturerID))
                 {
@@ -251,6 +232,11 @@ namespace OpenSky.API.Controllers
 
                     type.DeliveryLocations.Clear();
                     await this.db.AircraftManufacturerDeliveryLocations.AddRangeAsync(newDeliveryLocations);
+                }
+
+                if (string.IsNullOrEmpty(type.ManufacturerID))
+                {
+                    type.ManufacturerID = "miss";
                 }
 
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving new aircraft type.");
@@ -508,12 +494,6 @@ namespace OpenSky.API.Controllers
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET AircraftType/manufacturers");
                 var manufacturers = await this.db.AircraftManufacturers.ToListAsync();
-                manufacturers.Add(
-                    new AircraftManufacturer
-                    {
-                        ID = "miss",
-                        Name = "Missing"
-                    });
                 return new ApiResponse<IEnumerable<AircraftManufacturer>>(manufacturers);
             }
             catch (Exception ex)
@@ -576,19 +556,6 @@ namespace OpenSky.API.Controllers
                                       .Include(aircraftType => aircraftType.Variants)
                                       .ThenInclude(aircraftType => aircraftType.Manufacturer)
                                       .ToListAsync();
-                var missing = new AircraftManufacturer
-                {
-                    ID = "miss",
-                    Name = "Missing"
-                };
-                foreach (var type in types)
-                {
-                    type.Manufacturer ??= missing;
-                    foreach (var variant in type.Variants.Where(v => v.Manufacturer == null))
-                    {
-                        variant.Manufacturer = missing;
-                    }
-                }
 
                 return new ApiResponse<IEnumerable<AircraftType>>(types);
             }
@@ -678,19 +645,6 @@ namespace OpenSky.API.Controllers
                                       .Include(aircraftType => aircraftType.Variants)
                                       .ThenInclude(aircraftType => aircraftType.Manufacturer)
                                       .ToListAsync();
-                var missing = new AircraftManufacturer
-                {
-                    ID = "miss",
-                    Name = "Missing"
-                };
-                foreach (var type in types)
-                {
-                    type.Manufacturer ??= missing;
-                    foreach (var variant in type.Variants.Where(v => v.Manufacturer == null))
-                    {
-                        variant.Manufacturer = missing;
-                    }
-                }
 
                 return new ApiResponse<IEnumerable<AircraftType>>(types);
             }
@@ -728,19 +682,6 @@ namespace OpenSky.API.Controllers
                                       .Include(aircraftType => aircraftType.Variants)
                                       .ThenInclude(aircraftType => aircraftType.Manufacturer)
                                       .ToListAsync();
-                var missing = new AircraftManufacturer
-                {
-                    ID = "miss",
-                    Name = "Missing"
-                };
-                foreach (var type in types)
-                {
-                    type.Manufacturer ??= missing;
-                    foreach (var variant in type.Variants.Where(v => v.Manufacturer == null))
-                    {
-                        variant.Manufacturer = missing;
-                    }
-                }
 
                 return new ApiResponse<IEnumerable<AircraftType>>(types);
             }
@@ -840,7 +781,7 @@ namespace OpenSky.API.Controllers
 
                 // Transfer the editable properties
                 existingType.Name = type.Name;
-                existingType.ManufacturerID = Equals(type.ManufacturerID, "miss") ? null : type.ManufacturerID;
+                existingType.ManufacturerID = type.ManufacturerID;
                 existingType.VersionNumber = type.VersionNumber;
                 existingType.Category = type.Category;
                 existingType.IsVanilla = type.IsVanilla;
