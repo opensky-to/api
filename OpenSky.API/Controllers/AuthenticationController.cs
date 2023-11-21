@@ -169,11 +169,10 @@ namespace OpenSky.API.Controllers
         [HttpGet("tokens", Name = "GetTokens")]
         public async Task<ActionResult<ApiResponse<IEnumerable<Token>>>> GetTokens()
         {
-
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET Authentication/tokens");
-                
+
                 // ReSharper disable AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
@@ -181,13 +180,14 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<IEnumerable<Token>> { Message = "Unable to find user record!", IsError = true, Data = new List<Token>() };
                 }
 
-                var tokens = await this.db.OpenSkyTokens.Where(t => t.UserID == user.Id).Select(openSkyToken => new Token
-                {
-                    Name = openSkyToken.Name,
-                    Expiry = openSkyToken.Expiry,
-                    TokenGeo = openSkyToken.TokenGeo,
-                    TokenIP = openSkyToken.TokenIP
-                }).ToListAsync();
+                var tokens = await this.db.OpenSkyTokens.Where(t => t.UserID == user.Id).Select(
+                    openSkyToken => new Token
+                    {
+                        Name = openSkyToken.Name,
+                        Expiry = openSkyToken.Expiry,
+                        TokenGeo = openSkyToken.TokenGeo,
+                        TokenIP = openSkyToken.TokenIP
+                    }).ToListAsync();
 
                 return new ApiResponse<IEnumerable<Token>>(tokens);
             }
@@ -219,7 +219,7 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | POST Authentication/changePassword");
-                
+
                 // ReSharper disable AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
@@ -333,7 +333,7 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | POST Authentication/applicationToken, application name: {applicationToken.Name}");
-                
+
                 // ReSharper disable AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
@@ -375,11 +375,11 @@ namespace OpenSky.API.Controllers
 
                 // Build claims
                 var authClaims = new List<Claim>
-            {
-                new(ClaimTypes.Name, user.UserName),
-                new(ClaimTypes.Email, user.Email),
-                new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            };
+                {
+                    new(ClaimTypes.Name, user.UserName),
+                    new(ClaimTypes.Email, user.Email),
+                    new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                };
                 authClaims.AddRange(userRoles.Select(userRole => new Claim(ClaimTypes.Role, userRole)));
 
                 // Create JWT token
@@ -440,6 +440,62 @@ namespace OpenSky.API.Controllers
         {
             this.logger.LogInformation($"{this.User.Identity?.Name} | GET Authentication/userRoles");
             return new ApiResponse<IEnumerable<string>>(this.User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList());
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Adds or removes the moderator role from the specified user.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 21/11/2023.
+        /// </remarks>
+        /// <param name="moderatorRole">
+        /// The moderator role model.
+        /// </param>
+        /// <returns>
+        /// An IActionResult object returning an ApiResponse object in the body.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [Authorize(Roles = UserRoles.Admin)]
+        [HttpPost("moderatorRole")]
+        public async Task<ActionResult<ApiResponse<string>>> SetModeratorRole([FromBody] ModeratorRole moderatorRole)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Authentication/moderatorRole");
+                var user = await this.userManager.FindByNameAsync(moderatorRole.Username) ?? await this.userManager.FindByEmailAsync(moderatorRole.Username);
+
+                if (user == null)
+                {
+                    throw new Exception($"Unable to find user \"{moderatorRole.Username}\".");
+                }
+
+                // Make sure the moderator role exists
+                if (!await this.roleManager.RoleExistsAsync(UserRoles.Moderator))
+                {
+                    var roleResult = await this.roleManager.CreateAsync(new IdentityRole(UserRoles.Moderator));
+                    if (!roleResult.Succeeded)
+                    {
+                        var roleErrorDetails = roleResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
+                        return new ApiResponse<string> { Message = $"Error creating User role!{roleErrorDetails}", IsError = true };
+                    }
+                }
+
+                var result = moderatorRole.IsModerator ? await this.userManager.AddToRoleAsync(user, UserRoles.Moderator) : await this.userManager.RemoveFromRoleAsync(user, UserRoles.Moderator);
+
+                if (result.Succeeded)
+                {
+                    return new ApiResponse<string>($"User \"{moderatorRole.Username}\" is now a moderator?: {moderatorRole.IsModerator}");
+                }
+
+                var errorDetails = result.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
+                return new ApiResponse<string> { Message = $"User role modification failed!{errorDetails}", IsError = true };
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Authentication/moderatorRole");
+                return new ApiResponse<string>(ex);
+            }
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -522,11 +578,11 @@ namespace OpenSky.API.Controllers
 
                     // Build claims
                     var authClaims = new List<Claim>
-                {
-                    new(ClaimTypes.Name, user.UserName),
-                    new(ClaimTypes.Email, user.Email),
-                    new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                };
+                    {
+                        new(ClaimTypes.Name, user.UserName),
+                        new(ClaimTypes.Email, user.Email),
+                        new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                    };
                     authClaims.AddRange(userRoles.Select(userRole => new Claim(ClaimTypes.Role, userRole)));
 
                     // Create JWT token
@@ -573,7 +629,10 @@ namespace OpenSky.API.Controllers
                     // All done, return the tokens to the client
                     return new ApiResponse<LoginResponse>("Logged in successfully!")
                     {
-                        Data = new LoginResponse { Token = new JwtSecurityTokenHandler().WriteToken(token), Expiration = token.ValidTo, Username = user.UserName, RefreshToken = openSkyToken.ID.ToString("N"), RefreshTokenExpiration = openSkyToken.Expiry }
+                        Data = new LoginResponse
+                        {
+                            Token = new JwtSecurityTokenHandler().WriteToken(token), Expiration = token.ValidTo, Username = user.UserName, RefreshToken = openSkyToken.ID.ToString("N"), RefreshTokenExpiration = openSkyToken.Expiry
+                        }
                     };
                 }
 
