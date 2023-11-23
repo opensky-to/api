@@ -4,7 +4,7 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace OpenSky.API.Model.Authentication
+namespace OpenSky.API.Model.Account
 {
     using System.ComponentModel.DataAnnotations;
 

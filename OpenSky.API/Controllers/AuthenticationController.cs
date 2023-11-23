@@ -444,62 +444,6 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Adds or removes the moderator role from the specified user.
-        /// </summary>
-        /// <remarks>
-        /// sushi.at, 21/11/2023.
-        /// </remarks>
-        /// <param name="moderatorRole">
-        /// The moderator role model.
-        /// </param>
-        /// <returns>
-        /// An IActionResult object returning an ApiResponse object in the body.
-        /// </returns>
-        /// -------------------------------------------------------------------------------------------------
-        [Authorize(Roles = UserRoles.Admin)]
-        [HttpPost("moderatorRole")]
-        public async Task<ActionResult<ApiResponse<string>>> SetModeratorRole([FromBody] ModeratorRole moderatorRole)
-        {
-            try
-            {
-                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Authentication/moderatorRole");
-                var user = await this.userManager.FindByNameAsync(moderatorRole.Username) ?? await this.userManager.FindByEmailAsync(moderatorRole.Username);
-
-                if (user == null)
-                {
-                    throw new Exception($"Unable to find user \"{moderatorRole.Username}\".");
-                }
-
-                // Make sure the moderator role exists
-                if (!await this.roleManager.RoleExistsAsync(UserRoles.Moderator))
-                {
-                    var roleResult = await this.roleManager.CreateAsync(new IdentityRole(UserRoles.Moderator));
-                    if (!roleResult.Succeeded)
-                    {
-                        var roleErrorDetails = roleResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
-                        return new ApiResponse<string> { Message = $"Error creating User role!{roleErrorDetails}", IsError = true };
-                    }
-                }
-
-                var result = moderatorRole.IsModerator ? await this.userManager.AddToRoleAsync(user, UserRoles.Moderator) : await this.userManager.RemoveFromRoleAsync(user, UserRoles.Moderator);
-
-                if (result.Succeeded)
-                {
-                    return new ApiResponse<string>($"User \"{moderatorRole.Username}\" is now a moderator?: {moderatorRole.IsModerator}");
-                }
-
-                var errorDetails = result.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
-                return new ApiResponse<string> { Message = $"User role modification failed!{errorDetails}", IsError = true };
-            }
-            catch (Exception ex)
-            {
-                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Authentication/moderatorRole");
-                return new ApiResponse<string>(ex);
-            }
-        }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// Login to OpenSky API.
         /// </summary>
         /// <remarks>
