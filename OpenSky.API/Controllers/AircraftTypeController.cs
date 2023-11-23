@@ -147,7 +147,7 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | POST AircraftType");
-                
+
                 // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
@@ -762,6 +762,12 @@ namespace OpenSky.API.Controllers
                 if (existingType == null)
                 {
                     return new ApiResponse<string> { Message = "Unable to find existing aircraft type!", IsError = true };
+                }
+
+                // Make sure not creating a variant loop by being a variant of itself
+                if (type.IsVariantOf.HasValue && type.IsVariantOf.Value == type.ID)
+                {
+                    return new ApiResponse<string> { Message = "An aircraft type can't be variant of itself!", IsError = true };
                 }
 
                 // Would this update create a variant-chain?
