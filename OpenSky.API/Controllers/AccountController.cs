@@ -8,10 +8,12 @@
 namespace OpenSky.API.Controllers
 {
     using System;
+    using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
     using System.IO;
+    using System.Linq;
     using System.Threading.Tasks;
 
     using JetBrains.Annotations;
@@ -43,10 +45,24 @@ namespace OpenSky.API.Controllers
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The OpenSky database context.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly OpenSkyDbContext db;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// The logger.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private readonly ILogger<AccountController> logger;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The role manager.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly RoleManager<IdentityRole> roleManager;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -68,11 +84,23 @@ namespace OpenSky.API.Controllers
         /// <param name="userManager">
         /// The user manager.
         /// </param>
+        /// <param name="roleManager">
+        /// The role manager.
+        /// </param>
+        /// <param name="db">
+        /// The OpenSky database context.
+        /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public AccountController(ILogger<AccountController> logger, UserManager<OpenSkyUser> userManager)
+        public AccountController(
+            ILogger<AccountController> logger,
+            UserManager<OpenSkyUser> userManager,
+            RoleManager<IdentityRole> roleManager,
+            OpenSkyDbContext db)
         {
             this.logger = logger;
             this.userManager = userManager;
+            this.roleManager = roleManager;
+            this.db = db;
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -136,7 +164,7 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET Account/accountOverview");
-                
+
                 // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
@@ -183,7 +211,7 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET Account/linkedAccounts");
-                
+
                 // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
@@ -208,6 +236,149 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Get profile image for the specified user ID.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 23/11/2023.
+        /// </remarks>
+        /// <param name="userId">
+        /// The ID of the OpenSky user.
+        /// </param>
+        /// <returns>
+        /// The profile image.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [Authorize(Roles = UserRoles.Admin)]
+        [HttpGet("profileImage/{userId}", Name = "GetProfileImage")]
+        public async Task<ActionResult<ApiResponse<byte[]>>> GetProfileImage(Guid userId)
+        {
+            this.logger.LogInformation($"{this.User.Identity?.Name} | GET Account/profileImage/{userId}");
+            try
+            {
+                var user = await this.userManager.FindByIdAsync(userId.ToString());
+                if (user == null)
+                {
+                    throw new Exception("No such user ID.");
+                }
+
+                return new ApiResponse<byte[]> { Data = user.ProfileImage };
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Account/profileImage/{userId}");
+                return new ApiResponse<byte[]>(ex) { Data = Array.Empty<byte>() };
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Get the list of all OpenSky users.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 22/11/2023.
+        /// </remarks>
+        /// <returns>
+        /// The list of all OpenSky users.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [Authorize(Roles = UserRoles.Admin)]
+        [HttpGet("users", Name = "GetUsers")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<User>>>> GetUsers()
+        {
+            this.logger.LogInformation($"{this.User.Identity?.Name} | GET Account/users");
+            try
+            {
+                var users = this.db.Users.Select(
+                    u => new User
+                    {
+                        ID = Guid.Parse(u.Id),
+                        Username = u.UserName,
+                        Email = u.Email,
+                        EmailConfirmed = u.EmailConfirmed,
+                        RegisteredOn = u.RegisteredOn,
+                        LastLogin = u.LastLogin,
+                        LastLoginIP = u.LastLoginIP,
+                        LastLoginGeo = u.LastLoginGeo,
+                        AccessFailedCount = u.AccessFailedCount,
+                        Roles = new List<string>()
+                    }).ToList();
+                foreach (var user in users)
+                {
+                    var userManagerUser = await this.userManager.FindByIdAsync(user.ID.ToString());
+                    if (userManagerUser != null)
+                    {
+                        var roles = await this.userManager.GetRolesAsync(userManagerUser);
+                        user.Roles.AddRange(roles);
+                    }
+                }
+
+                return new ApiResponse<IEnumerable<User>> { Data = users };
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Account/users");
+                return new ApiResponse<IEnumerable<User>>(ex) { Data = new List<User>() };
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Adds or removes the moderator role from the specified user.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 21/11/2023.
+        /// </remarks>
+        /// <param name="moderatorRole">
+        /// The moderator role model.
+        /// </param>
+        /// <returns>
+        /// An IActionResult object returning an ApiResponse object in the body.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [Authorize(Roles = UserRoles.Admin)]
+        [HttpPost("moderatorRole", Name = "SetModeratorRole")]
+        public async Task<ActionResult<ApiResponse<string>>> SetModeratorRole([FromBody] ModeratorRole moderatorRole)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Account/moderatorRole");
+                var user = await this.userManager.FindByNameAsync(moderatorRole.Username) ?? await this.userManager.FindByEmailAsync(moderatorRole.Username);
+
+                if (user == null)
+                {
+                    throw new Exception($"Unable to find user \"{moderatorRole.Username}\".");
+                }
+
+                // Make sure the moderator role exists
+                if (!await this.roleManager.RoleExistsAsync(UserRoles.Moderator))
+                {
+                    var roleResult = await this.roleManager.CreateAsync(new IdentityRole(UserRoles.Moderator));
+                    if (!roleResult.Succeeded)
+                    {
+                        var roleErrorDetails = roleResult.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
+                        return new ApiResponse<string> { Message = $"Error creating User role!{roleErrorDetails}", IsError = true };
+                    }
+                }
+
+                var result = moderatorRole.IsModerator ? await this.userManager.AddToRoleAsync(user, UserRoles.Moderator) : await this.userManager.RemoveFromRoleAsync(user, UserRoles.Moderator);
+
+                if (result.Succeeded)
+                {
+                    return new ApiResponse<string>(moderatorRole.IsModerator ? $"User \"{moderatorRole.Username}\" is now a moderator!" : $"User \"{moderatorRole.Username}\" is no longer a moderator!");
+                }
+
+                var errorDetails = result.Errors.Aggregate(string.Empty, (current, identityError) => current + $"\r\n{identityError.Description}");
+                return new ApiResponse<string> { Message = $"User role modification failed!{errorDetails}", IsError = true };
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Account/moderatorRole");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Sets the token renewal country verification.
         /// </summary>
         /// <remarks>
@@ -226,7 +397,7 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | PUT Account/tokenRenewalCountryVerification/{enableVerification}");
-                
+
                 // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
@@ -306,7 +477,7 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | POST Account/profileImage");
-                
+
                 // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
