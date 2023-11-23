@@ -137,12 +137,15 @@ namespace OpenSky.API.Controllers
         /// <param name="type">
         /// The new aircraft type to add.
         /// </param>
+        /// <param name="upgradeForType">
+        /// The ID of the aircraft type this one is an update for (auto adjusts next version and variants).
+        /// </param>
         /// <returns>
-        /// A basic API result.
+        /// A basic API result containing the GUID of the newly created aircraft type.
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
         [HttpPost(Name = "AddAircraftType")]
-        public async Task<ActionResult<ApiResponse<string>>> AddAircraftType([FromBody] AircraftType type)
+        public async Task<ActionResult<ApiResponse<Guid>>> AddAircraftType([FromBody] AircraftType type, Guid? upgradeForType)
         {
             try
             {
@@ -152,8 +155,10 @@ namespace OpenSky.API.Controllers
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
-                    return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
+                    return new ApiResponse<Guid> { Message = "Unable to find user record!", IsError = true, Data = Guid.Empty };
                 }
+
+                var userRoles = await this.userManager.GetRolesAsync(user);
 
                 // Would the new type create a variant-chain?
                 if (type.IsVariantOf.HasValue)
@@ -161,12 +166,12 @@ namespace OpenSky.API.Controllers
                     var variantType = await this.db.AircraftTypes.SingleOrDefaultAsync(t => t.ID == type.IsVariantOf.Value);
                     if (variantType == null)
                     {
-                        return new ApiResponse<string> { Message = "Unable to find specified variant type!", IsError = true };
+                        return new ApiResponse<Guid> { Message = "Unable to find specified variant type!", IsError = true, Data = Guid.Empty };
                     }
 
                     if (variantType.IsVariantOf.HasValue)
                     {
-                        return new ApiResponse<string> { Message = "Not allowed to create variant chains, please set variant to base type.", IsError = true };
+                        return new ApiResponse<Guid> { Message = "Not allowed to create variant chains, please set variant to base type.", IsError = true, Data = Guid.Empty };
                     }
                 }
 
@@ -176,13 +181,13 @@ namespace OpenSky.API.Controllers
                     var manufacturer = await this.db.AircraftManufacturers.SingleOrDefaultAsync(m => m.ID == type.ManufacturerID);
                     if (manufacturer == null)
                     {
-                        return new ApiResponse<string> { Message = "Manufacturer does not exist!", IsError = true };
+                        return new ApiResponse<Guid> { Message = "Manufacturer does not exist!", IsError = true, Data = Guid.Empty };
                     }
                 }
 
                 // Set a few defaults that the user should not be able to set differently
                 type.ID = Guid.NewGuid();
-                type.Enabled = false;
+                type.Enabled = userRoles.Contains(UserRoles.Moderator) || userRoles.Contains(UserRoles.Admin);
                 type.DetailedChecksDisabled = false;
                 type.UploaderID = user.Id;
                 type.NextVersion = null;
@@ -203,22 +208,22 @@ namespace OpenSky.API.Controllers
                         var airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == deliveryLocation.AirportICAO);
                         if (airport == null)
                         {
-                            return new ApiResponse<string> { Message = $"Delivery location airport {deliveryLocation.AirportICAO} does not exist!", IsError = true };
+                            return new ApiResponse<Guid> { Message = $"Delivery location airport {deliveryLocation.AirportICAO} does not exist!", IsError = true, Data = Guid.Empty };
                         }
 
                         if (airport.IsClosed)
                         {
-                            return new ApiResponse<string> { Message = $"Delivery location airport {deliveryLocation.AirportICAO} is closed!", IsError = true };
+                            return new ApiResponse<Guid> { Message = $"Delivery location airport {deliveryLocation.AirportICAO} is closed!", IsError = true, Data = Guid.Empty };
                         }
 
                         if (type.Simulator == Simulator.MSFS && !airport.MSFS)
                         {
-                            return new ApiResponse<string> { Message = $"Delivery location airport {deliveryLocation.AirportICAO} is not available for aircraft type simulator!", IsError = true };
+                            return new ApiResponse<Guid> { Message = $"Delivery location airport {deliveryLocation.AirportICAO} is not available for aircraft type simulator!", IsError = true, Data = Guid.Empty };
                         }
 
                         if (type.Simulator == Simulator.XPlane11 && !airport.XP11)
                         {
-                            return new ApiResponse<string> { Message = $"Delivery location airport {deliveryLocation.AirportICAO} is not available for aircraft type simulator!", IsError = true };
+                            return new ApiResponse<Guid> { Message = $"Delivery location airport {deliveryLocation.AirportICAO} is not available for aircraft type simulator!", IsError = true, Data = Guid.Empty };
                         }
 
                         var newDeliveryLocation = new AircraftManufacturerDeliveryLocation
@@ -242,15 +247,37 @@ namespace OpenSky.API.Controllers
                 var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving new aircraft type.");
                 if (saveEx != null)
                 {
-                    return new ApiResponse<string>("Error saving new aircraft type", saveEx);
+                    return new ApiResponse<Guid>("Error saving new aircraft type", saveEx) { Data = Guid.Empty };
                 }
 
-                return new ApiResponse<string>("New aircraft type added successfully but it needs to be reviewed before it will be active in OpenSky.");
+                // New type was added successfully, update the previous version and variantOf pointers (for mods and admins only, simply ignore for users)
+                if (upgradeForType.HasValue && (userRoles.Contains(UserRoles.Moderator) || userRoles.Contains(UserRoles.Admin)))
+                {
+                    var previousType = await this.db.AircraftTypes.SingleOrDefaultAsync(t => t.ID == upgradeForType.Value);
+                    if (previousType != null)
+                    {
+                        previousType.NextVersion = type.ID;
+                    }
+
+                    var variantsOfPrevious = await this.db.AircraftTypes.Where(t => t.IsVariantOf == upgradeForType).ToListAsync();
+                    foreach (var variantOfPrevious in variantsOfPrevious)
+                    {
+                        variantOfPrevious.IsVariantOf = type.ID;
+                    }
+
+                    var saveExUpdate = await this.db.SaveDatabaseChangesAsync(this.logger, "Error updating previous version or variants.");
+                    if (saveExUpdate != null)
+                    {
+                        return new ApiResponse<Guid>("New aircraft type added successfully but it needs to be reviewed before it will be active in OpenSky.\r\nHowever there was an error trying to update previous versions or variants thereof, please review those manually!", saveExUpdate) { Data = type.ID };
+                    }
+                }
+
+                return new ApiResponse<Guid>("New aircraft type added successfully but it needs to be reviewed before it will be active in OpenSky.") { Data = type.ID };
             }
             catch (Exception ex)
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST AircraftType");
-                return new ApiResponse<string>(ex);
+                return new ApiResponse<Guid>(ex) { Data = Guid.Empty };
             }
         }
 
