@@ -1833,12 +1833,14 @@ namespace OpenSky.API.Controllers
                 if (flight.Aircraft.Type.FuelType == FuelType.AvGas)
                 {
                     var fuelPrice = (int)(gallons * flight.Aircraft.Airport.AvGasPrice * 2);
+                    var avGasPrice = flight.Aircraft.Airport.AvGasPrice;
                     if (!flight.Aircraft.Airport.HasAvGas)
                     {
                         // todo check for fbo in the future
 
                         // Airport doesn't sell the fuel, so it has to be trucked in from somewhere else
                         fuelPrice = (int)(gallons * 50); // todo when global fuel adjuster system is implemented, take max value * 5
+                        avGasPrice = 50;
                         fuelWasTruckedIn = true;
                     }
 
@@ -1852,7 +1854,7 @@ namespace OpenSky.API.Controllers
 
                         fuelRecord.AirlineID = flight.Aircraft.AirlineOwnerID;
                         fuelRecord.Expense = fuelPrice;
-                        fuelRecord.Description = $"Fuel purchase {flight.Aircraft.Registry.RemoveSimPrefix()}: {gallons:F1} gallons AV gas at {flight.Aircraft.AirportICAO} for $B {flight.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                        fuelRecord.Description = $"Fuel purchase {flight.Aircraft.Registry.RemoveSimPrefix()}: {gallons:F1} gallons AV gas at {flight.Aircraft.AirportICAO} for $B {avGasPrice:F2} / gallon";
                     }
                     else
                     {
@@ -1863,18 +1865,20 @@ namespace OpenSky.API.Controllers
 
                         fuelRecord.UserID = flight.Aircraft.OwnerID;
                         fuelRecord.Expense = fuelPrice;
-                        fuelRecord.Description = $"Fuel purchase {flight.Aircraft.Registry.RemoveSimPrefix()}: {gallons:F1} gallons AV gas at {flight.Aircraft.AirportICAO} for $B {flight.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                        fuelRecord.Description = $"Fuel purchase {flight.Aircraft.Registry.RemoveSimPrefix()}: {gallons:F1} gallons AV gas at {flight.Aircraft.AirportICAO} for $B {avGasPrice:F2} / gallon";
                     }
                 }
                 else if (flight.Aircraft.Type.FuelType == FuelType.JetFuel)
                 {
                     var fuelPrice = (int)(gallons * flight.Aircraft.Airport.JetFuelPrice * 2);
+                    var jetFuelPrice = flight.Aircraft.Airport.JetFuelPrice;
                     if (!flight.Aircraft.Airport.HasJetFuel)
                     {
                         // todo check for fbo in the future
 
                         // Airport doesn't sell the fuel, so it has to be trucked in from somewhere else
                         fuelPrice = (int)(gallons * 25); // todo when global fuel adjuster system is implemented, take max value * 5
+                        jetFuelPrice = 25;
                         fuelWasTruckedIn = true;
                     }
 
@@ -1888,7 +1892,7 @@ namespace OpenSky.API.Controllers
 
                         fuelRecord.AirlineID = flight.Aircraft.AirlineOwnerID;
                         fuelRecord.Expense = fuelPrice;
-                        fuelRecord.Description = $"Fuel purchase {flight.Aircraft.Registry.RemoveSimPrefix()}: {gallons:F1} gallons jet fuel at {flight.Aircraft.AirportICAO} for $B {flight.Aircraft.Airport.JetFuelPrice:F2} / gallon";
+                        fuelRecord.Description = $"Fuel purchase {flight.Aircraft.Registry.RemoveSimPrefix()}: {gallons:F1} gallons jet fuel at {flight.Aircraft.AirportICAO} for $B {jetFuelPrice:F2} / gallon";
                     }
                     else
                     {
@@ -1899,7 +1903,7 @@ namespace OpenSky.API.Controllers
 
                         fuelRecord.UserID = flight.Aircraft.OwnerID;
                         fuelRecord.Expense = fuelPrice;
-                        fuelRecord.Description = $"Fuel purchase {flight.Aircraft.Registry.RemoveSimPrefix()}: {gallons:F1} gallons jet fuel at {flight.Aircraft.AirportICAO} for $B {flight.Aircraft.Airport.JetFuelPrice:F2} / gallon";
+                        fuelRecord.Description = $"Fuel purchase {flight.Aircraft.Registry.RemoveSimPrefix()}: {gallons:F1} gallons jet fuel at {flight.Aircraft.AirportICAO} for $B {jetFuelPrice:F2} / gallon";
                     }
                 }
                 else
