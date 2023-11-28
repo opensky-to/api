@@ -1532,7 +1532,7 @@ namespace OpenSky.API.Controllers
 
                     if (aircraft.OwnerID != user.Id && aircraft.AirlineOwnerID != user.AirlineICAO) // todo check for rent!
                     {
-                        return new ApiResponse<string>("You can only fly planes you or your airline own or rented!") { IsError = true };
+                        return new ApiResponse<string>("You can only fly aircraft you or your airline own or rented!") { IsError = true };
                     }
 
                     if (flightPlan.FuelGallons.HasValue && flightPlan.FuelGallons.Value > aircraft.Type.FuelTotalCapacity)
@@ -2129,6 +2129,7 @@ namespace OpenSky.API.Controllers
                     if (plan.Aircraft.Type.FuelType == FuelType.AvGas)
                     {
                         var fuelPrice = (int)(gallonsToTransfer * plan.Aircraft.Airport.AvGasPrice);
+                        var avGasPrice = plan.Aircraft.Airport.AvGasPrice;
                         if (!plan.Aircraft.Airport.HasAvGas)
                         {
                             // todo check for fbo in the future
@@ -2136,6 +2137,7 @@ namespace OpenSky.API.Controllers
                             {
                                 // User chose to truck the fuel in at higher price
                                 fuelPrice = (int)(gallonsToTransfer * 50); // todo when global fuel adjuster system is implemented, take max value * 5
+                                avGasPrice = 50;
                                 fuelWasTruckedIn = true;
                             }
                             else
@@ -2154,7 +2156,7 @@ namespace OpenSky.API.Controllers
 
                             fuelRecord.AirlineID = plan.Aircraft.AirlineOwnerID;
                             fuelRecord.Expense = fuelPrice;
-                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons AV gas at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons AV gas at {plan.Aircraft.AirportICAO} for $B {avGasPrice:F2} / gallon";
                         }
                         else
                         {
@@ -2165,12 +2167,13 @@ namespace OpenSky.API.Controllers
 
                             fuelRecord.UserID = plan.Aircraft.OwnerID;
                             fuelRecord.Expense = fuelPrice;
-                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons AV gas at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons AV gas at {plan.Aircraft.AirportICAO} for $B {avGasPrice:F2} / gallon";
                         }
                     }
                     else if (plan.Aircraft.Type.FuelType == FuelType.JetFuel)
                     {
                         var fuelPrice = (int)(gallonsToTransfer * plan.Aircraft.Airport.JetFuelPrice);
+                        var jetFuelPrice = plan.Aircraft.Airport.JetFuelPrice;
                         if (!plan.Aircraft.Airport.HasJetFuel)
                         {
                             // todo check for fbo in the future
@@ -2179,6 +2182,7 @@ namespace OpenSky.API.Controllers
                                 // User chose to skip fuelling and start anyway
                                 // User chose to truck the fuel in at higher price
                                 fuelPrice = (int)(gallonsToTransfer * 25); // todo when global fuel adjuster system is implemented, take max value * 5
+                                jetFuelPrice = 25;
                                 fuelWasTruckedIn = true;
                             }
                             else
@@ -2197,7 +2201,7 @@ namespace OpenSky.API.Controllers
 
                             fuelRecord.AirlineID = plan.Aircraft.AirlineOwnerID;
                             fuelRecord.Expense = fuelPrice;
-                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.JetFuelPrice:F2} / gallon";
+                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {plan.Aircraft.AirportICAO} for $B {jetFuelPrice:F2} / gallon";
                         }
                         else
                         {
@@ -2208,7 +2212,7 @@ namespace OpenSky.API.Controllers
 
                             fuelRecord.UserID = plan.Aircraft.OwnerID;
                             fuelRecord.Expense = fuelPrice;
-                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.JetFuelPrice:F2} / gallon";
+                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {plan.Aircraft.AirportICAO} for $B {jetFuelPrice:F2} / gallon";
                         }
                     }
                     else
@@ -2217,6 +2221,7 @@ namespace OpenSky.API.Controllers
                     }
 
                     await this.db.FinancialRecords.AddAsync(fuelRecord);
+                    plan.Aircraft.Fuel = plan.FuelGallons.Value;
                 }
 
                 plan.FuelLoadingComplete = gallonsPerMinute > 0 && gallonsToTransfer > 0 ? DateTime.UtcNow.AddMinutes(3 + (gallonsToTransfer / gallonsPerMinute) + (fuelWasTruckedIn ? 30 : 0)) : DateTime.UtcNow;
@@ -2225,7 +2230,6 @@ namespace OpenSky.API.Controllers
                     // Aircraft still has fuelling time left, add to the flight and remove from aircraft
                     plan.FuelLoadingComplete += plan.Aircraft.FuellingUntil.Value - DateTime.UtcNow;
                     plan.Aircraft.FuellingUntil = null;
-                    plan.Aircraft.Fuel = plan.FuelGallons.Value;
                 }
 
                 // Any changes to these figures need to be mirrored in the AircraftController.PerformGroundOperations and FlightController.CompleteFlight method
