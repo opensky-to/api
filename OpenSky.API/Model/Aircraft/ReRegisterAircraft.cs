@@ -1,50 +1,42 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="GroundOperations.cs" company="OpenSky">
+// <copyright file="ReRegisterAircraft.cs" company="OpenSky">
 // OpenSky project 2021-2023
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
 namespace OpenSky.API.Model.Aircraft
 {
-    using System;
-    using System.Collections.Generic;
+    using OpenSky.API.DbModel.Enums;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
-    /// Ground operations model.
+    /// Re-register aircraft model.
     /// </summary>
     /// <remarks>
-    /// sushi.at, 20/12/2021.
+    /// sushi.at, 28/11/2023.
     /// </remarks>
     /// -------------------------------------------------------------------------------------------------
-    public class GroundOperations
+    public class ReRegisterAircraft
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets a value indicating whether we allow fuel trucking.
+        /// Gets or sets the old registry.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public bool AllowFuelTrucking { get; set; }
+        public string From { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the target fuel in gallons.
+        /// Gets or sets the country the aircraft is being registered in now.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public double Fuel { get; set; }
+        public Country InCountry { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the target payloads.
+        /// Gets or sets the new registry.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public List<Guid> Payloads { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Gets or sets the aircraft registry.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public string Registry { get; set; }
+        public string To { get; set; }
     }
 }

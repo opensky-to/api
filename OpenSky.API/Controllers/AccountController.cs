@@ -9,20 +9,17 @@ namespace OpenSky.API.Controllers
 {
     using System;
     using System.Collections.Generic;
-    using System.Drawing;
-    using System.Drawing.Drawing2D;
-    using System.Drawing.Imaging;
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
-
-    using JetBrains.Annotations;
 
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Identity;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Maui.Graphics;
+    using Microsoft.Maui.Graphics.Platform;
 
     using OpenSky.API.DbModel;
     using OpenSky.API.Model;
@@ -101,50 +98,6 @@ namespace OpenSky.API.Controllers
             this.userManager = userManager;
             this.roleManager = roleManager;
             this.db = db;
-        }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// Resize the image to the specified width and height.
-        /// </summary>
-        /// <remarks>
-        /// sushi.at, 12/07/2021.
-        /// </remarks>
-        /// <param name="image">
-        /// The image to resize.
-        /// </param>
-        /// <param name="width">
-        /// The width to resize to.
-        /// </param>
-        /// <param name="height">
-        /// The height to resize to.
-        /// </param>
-        /// <returns>
-        /// The resized image.
-        /// </returns>
-        /// -------------------------------------------------------------------------------------------------
-        public static Bitmap ResizeImage([NotNull] Image image, int width, int height)
-        {
-            var destRect = new Rectangle(0, 0, width, height);
-            var destImage = new Bitmap(width, height);
-
-            if (image.HorizontalResolution > 0 && image.VerticalResolution > 0)
-            {
-                destImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
-            }
-
-            using var graphics = Graphics.FromImage(destImage);
-            graphics.CompositingMode = CompositingMode.SourceCopy;
-            graphics.CompositingQuality = CompositingQuality.HighQuality;
-            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-            graphics.SmoothingMode = SmoothingMode.HighQuality;
-            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-
-            using var wrapMode = new ImageAttributes();
-            wrapMode.SetWrapMode(WrapMode.TileFlipXY);
-            graphics.DrawImage(image, destRect, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, wrapMode);
-
-            return destImage;
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -498,12 +451,12 @@ namespace OpenSky.API.Controllers
                 var memoryStream = new MemoryStream();
                 await fileUpload.CopyToAsync(memoryStream);
 
-                var image = Image.FromStream(memoryStream);
+                var image = PlatformImage.FromStream(memoryStream);
                 if (image.Width > 300 || image.Height > 300)
                 {
-                    image = ResizeImage(image, 300, 300);
+                    var resizedImage = image.Resize(300, 300, ResizeMode.Stretch, true);
                     memoryStream = new MemoryStream();
-                    image.Save(memoryStream, ImageFormat.Png);
+                    await resizedImage.SaveAsync(memoryStream);
                 }
 
                 user.ProfileImage = memoryStream.ToArray();

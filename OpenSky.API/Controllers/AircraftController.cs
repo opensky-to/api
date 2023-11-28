@@ -146,7 +146,7 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | GET Aircraft/{registry}");
-                
+
                 // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
@@ -191,8 +191,6 @@ namespace OpenSky.API.Controllers
                 return new ApiResponse<Aircraft>(ex);
             }
         }
-
-
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -396,7 +394,7 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("Invalid fuel amount!") { IsError = true };
                 }
 
-                // Any changes to these figures need to be mirrored in the FlightController.StartFlight method
+                // Any changes to these figures need to be mirrored in the FlightController.StartFlight and FlightController.PurchaseLastMinuteFuel methods
                 var gallonsPerMinute = aircraft.Type.Category switch
                 {
                     AircraftTypeCategory.SEP => 25,
@@ -411,6 +409,7 @@ namespace OpenSky.API.Controllers
                     _ => 0.0
                 };
                 var gallonsToTransfer = Math.Abs(aircraft.Fuel - operations.Fuel);
+                var fuelWasTruckedIn = false;
                 if (gallonsPerMinute > 0 && gallonsToTransfer > 0)
                 {
                     if (operations.Fuel > aircraft.Fuel)
@@ -425,13 +424,25 @@ namespace OpenSky.API.Controllers
 
                         if (aircraft.Type.FuelType == FuelType.AvGas)
                         {
+                            var fuelPrice = (int)(gallonsToTransfer * aircraft.Airport.AvGasPrice);
+                            var avGasPrice = aircraft.Airport.AvGasPrice;
                             if (!aircraft.Airport.HasAvGas)
                             {
                                 // todo check for fbo in the future
-                                return new ApiResponse<string>($"Airport {aircraft.AirportICAO} does not sell AV gas!") { IsError = true };
+
+                                if (operations.AllowFuelTrucking)
+                                {
+                                    // Airport doesn't sell the fuel, so it has to be trucked in from somewhere else
+                                    fuelPrice = (int)(gallonsToTransfer * 50); // todo when global fuel adjuster system is implemented, take max value * 5
+                                    avGasPrice = 50;
+                                    fuelWasTruckedIn = true;
+                                }
+                                else
+                                {
+                                    return new ApiResponse<string>($"Airport {aircraft.AirportICAO} does not sell AV gas!") { IsError = true };
+                                }
                             }
 
-                            var fuelPrice = (int)(gallonsToTransfer * aircraft.Airport.AvGasPrice);
                             aircraft.LifeTimeExpense += fuelPrice;
                             if (!string.IsNullOrEmpty(aircraft.AirlineOwnerID))
                             {
@@ -442,7 +453,7 @@ namespace OpenSky.API.Controllers
 
                                 fuelRecord.AirlineID = aircraft.AirlineOwnerID;
                                 fuelRecord.Expense = fuelPrice;
-                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons AV gas at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
+                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons AV gas at {aircraft.AirportICAO} for $B {avGasPrice:F2} / gallon";
                             }
                             else
                             {
@@ -453,18 +464,30 @@ namespace OpenSky.API.Controllers
 
                                 fuelRecord.UserID = aircraft.OwnerID;
                                 fuelRecord.Expense = fuelPrice;
-                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons AV gas at {aircraft.AirportICAO} for $B {aircraft.Airport.AvGasPrice:F2} / gallon";
+                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons AV gas at {aircraft.AirportICAO} for $B {avGasPrice:F2} / gallon";
                             }
                         }
                         else if (aircraft.Type.FuelType == FuelType.JetFuel)
                         {
+                            var fuelPrice = (int)(gallonsToTransfer * aircraft.Airport.JetFuelPrice);
+                            var jetFuelPrice = aircraft.Airport.JetFuelPrice;
                             if (!aircraft.Airport.HasJetFuel)
                             {
                                 // todo check for fbo in the future
-                                return new ApiResponse<string>($"Airport {aircraft.AirportICAO} does not sell jet fuel!") { IsError = true };
+
+                                if (operations.AllowFuelTrucking)
+                                {
+                                    // Airport doesn't sell the fuel, so it has to be trucked in from somewhere else
+                                    fuelPrice = (int)(gallonsToTransfer * 25); // todo when global fuel adjuster system is implemented, take max value * 5
+                                    jetFuelPrice = 25;
+                                    fuelWasTruckedIn = true;
+                                }
+                                else
+                                {
+                                    return new ApiResponse<string>($"Airport {aircraft.AirportICAO} does not sell jet fuel!") { IsError = true };
+                                }
                             }
 
-                            var fuelPrice = (int)(gallonsToTransfer * aircraft.Airport.JetFuelPrice);
                             aircraft.LifeTimeExpense += fuelPrice;
                             if (!string.IsNullOrEmpty(aircraft.AirlineOwnerID))
                             {
@@ -475,7 +498,7 @@ namespace OpenSky.API.Controllers
 
                                 fuelRecord.AirlineID = aircraft.AirlineOwnerID;
                                 fuelRecord.Expense = fuelPrice;
-                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {aircraft.AirportICAO} for $B {aircraft.Airport.JetFuelPrice:F2} / gallon";
+                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {aircraft.AirportICAO} for $B {jetFuelPrice:F2} / gallon";
                             }
                             else
                             {
@@ -486,7 +509,7 @@ namespace OpenSky.API.Controllers
 
                                 fuelRecord.UserID = aircraft.OwnerID;
                                 fuelRecord.Expense = fuelPrice;
-                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {aircraft.AirportICAO} for $B {aircraft.Airport.JetFuelPrice:F2} / gallon";
+                                fuelRecord.Description = $"Fuel purchase {aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {aircraft.AirportICAO} for $B {jetFuelPrice:F2} / gallon";
                             }
                         }
                         else
@@ -506,6 +529,11 @@ namespace OpenSky.API.Controllers
                     {
                         // New fuelling operation, add 3 minutes for arrival of fuel truck
                         aircraft.FuellingUntil = DateTime.UtcNow.AddMinutes(3 + (gallonsToTransfer / gallonsPerMinute));
+                    }
+
+                    if (fuelWasTruckedIn)
+                    {
+                        aircraft.FuellingUntil += TimeSpan.FromMinutes(30);
                     }
                 }
 
@@ -714,7 +742,7 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | POST Aircraft/purchase: {purchase.Registry}");
-               
+
                 // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
@@ -1115,6 +1143,76 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Re-register aircraft.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 28/11/2023.
+        /// </remarks>
+        /// <param name="reRegister">
+        /// The re-register data.
+        /// </param>
+        /// <returns>
+        /// An ActionResult&lt;ApiResponse&lt;string&gt;&gt;
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPut("reregister", Name = "ReRegisterAircraft")]
+        public async Task<ActionResult<ApiResponse<string>>> ReRegisterAircraft([FromBody] ReRegisterAircraft reRegister)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | PUT Aircraft/reregister/{reRegister.From}/{reRegister.To}/{reRegister.InCountry}");
+
+                // ReSharper disable once AssignNullToNotNullAttribute
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
+                }
+
+                var aircraft = await this.db.Aircraft.SingleOrDefaultAsync(a => a.Registry.Equals(reRegister.From));
+                if (aircraft == null)
+                {
+                    return new ApiResponse<string>("Aircraft not found!") { IsError = true };
+                }
+
+                if (!string.IsNullOrEmpty(aircraft.AirlineOwnerID))
+                {
+                    if (aircraft.AirlineOwnerID != user.AirlineICAO)
+                    {
+                        return new ApiResponse<string>("You airline doesn't own this aircraft!") { IsError = true };
+                    }
+
+                    if (!AirlineController.UserHasPermission(user, AirlinePermission.ReRegisterAircraft))
+                    {
+                        return new ApiResponse<string>("You don't have the permission to re-register airline aircraft!") { IsError = true };
+                    }
+                }
+
+                if (aircraft.OwnerID != user.Id)
+                {
+                    return new ApiResponse<string>("You don't own this aircraft!") { IsError = true };
+                }
+
+                if (!aircraft.CanStartFlight)
+                {
+                    return new ApiResponse<string>("You currently can't edit this aircraft!") { IsError = true };
+                }
+
+                // todo add register check if it matches a valid format?
+
+                // todo perform the actual re-register including all associated records
+
+                return new ApiResponse<string>("Sorry still WIP.");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} |  PUT Aircraft/reregister/{reRegister.From}/{reRegister.To}/{reRegister.InCountry}");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Searches for aircraft around a given airport.
         /// </summary>
         /// <remarks>
@@ -1449,7 +1547,7 @@ namespace OpenSky.API.Controllers
         {
             try
             {
-                this.logger.LogInformation($"{this.User.Identity?.Name} | PUT Aircraft/update/{updateAircraft.Registry}");
+                this.logger.LogInformation($"{this.User.Identity?.Name} | PUT Aircraft/{updateAircraft.Registry}");
 
                 // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
@@ -1525,7 +1623,7 @@ namespace OpenSky.API.Controllers
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, $"{this.User.Identity?.Name} | PUT Aircraft/update/{updateAircraft.Registry}");
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | PUT Aircraft/{updateAircraft.Registry}");
                 return new ApiResponse<string>(ex);
             }
         }

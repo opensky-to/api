@@ -60,17 +60,17 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The user manager.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        private readonly UserManager<OpenSkyUser> userManager;
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// The statistics service.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private readonly StatisticsService statisticsService;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The user manager.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private readonly UserManager<OpenSkyUser> userManager;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -677,7 +677,8 @@ namespace OpenSky.API.Controllers
                                         Category = FinancialCategory.Fines,
                                         Expense = (int)(job.Value * (1.0 - latePenaltyMultiplier)),
                                         Timestamp = flightFinancialRecord.Timestamp,
-                                        Description = $"Late delivery penalty ({(int)((1.0 - latePenaltyMultiplier) * 100)} %) for {job.Type} job{(string.IsNullOrEmpty(job.UserIdentifier) ? string.Empty : $" ({job.UserIdentifier})")} of category {job.Category} from {job.OriginICAO}"
+                                        Description =
+                                            $"Late delivery penalty ({(int)((1.0 - latePenaltyMultiplier) * 100)} %) for {job.Type} job{(string.IsNullOrEmpty(job.UserIdentifier) ? string.Empty : $" ({job.UserIdentifier})")} of category {job.Category} from {job.OriginICAO}"
                                     };
                                     await this.db.FinancialRecords.AddAsync(penaltyRecord);
                                     flight.Aircraft.LifeTimeExpense += (int)(job.Value * (1.0 - latePenaltyMultiplier));
@@ -1531,7 +1532,7 @@ namespace OpenSky.API.Controllers
 
                     if (aircraft.OwnerID != user.Id && aircraft.AirlineOwnerID != user.AirlineICAO) // todo check for rent!
                     {
-                        return new ApiResponse<string>("You can only fly planes you or your airline own or rented!") { IsError = true };
+                        return new ApiResponse<string>("You can only fly aircraft you or your airline own or rented!") { IsError = true };
                     }
 
                     if (flightPlan.FuelGallons.HasValue && flightPlan.FuelGallons.Value > aircraft.Type.FuelTotalCapacity)
@@ -1736,6 +1737,216 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Purchase last minute fuel before departure at increased prices.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 28/11/2023.
+        /// </remarks>
+        /// <param name="flightID">
+        /// Identifier for the flight.
+        /// </param>
+        /// <param name="gallons">
+        /// The gallons to purchase.
+        /// </param>
+        /// <returns>
+        /// An ActionResult&lt;ApiResponse&lt;double&gt;&gt; showing the fueling duration in minutes.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPost("lastMinuteFuel/{flightID:guid}/{gallons:double}", Name = "PurchaseLastMinuteFuel")]
+        public async Task<ActionResult<ApiResponse<double>>> PurchaseLastMinuteFuel(Guid flightID, double gallons)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Flight/lastMinuteFuel/{flightID}/{gallons}");
+
+                // ReSharper disable once AssignNullToNotNullAttribute
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<double> { Message = "Unable to find user record!", IsError = true };
+                }
+
+                var flight = await this.db.Flights
+                                       .Include(flight => flight.Aircraft)
+                                       .ThenInclude(aircraft => aircraft.Type)
+                                       .Include(flight => flight.Aircraft)
+                                       .ThenInclude(aircraft => aircraft.AirlineOwner)
+                                       .Include(flight => flight.Aircraft)
+                                       .ThenInclude(aircraft => aircraft.Owner)
+                                       .Include(flight => flight.Aircraft)
+                                       .ThenInclude(aircraft => aircraft.Airport)
+                                       .SingleOrDefaultAsync(f => f.ID == flightID);
+                if (flight == null)
+                {
+                    return new ApiResponse<double> { Message = "Unable to find flight record!", IsError = true };
+                }
+
+                if (flight.OperatorID != user.Id && flight.AssignedAirlinePilotID != user.Id)
+                {
+                    return new ApiResponse<double> { Message = "Unauthorized request!", IsError = true };
+                }
+
+                if (!flight.Started.HasValue)
+                {
+                    return new ApiResponse<double> { Message = "Flight hasn't been started!", IsError = true };
+                }
+
+                if (!flight.OnGround)
+                {
+                    return new ApiResponse<double> { Message = "Can't purchase fuel while airborne!", IsError = true };
+                }
+
+                if (gallons <= 0)
+                {
+                    return new ApiResponse<double>("Invalid fuel amount!") { IsError = true };
+                }
+
+                // Any changes to these figures need to be mirrored in the FlightController.StartFlight and AircraftController.PerformGroundOperations methods
+                var gallonsPerMinute = flight.Aircraft.Type.Category switch
+                {
+                    AircraftTypeCategory.SEP => 25,
+                    AircraftTypeCategory.MEP => 25,
+                    AircraftTypeCategory.SET => 50,
+                    AircraftTypeCategory.MET => 50,
+                    AircraftTypeCategory.JET => 50,
+                    AircraftTypeCategory.REG => 600,
+                    AircraftTypeCategory.NBA => 600,
+                    AircraftTypeCategory.WBA => 1200,
+                    AircraftTypeCategory.HEL => 50,
+                    _ => 0.0
+                };
+
+                if (gallonsPerMinute == 0)
+                {
+                    return new ApiResponse<double>("Invalid or unknown aircraft type for this operation!") { IsError = true };
+                }
+
+                var fuelRecord = new FinancialRecord
+                {
+                    ID = Guid.NewGuid(),
+                    Timestamp = DateTime.UtcNow,
+                    AircraftRegistry = flight.AircraftRegistry,
+                    Category = FinancialCategory.Fuel
+                };
+
+                var fuelWasTruckedIn = false;
+                if (flight.Aircraft.Type.FuelType == FuelType.AvGas)
+                {
+                    var fuelPrice = (int)(gallons * flight.Aircraft.Airport.AvGasPrice * 2);
+                    var avGasPrice = flight.Aircraft.Airport.AvGasPrice;
+                    if (!flight.Aircraft.Airport.HasAvGas)
+                    {
+                        // todo check for fbo in the future
+
+                        // Airport doesn't sell the fuel, so it has to be trucked in from somewhere else
+                        fuelPrice = (int)(gallons * 50); // todo when global fuel adjuster system is implemented, take max value * 5
+                        avGasPrice = 50;
+                        fuelWasTruckedIn = true;
+                    }
+
+                    flight.Aircraft.LifeTimeExpense += fuelPrice;
+                    if (!string.IsNullOrEmpty(flight.Aircraft.AirlineOwnerID))
+                    {
+                        if (fuelPrice > flight.Aircraft.AirlineOwner.AccountBalance)
+                        {
+                            return new ApiResponse<double>("Your airline can't afford this fuel purchase!") { IsError = true };
+                        }
+
+                        fuelRecord.AirlineID = flight.Aircraft.AirlineOwnerID;
+                        fuelRecord.Expense = fuelPrice;
+                        fuelRecord.Description = $"Fuel purchase {flight.Aircraft.Registry.RemoveSimPrefix()}: {gallons:F1} gallons AV gas at {flight.Aircraft.AirportICAO} for $B {avGasPrice:F2} / gallon";
+                    }
+                    else
+                    {
+                        if (fuelPrice > flight.Aircraft.Owner.PersonalAccountBalance)
+                        {
+                            return new ApiResponse<double>("You can't afford this fuel purchase!") { IsError = true };
+                        }
+
+                        fuelRecord.UserID = flight.Aircraft.OwnerID;
+                        fuelRecord.Expense = fuelPrice;
+                        fuelRecord.Description = $"Fuel purchase {flight.Aircraft.Registry.RemoveSimPrefix()}: {gallons:F1} gallons AV gas at {flight.Aircraft.AirportICAO} for $B {avGasPrice:F2} / gallon";
+                    }
+                }
+                else if (flight.Aircraft.Type.FuelType == FuelType.JetFuel)
+                {
+                    var fuelPrice = (int)(gallons * flight.Aircraft.Airport.JetFuelPrice * 2);
+                    var jetFuelPrice = flight.Aircraft.Airport.JetFuelPrice;
+                    if (!flight.Aircraft.Airport.HasJetFuel)
+                    {
+                        // todo check for fbo in the future
+
+                        // Airport doesn't sell the fuel, so it has to be trucked in from somewhere else
+                        fuelPrice = (int)(gallons * 25); // todo when global fuel adjuster system is implemented, take max value * 5
+                        jetFuelPrice = 25;
+                        fuelWasTruckedIn = true;
+                    }
+
+                    flight.Aircraft.LifeTimeExpense += fuelPrice;
+                    if (!string.IsNullOrEmpty(flight.Aircraft.AirlineOwnerID))
+                    {
+                        if (fuelPrice > flight.Aircraft.AirlineOwner.AccountBalance)
+                        {
+                            return new ApiResponse<double>("Your airline can't afford this fuel purchase!") { IsError = true };
+                        }
+
+                        fuelRecord.AirlineID = flight.Aircraft.AirlineOwnerID;
+                        fuelRecord.Expense = fuelPrice;
+                        fuelRecord.Description = $"Fuel purchase {flight.Aircraft.Registry.RemoveSimPrefix()}: {gallons:F1} gallons jet fuel at {flight.Aircraft.AirportICAO} for $B {jetFuelPrice:F2} / gallon";
+                    }
+                    else
+                    {
+                        if (fuelPrice > flight.Aircraft.Owner.PersonalAccountBalance)
+                        {
+                            return new ApiResponse<double>("You can't afford this fuel purchase!") { IsError = true };
+                        }
+
+                        fuelRecord.UserID = flight.Aircraft.OwnerID;
+                        fuelRecord.Expense = fuelPrice;
+                        fuelRecord.Description = $"Fuel purchase {flight.Aircraft.Registry.RemoveSimPrefix()}: {gallons:F1} gallons jet fuel at {flight.Aircraft.AirportICAO} for $B {jetFuelPrice:F2} / gallon";
+                    }
+                }
+                else
+                {
+                    return new ApiResponse<double>("This aircraft doesn't use fuel and can therefore not be fueled!") { IsError = true };
+                }
+
+                await this.db.FinancialRecords.AddAsync(fuelRecord);
+                flight.Aircraft.Fuel += gallons;
+                var fuelingDuration = TimeSpan.FromMinutes(gallons / gallonsPerMinute);
+                if (fuelWasTruckedIn)
+                {
+                    fuelingDuration += TimeSpan.FromMinutes(30);
+                }
+
+                if (flight.Aircraft.FuellingUntil.HasValue && flight.Aircraft.FuellingUntil.Value > DateTime.UtcNow)
+                {
+                    flight.Aircraft.FuellingUntil += fuelingDuration;
+                }
+                else
+                {
+                    // New fuelling operation, add 3 minutes for arrival of fuel truck
+                    fuelingDuration += TimeSpan.FromMinutes(3);
+                    flight.Aircraft.FuellingUntil = DateTime.UtcNow.Add(fuelingDuration);
+                }
+
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error purchasing last minute fuel.");
+                if (saveEx != null)
+                {
+                    throw saveEx;
+                }
+
+                return new ApiResponse<double>(fuelingDuration.TotalMinutes);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Flight/lastMinuteFuel/{flightID}/{gallons}");
+                return new ApiResponse<double>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Start flight.
         /// </summary>
         /// <remarks>
@@ -1893,7 +2104,7 @@ namespace OpenSky.API.Controllers
                 // All checks passed, start the flight and calculate the payload and fuel loading times
                 plan.Started = DateTime.UtcNow;
 
-                // Any changes to these figures need to be mirrored in the AircraftController.PerformGroundOperations method
+                // Any changes to these figures need to be mirrored in the AircraftController.PerformGroundOperations and FlightController.PurchaseLastMinuteFuel methods
                 var gallonsPerMinute = plan.Aircraft.Type.Category switch
                 {
                     AircraftTypeCategory.SEP => 25,
@@ -1908,6 +2119,7 @@ namespace OpenSky.API.Controllers
                     _ => 0.0
                 };
                 var gallonsToTransfer = Math.Abs(plan.Aircraft.Fuel - plan.FuelGallons.Value);
+                var fuelWasTruckedIn = false;
                 if (gallonsToTransfer > 0 && plan.FuelGallons.Value > plan.Aircraft.Fuel)
                 {
                     var fuelRecord = new FinancialRecord
@@ -1920,90 +2132,91 @@ namespace OpenSky.API.Controllers
 
                     if (plan.Aircraft.Type.FuelType == FuelType.AvGas)
                     {
+                        var fuelPrice = (int)(gallonsToTransfer * plan.Aircraft.Airport.AvGasPrice);
+                        var avGasPrice = plan.Aircraft.Airport.AvGasPrice;
                         if (!plan.Aircraft.Airport.HasAvGas)
                         {
                             // todo check for fbo in the future
                             if (startFlight.OverrideStates.Contains(StartFlightStatus.OriginDoesntSellAvGas))
                             {
-                                // User chose to skip fuelling and start anyway
-                                gallonsToTransfer = 0;
-                                fuelRecord = null;
+                                // User chose to truck the fuel in at higher price
+                                fuelPrice = (int)(gallonsToTransfer * 50); // todo when global fuel adjuster system is implemented, take max value * 5
+                                avGasPrice = 50;
+                                fuelWasTruckedIn = true;
                             }
                             else
                             {
                                 return new ApiResponse<StartFlightStatus>(StartFlightStatus.OriginDoesntSellAvGas);
                             }
                         }
+
+                        plan.Aircraft.LifeTimeExpense += fuelPrice;
+                        if (!string.IsNullOrEmpty(plan.Aircraft.AirlineOwnerID))
+                        {
+                            if (fuelPrice > plan.Aircraft.AirlineOwner.AccountBalance)
+                            {
+                                return new ApiResponse<StartFlightStatus>("Your airline can't afford this fuel purchase!") { IsError = true, Data = StartFlightStatus.Error };
+                            }
+
+                            fuelRecord.AirlineID = plan.Aircraft.AirlineOwnerID;
+                            fuelRecord.Expense = fuelPrice;
+                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons AV gas at {plan.Aircraft.AirportICAO} for $B {avGasPrice:F2} / gallon";
+                        }
                         else
                         {
-                            var fuelPrice = (int)(gallonsToTransfer * plan.Aircraft.Airport.AvGasPrice);
-                            plan.Aircraft.LifeTimeExpense += fuelPrice;
-                            if (!string.IsNullOrEmpty(plan.Aircraft.AirlineOwnerID))
+                            if (fuelPrice > plan.Aircraft.Owner.PersonalAccountBalance)
                             {
-                                if (fuelPrice > plan.Aircraft.AirlineOwner.AccountBalance)
-                                {
-                                    return new ApiResponse<StartFlightStatus>("Your airline can't afford this fuel purchase!") { IsError = true, Data = StartFlightStatus.Error };
-                                }
-
-                                fuelRecord.AirlineID = plan.Aircraft.AirlineOwnerID;
-                                fuelRecord.Expense = fuelPrice;
-                                fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons AV gas at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
+                                return new ApiResponse<StartFlightStatus>("You can't afford this fuel purchase!") { IsError = true, Data = StartFlightStatus.Error };
                             }
-                            else
-                            {
-                                if (fuelPrice > plan.Aircraft.Owner.PersonalAccountBalance)
-                                {
-                                    return new ApiResponse<StartFlightStatus>("You can't afford this fuel purchase!") { IsError = true, Data = StartFlightStatus.Error };
-                                }
 
-                                fuelRecord.UserID = plan.Aircraft.OwnerID;
-                                fuelRecord.Expense = fuelPrice;
-                                fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons AV gas at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.AvGasPrice:F2} / gallon";
-                            }
+                            fuelRecord.UserID = plan.Aircraft.OwnerID;
+                            fuelRecord.Expense = fuelPrice;
+                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons AV gas at {plan.Aircraft.AirportICAO} for $B {avGasPrice:F2} / gallon";
                         }
                     }
                     else if (plan.Aircraft.Type.FuelType == FuelType.JetFuel)
                     {
+                        var fuelPrice = (int)(gallonsToTransfer * plan.Aircraft.Airport.JetFuelPrice);
+                        var jetFuelPrice = plan.Aircraft.Airport.JetFuelPrice;
                         if (!plan.Aircraft.Airport.HasJetFuel)
                         {
                             // todo check for fbo in the future
                             if (startFlight.OverrideStates.Contains(StartFlightStatus.OriginDoesntSellJetFuel))
                             {
                                 // User chose to skip fuelling and start anyway
-                                gallonsToTransfer = 0;
-                                fuelRecord = null;
+                                // User chose to truck the fuel in at higher price
+                                fuelPrice = (int)(gallonsToTransfer * 25); // todo when global fuel adjuster system is implemented, take max value * 5
+                                jetFuelPrice = 25;
+                                fuelWasTruckedIn = true;
                             }
                             else
                             {
                                 return new ApiResponse<StartFlightStatus>(StartFlightStatus.OriginDoesntSellJetFuel);
                             }
                         }
+
+                        plan.Aircraft.LifeTimeExpense += fuelPrice;
+                        if (!string.IsNullOrEmpty(plan.Aircraft.AirlineOwnerID))
+                        {
+                            if (fuelPrice > plan.Aircraft.AirlineOwner.AccountBalance)
+                            {
+                                return new ApiResponse<StartFlightStatus>("Your airline can't afford this fuel purchase!") { IsError = true, Data = StartFlightStatus.Error };
+                            }
+
+                            fuelRecord.AirlineID = plan.Aircraft.AirlineOwnerID;
+                            fuelRecord.Expense = fuelPrice;
+                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {plan.Aircraft.AirportICAO} for $B {jetFuelPrice:F2} / gallon";
+                        }
                         else
                         {
-                            var fuelPrice = (int)(gallonsToTransfer * plan.Aircraft.Airport.JetFuelPrice);
-                            plan.Aircraft.LifeTimeExpense += fuelPrice;
-                            if (!string.IsNullOrEmpty(plan.Aircraft.AirlineOwnerID))
+                            if (fuelPrice > plan.Aircraft.Owner.PersonalAccountBalance)
                             {
-                                if (fuelPrice > plan.Aircraft.AirlineOwner.AccountBalance)
-                                {
-                                    return new ApiResponse<StartFlightStatus>("Your airline can't afford this fuel purchase!") { IsError = true, Data = StartFlightStatus.Error };
-                                }
-
-                                fuelRecord.AirlineID = plan.Aircraft.AirlineOwnerID;
-                                fuelRecord.Expense = fuelPrice;
-                                fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.JetFuelPrice:F2} / gallon";
+                                return new ApiResponse<StartFlightStatus>("You can't afford this fuel purchase!") { IsError = true, Data = StartFlightStatus.Error };
                             }
-                            else
-                            {
-                                if (fuelPrice > plan.Aircraft.Owner.PersonalAccountBalance)
-                                {
-                                    return new ApiResponse<StartFlightStatus>("You can't afford this fuel purchase!") { IsError = true, Data = StartFlightStatus.Error };
-                                }
 
-                                fuelRecord.UserID = plan.Aircraft.OwnerID;
-                                fuelRecord.Expense = fuelPrice;
-                                fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {plan.Aircraft.AirportICAO} for $B {plan.Aircraft.Airport.JetFuelPrice:F2} / gallon";
-                            }
+                            fuelRecord.UserID = plan.Aircraft.OwnerID;
+                            fuelRecord.Expense = fuelPrice;
+                            fuelRecord.Description = $"Fuel purchase {plan.Aircraft.Registry.RemoveSimPrefix()}: {gallonsToTransfer:F1} gallons jet fuel at {plan.Aircraft.AirportICAO} for $B {jetFuelPrice:F2} / gallon";
                         }
                     }
                     else
@@ -2011,19 +2224,16 @@ namespace OpenSky.API.Controllers
                         return new ApiResponse<StartFlightStatus>("This aircraft doesn't use fuel and can therefore not be fueled!") { IsError = true, Data = StartFlightStatus.Error };
                     }
 
-                    if (fuelRecord != null)
-                    {
-                        await this.db.FinancialRecords.AddAsync(fuelRecord);
-                    }
+                    await this.db.FinancialRecords.AddAsync(fuelRecord);
+                    plan.Aircraft.Fuel = plan.FuelGallons.Value;
                 }
 
-                plan.FuelLoadingComplete = gallonsPerMinute > 0 && gallonsToTransfer > 0 ? DateTime.UtcNow.AddMinutes(3 + (gallonsToTransfer / gallonsPerMinute)) : DateTime.UtcNow;
+                plan.FuelLoadingComplete = gallonsPerMinute > 0 && gallonsToTransfer > 0 ? DateTime.UtcNow.AddMinutes(3 + (gallonsToTransfer / gallonsPerMinute) + (fuelWasTruckedIn ? 30 : 0)) : DateTime.UtcNow;
                 if (plan.Aircraft.FuellingUntil.HasValue && plan.Aircraft.FuellingUntil.Value > DateTime.UtcNow)
                 {
                     // Aircraft still has fuelling time left, add to the flight and remove from aircraft
                     plan.FuelLoadingComplete += plan.Aircraft.FuellingUntil.Value - DateTime.UtcNow;
                     plan.Aircraft.FuellingUntil = null;
-                    plan.Aircraft.Fuel = plan.FuelGallons.Value;
                 }
 
                 // Any changes to these figures need to be mirrored in the AircraftController.PerformGroundOperations and FlightController.CompleteFlight method
