@@ -396,7 +396,7 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string>("Invalid fuel amount!") { IsError = true };
                 }
 
-                // Any changes to these figures need to be mirrored in the FlightController.StartFlight method
+                // Any changes to these figures need to be mirrored in the FlightController.StartFlight and FlightController.PurchaseLastMinuteFuel methods
                 var gallonsPerMinute = aircraft.Type.Category switch
                 {
                     AircraftTypeCategory.SEP => 25,
