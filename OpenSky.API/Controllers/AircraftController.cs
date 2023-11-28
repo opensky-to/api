@@ -10,7 +10,6 @@ namespace OpenSky.API.Controllers
     using System.Collections.Generic;
     using System.Linq;
     using System.Linq.Dynamic.Core;
-    using System.Numerics;
     using System.Threading.Tasks;
 
     using Microsoft.AspNetCore.Authorization;
@@ -192,8 +191,6 @@ namespace OpenSky.API.Controllers
                 return new ApiResponse<Aircraft>(ex);
             }
         }
-
-
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -1146,6 +1143,76 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Re-register aircraft.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 28/11/2023.
+        /// </remarks>
+        /// <param name="reRegister">
+        /// The re-register data.
+        /// </param>
+        /// <returns>
+        /// An ActionResult&lt;ApiResponse&lt;string&gt;&gt;
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPut("reregister", Name = "ReRegisterAircraft")]
+        public async Task<ActionResult<ApiResponse<string>>> ReRegisterAircraft([FromBody] ReRegisterAircraft reRegister)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | PUT Aircraft/reregister/{reRegister.From}/{reRegister.To}/{reRegister.InCountry}");
+
+                // ReSharper disable once AssignNullToNotNullAttribute
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
+                }
+
+                var aircraft = await this.db.Aircraft.SingleOrDefaultAsync(a => a.Registry.Equals(reRegister.From));
+                if (aircraft == null)
+                {
+                    return new ApiResponse<string>("Aircraft not found!") { IsError = true };
+                }
+
+                if (!string.IsNullOrEmpty(aircraft.AirlineOwnerID))
+                {
+                    if (aircraft.AirlineOwnerID != user.AirlineICAO)
+                    {
+                        return new ApiResponse<string>("You airline doesn't own this aircraft!") { IsError = true };
+                    }
+
+                    if (!AirlineController.UserHasPermission(user, AirlinePermission.ReRegisterAircraft))
+                    {
+                        return new ApiResponse<string>("You don't have the permission to re-register airline aircraft!") { IsError = true };
+                    }
+                }
+
+                if (aircraft.OwnerID != user.Id)
+                {
+                    return new ApiResponse<string>("You don't own this aircraft!") { IsError = true };
+                }
+
+                if (!aircraft.CanStartFlight)
+                {
+                    return new ApiResponse<string>("You currently can't edit this aircraft!") { IsError = true };
+                }
+
+                // todo add register check if it matches a valid format?
+
+                // todo perform the actual re-register including all associated records
+
+                return new ApiResponse<string>("Sorry still WIP.");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} |  PUT Aircraft/reregister/{reRegister.From}/{reRegister.To}/{reRegister.InCountry}");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Searches for aircraft around a given airport.
         /// </summary>
         /// <remarks>
@@ -1480,7 +1547,7 @@ namespace OpenSky.API.Controllers
         {
             try
             {
-                this.logger.LogInformation($"{this.User.Identity?.Name} | PUT Aircraft/update/{updateAircraft.Registry}");
+                this.logger.LogInformation($"{this.User.Identity?.Name} | PUT Aircraft/{updateAircraft.Registry}");
 
                 // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
@@ -1556,7 +1623,7 @@ namespace OpenSky.API.Controllers
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, $"{this.User.Identity?.Name} | PUT Aircraft/update/{updateAircraft.Registry}");
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | PUT Aircraft/{updateAircraft.Registry}");
                 return new ApiResponse<string>(ex);
             }
         }

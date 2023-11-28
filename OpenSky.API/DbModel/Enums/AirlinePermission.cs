@@ -23,6 +23,7 @@ namespace OpenSky.API.DbModel.Enums
         RentOutAircraft = 13,
         AssignAircraft = 14,
         RenameAircraft = 15,
+        ReRegisterAircraft = 16,
 
         BuyFBO = 20,
         SellFBO = 21,
