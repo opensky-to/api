@@ -9,8 +9,6 @@ namespace OpenSky.API.Controllers
 {
     using System;
     using System.Collections.Generic;
-    using System.Drawing;
-    using System.Drawing.Imaging;
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
@@ -21,6 +19,8 @@ namespace OpenSky.API.Controllers
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Maui.Graphics;
+    using Microsoft.Maui.Graphics.Platform;
 
     using OpenSky.API.DbModel;
     using OpenSky.API.DbModel.Enums;
@@ -951,12 +951,12 @@ namespace OpenSky.API.Controllers
                 var memoryStream = new MemoryStream();
                 await fileUpload.CopyToAsync(memoryStream);
 
-                var image = Image.FromStream(memoryStream);
+                var image = PlatformImage.FromStream(memoryStream);
                 if (image.Width > 640 || image.Height > 360)
                 {
-                    image = AccountController.ResizeImage(image, 640, 360);
+                    var newImage = image.Resize(640, 360, ResizeMode.Stretch, true);
                     memoryStream = new MemoryStream();
-                    image.Save(memoryStream, ImageFormat.Png);
+                    await newImage.SaveAsync(memoryStream);
                 }
 
                 type.AircraftImage = memoryStream.ToArray();
