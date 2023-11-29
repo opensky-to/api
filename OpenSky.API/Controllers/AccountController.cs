@@ -18,13 +18,12 @@ namespace OpenSky.API.Controllers
     using Microsoft.AspNetCore.Identity;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Extensions.Logging;
-    using Microsoft.Maui.Graphics;
-    using Microsoft.Maui.Graphics.Platform;
 
     using OpenSky.API.DbModel;
     using OpenSky.API.Model;
     using OpenSky.API.Model.Account;
     using OpenSky.API.Model.Authentication;
+    using SkiaSharp;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -450,13 +449,14 @@ namespace OpenSky.API.Controllers
 
                 var memoryStream = new MemoryStream();
                 await fileUpload.CopyToAsync(memoryStream);
+                memoryStream.Seek(0, SeekOrigin.Begin);
 
-                var image = PlatformImage.FromStream(memoryStream);
+                var image = SKBitmap.Decode(memoryStream);
                 if (image.Width > 300 || image.Height > 300)
                 {
-                    var resizedImage = image.Resize(300, 300, ResizeMode.Stretch, true);
+                    image = image.Resize(new SKSizeI(300, 300), SKFilterQuality.High);
                     memoryStream = new MemoryStream();
-                    await resizedImage.SaveAsync(memoryStream);
+                    image.Encode(memoryStream, SKEncodedImageFormat.Png, 100);
                 }
 
                 user.ProfileImage = memoryStream.ToArray();

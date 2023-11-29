@@ -39,13 +39,14 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.DynamicLinq" Version="7.3.7" />
-    <PackageReference Include="Microsoft.Maui.Graphics" Version="7.0.101" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.19.5" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="OpenSky.AirportsJSON" Version="0.3.0" />
     <PackageReference Include="OpenSky.FlightLogXML" Version="0.1.6" />
     <PackageReference Include="OpenSky.S2Geometry" Version="0.2.0" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="7.0.0" />
+    <PackageReference Include="SkiaSharp" Version="2.88.6" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.6" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <PackageReference Include="System.Data.SQLite.Core" Version="1.0.118" />
     <PackageReference Include="Z.EntityFramework.Extensions.EFCore" Version="7.101.1" />
