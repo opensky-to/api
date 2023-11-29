@@ -19,8 +19,6 @@ namespace OpenSky.API.Controllers
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
-    using Microsoft.Maui.Graphics;
-    using Microsoft.Maui.Graphics.Platform;
 
     using OpenSky.API.DbModel;
     using OpenSky.API.DbModel.Enums;
@@ -28,6 +26,7 @@ namespace OpenSky.API.Controllers
     using OpenSky.API.Model;
     using OpenSky.API.Model.AircraftType;
     using OpenSky.API.Model.Authentication;
+    using SkiaSharp;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -950,13 +949,14 @@ namespace OpenSky.API.Controllers
 
                 var memoryStream = new MemoryStream();
                 await fileUpload.CopyToAsync(memoryStream);
+                memoryStream.Seek(0, SeekOrigin.Begin);
 
-                var image = PlatformImage.FromStream(memoryStream);
+                var image = SKBitmap.Decode(memoryStream);
                 if (image.Width > 640 || image.Height > 360)
                 {
-                    var newImage = image.Resize(640, 360, ResizeMode.Stretch, true);
+                    image = image.Resize(new SKSizeI(300, 300), SKFilterQuality.High);
                     memoryStream = new MemoryStream();
-                    await newImage.SaveAsync(memoryStream);
+                    image.Encode(memoryStream, SKEncodedImageFormat.Png, 100);
                 }
 
                 type.AircraftImage = memoryStream.ToArray();
