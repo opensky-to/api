@@ -97,7 +97,7 @@ namespace OpenSky.API.Controllers
             try
             {
                 this.logger.LogInformation($"{this.User.Identity?.Name} | POST Financial/bobsYourUncle");
-                
+
                 // ReSharper disable AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
@@ -129,6 +129,57 @@ namespace OpenSky.API.Controllers
             catch (Exception ex)
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Financial/bobsYourUncle");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Resets user balance
+        /// </summary>
+        /// <remarks>
+        /// Damir, 29/11/2023
+        /// </remarks>
+        /// <returns>
+        /// An asynchronous result that yields the account balances.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPost("resetFunds", Name = "ResetFunds")]
+        public async Task<ActionResult<ApiResponse<string>>> ResetFunds()
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | POST Financial/resetFunds");
+
+                // ReSharper disable AssignNullToNotNullAttribute
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
+                }
+
+                var resetRecord = new FinancialRecord
+                {
+                    ID = Guid.NewGuid(),
+                    Timestamp = DateTime.UtcNow,
+                    UserID = user.Id,
+                    Category = FinancialCategory.None,
+                    Expense = user.PersonalAccountBalance - user.PersonalAccountBalance,
+                    Description = "Funds have been reset"
+                };
+                await this.db.FinancialRecords.AddAsync(resetRecord);
+
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Failed to reset funds");
+                if (saveEx != null)
+                {
+                    throw saveEx;
+                }
+
+                return new ApiResponse<string>("Funds have been successfully reset!");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Financial/resetFunds");
                 return new ApiResponse<string>(ex);
             }
         }
