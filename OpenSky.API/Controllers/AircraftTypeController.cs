@@ -833,6 +833,7 @@ namespace OpenSky.API.Controllers
                 existingType.EngineModel = type.EngineModel;
                 existingType.OverrideFuelType = type.OverrideFuelType;
                 existingType.IsHistoric = type.IsHistoric;
+                existingType.UsesStrobeForBeacon = type.UsesStrobeForBeacon;
 
                 // Process changes to delivery locations
                 if (type.DeliveryLocations?.Count > 0)
