@@ -578,6 +578,14 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets a value indicating whether this aircraft uses the strobe light instead of the
+        /// beacon - most likely because it doesn't have a beacon.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public bool UsesStrobeForBeacon { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the variants of this aircraft.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
