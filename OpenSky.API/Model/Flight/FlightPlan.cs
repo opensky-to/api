@@ -102,6 +102,8 @@ namespace OpenSky.API.Model.Flight
             this.Route = flight.Route;
             this.AlternateRoute = flight.AlternateRoute;
             this.OfpHtml = flight.OfpHtml;
+            this.AtcCallsign = flight.AtcCallsign;
+            this.OnlineNetwork = flight.OnlineNetwork;
             this.NavlogFixes = flight.NavlogFixes ?? new List<FlightNavlogFix>();
             this.Payloads = flight.FlightPayloads ?? new List<FlightPayload>();
         }
@@ -127,6 +129,13 @@ namespace OpenSky.API.Model.Flight
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string AlternateRoute { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the atc call sign.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string AtcCallsign { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -203,17 +212,17 @@ namespace OpenSky.API.Model.Flight
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the payloads.
-        /// </summary>
-        /// -------------------------------------------------------------------------------------------------
-        public ICollection<FlightPayload> Payloads { get; set; }
-
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
         /// Gets or sets the OFP HTML (most likely from simBrief).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string OfpHtml { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the online network.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public OnlineNetwork OnlineNetwork { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -222,6 +231,13 @@ namespace OpenSky.API.Model.Flight
         /// -------------------------------------------------------------------------------------------------
         [StringLength(5, MinimumLength = 3)]
         public string OriginICAO { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the payloads.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public ICollection<FlightPayload> Payloads { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

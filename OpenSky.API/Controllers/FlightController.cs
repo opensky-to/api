@@ -1638,6 +1638,8 @@ namespace OpenSky.API.Controllers
                         Route = flightPlan.Route,
                         AlternateRoute = flightPlan.AlternateRoute,
                         OfpHtml = flightPlan.OfpHtml,
+                        AtcCallsign = flightPlan.AtcCallsign,
+                        OnlineNetwork = flightPlan.OnlineNetwork,
 
                         OnGround = true,
                         Created = DateTime.UtcNow,
@@ -1695,6 +1697,8 @@ namespace OpenSky.API.Controllers
                     existingFlight.Route = flightPlan.Route;
                     existingFlight.AlternateRoute = flightPlan.AlternateRoute;
                     existingFlight.OfpHtml = flightPlan.OfpHtml;
+                    existingFlight.AtcCallsign = flightPlan.AtcCallsign;
+                    existingFlight.OnlineNetwork = flightPlan.OnlineNetwork;
 
                     this.db.FlightNavlogFixes.RemoveRange(existingFlight.NavlogFixes);
                     await this.db.FlightNavlogFixes.AddRangeAsync(flightPlan.NavlogFixes);
@@ -2099,6 +2103,18 @@ namespace OpenSky.API.Controllers
                             return new ApiResponse<StartFlightStatus>(StartFlightStatus.NonFlightPlanPayloadsFound);
                         }
                     }
+                }
+
+                // Online flight without callsign?
+                if (plan.OnlineNetwork != OnlineNetwork.Offline && string.IsNullOrEmpty(plan.AtcCallsign))
+                {
+                    return new ApiResponse<StartFlightStatus>("Online flights require a call sign!") { IsError = true, Data = StartFlightStatus.Error };
+                }
+
+                // Vatsim flight without vatsim ID?
+                if (plan.OnlineNetwork == OnlineNetwork.Vatsim && string.IsNullOrEmpty(user.VatsimID))
+                {
+                    return new ApiResponse<StartFlightStatus>("Can't start a Vatsim flight without your user ID, please set it in the config first!") { IsError = true, Data = StartFlightStatus.Error };
                 }
 
                 // All checks passed, start the flight and calculate the payload and fuel loading times

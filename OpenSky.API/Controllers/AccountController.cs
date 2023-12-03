@@ -174,7 +174,8 @@ namespace OpenSky.API.Controllers
                 var linkedAccounts = new LinkedAccounts
                 {
                     BingMapsKey = user.BingMapsKey,
-                    SimbriefUsername = user.SimbriefUsername
+                    SimbriefUsername = user.SimbriefUsername,
+                    VatsimID = user.VatsimID
                 };
 
                 return new ApiResponse<LinkedAccounts>(linkedAccounts);
@@ -398,6 +399,7 @@ namespace OpenSky.API.Controllers
 
                 user.BingMapsKey = linkedAccounts.BingMapsKey;
                 user.SimbriefUsername = linkedAccounts.SimbriefUsername;
+                user.VatsimID = linkedAccounts.VatsimID;
 
                 await this.userManager.UpdateAsync(user);
                 return new ApiResponse<string>("Successfully updated linked accounts and keys.");
