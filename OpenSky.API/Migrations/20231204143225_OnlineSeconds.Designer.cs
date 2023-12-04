@@ -11,8 +11,8 @@ using OpenSky.API;
 namespace OpenSky.API.Migrations
 {
     [DbContext(typeof(OpenSkyDbContext))]
-    [Migration("20231203235902_OnlineMinutes")]
-    partial class OnlineMinutes
+    [Migration("20231204143225_OnlineSeconds")]
+    partial class OnlineSeconds
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -917,8 +917,8 @@ namespace OpenSky.API.Migrations
                     b.Property<int>("OnlineNetwork")
                         .HasColumnType("int");
 
-                    b.Property<double>("OnlineNetworkConnectedMinutes")
-                        .HasColumnType("double");
+                    b.Property<int>("OnlineNetworkConnectedSeconds")
+                        .HasColumnType("int");
 
                     b.Property<string>("OperatorAirlineID")
                         .HasMaxLength(3)

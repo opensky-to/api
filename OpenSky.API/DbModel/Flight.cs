@@ -595,11 +595,11 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the minutes the player was connected to the online network for, used to
+        /// Gets or sets the seconds the player was connected to the online network for, used to
         /// calculate 80% online requirement.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public double OnlineNetworkConnectedMinutes { get; set; }
+        public int OnlineNetworkConnectedSeconds { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

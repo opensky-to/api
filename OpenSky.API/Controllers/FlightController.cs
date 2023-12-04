@@ -426,6 +426,7 @@ namespace OpenSky.API.Controllers
                 flight.RadioHeight = finalReport.FinalPositionReport.RadioHeight;
                 flight.VerticalSpeedSeconds = finalReport.FinalPositionReport.VerticalSpeedSeconds;
                 flight.TimeWarpTimeSavedSeconds = finalReport.FinalPositionReport.TimeWarpTimeSavedSeconds;
+                flight.OnlineNetworkConnectedSeconds = finalReport.FinalPositionReport.ConnectedToOnlineNetworkSeconds;
                 if (flight.TimeWarpTimeSavedSeconds > 0)
                 {
                     flight.Aircraft.WarpingUntil = DateTime.UtcNow.AddSeconds(flight.TimeWarpTimeSavedSeconds);
@@ -1372,6 +1373,7 @@ namespace OpenSky.API.Controllers
                 flight.RadioHeight = report.RadioHeight;
                 flight.VerticalSpeedSeconds = report.VerticalSpeedSeconds;
                 flight.TimeWarpTimeSavedSeconds = report.TimeWarpTimeSavedSeconds;
+                flight.OnlineNetworkConnectedSeconds = report.ConnectedToOnlineNetworkSeconds;
 
                 flight.FuelTankCenterQuantity = report.FuelTankCenterQuantity;
                 flight.FuelTankCenter2Quantity = report.FuelTankCenter2Quantity;

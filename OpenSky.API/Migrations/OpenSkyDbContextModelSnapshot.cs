@@ -914,8 +914,8 @@ namespace OpenSky.API.Migrations
                     b.Property<int>("OnlineNetwork")
                         .HasColumnType("int");
 
-                    b.Property<double>("OnlineNetworkConnectedMinutes")
-                        .HasColumnType("double");
+                    b.Property<int>("OnlineNetworkConnectedSeconds")
+                        .HasColumnType("int");
 
                     b.Property<string>("OperatorAirlineID")
                         .HasMaxLength(3)
