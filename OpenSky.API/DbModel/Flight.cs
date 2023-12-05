@@ -239,6 +239,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the atc call sign for the flight - important for online flying.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [StringLength(8)]
         public string AtcCallsign { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
