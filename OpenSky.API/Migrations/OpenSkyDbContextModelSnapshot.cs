@@ -1146,8 +1146,8 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("BingMapsKey")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()

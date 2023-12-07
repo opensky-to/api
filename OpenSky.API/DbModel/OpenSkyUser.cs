@@ -212,7 +212,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the Bing maps API key.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [StringLength(100)]
+        [StringLength(200)]
         public string BingMapsKey { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
