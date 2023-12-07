@@ -834,6 +834,7 @@ namespace OpenSky.API.Controllers
                 existingType.OverrideFuelType = type.OverrideFuelType;
                 existingType.IsHistoric = type.IsHistoric;
                 existingType.UsesStrobeForBeacon = type.UsesStrobeForBeacon;
+                existingType.IcaoTypeDesignator = type.IcaoTypeDesignator;
 
                 // Process changes to delivery locations
                 if (type.DeliveryLocations?.Count > 0)

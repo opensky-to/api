@@ -34,6 +34,7 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [Required]
+        // ReSharper disable once EntityFramework.ModelValidation.UnlimitedStringLength
         public string Package { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -42,6 +43,7 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [Required]
+        [StringLength(100)]
         public string PackageHash { get; set; }
     }
 }

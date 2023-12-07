@@ -164,6 +164,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the comments (moderation status, retired, needs fixing, etc.).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [StringLength(200)]
         public string Comments { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -337,6 +338,14 @@ namespace OpenSky.API.DbModel
                 return false;
             }
         }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the ICAO type designator.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [StringLength(4)]
+        public string IcaoTypeDesignator { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

@@ -108,6 +108,9 @@ namespace OpenSky.API.Model.Flight
 
             this.Dispatcher = flight.DispatcherName;
             this.DispatcherRemarks = flight.DispatcherRemarks;
+            this.OnlineNetwork = flight.OnlineNetwork;
+            this.AtcCallsign = flight.AtcCallsign;
+            this.OnlineNetworkConnectedSeconds = flight.OnlineNetworkConnectedSeconds;
         }
 
         /// -------------------------------------------------------------------------------------------------
@@ -151,6 +154,13 @@ namespace OpenSky.API.Model.Flight
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string AlternateRoute { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the atc callsign.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public string AtcCallsign { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -256,6 +266,20 @@ namespace OpenSky.API.Model.Flight
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public double OnBlockFuel { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the online network.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public OnlineNetwork OnlineNetwork { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the online network connected seconds.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int OnlineNetworkConnectedSeconds { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

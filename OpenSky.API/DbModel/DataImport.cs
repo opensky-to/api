@@ -42,6 +42,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets information describing the import data source (filename, url, etc.).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [StringLength(50)]
         public string ImportDataSource { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -57,6 +58,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the optional import status JSON text.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        // ReSharper disable once EntityFramework.ModelValidation.UnlimitedStringLength
         public string ImportStatusJson { get; set; }
 
         /// -------------------------------------------------------------------------------------------------

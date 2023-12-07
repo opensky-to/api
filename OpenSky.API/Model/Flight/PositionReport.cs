@@ -46,6 +46,13 @@ namespace OpenSky.API.Model.Flight
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the number of seconds the user was connected to an online network (in seconds).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int ConnectedToOnlineNetworkSeconds { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the flight phase (reported by the agent).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------

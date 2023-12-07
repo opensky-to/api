@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OpenSky.API;
 
@@ -10,9 +11,11 @@ using OpenSky.API;
 namespace OpenSky.API.Migrations
 {
     [DbContext(typeof(OpenSkyDbContext))]
-    partial class OpenSkyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231203122807_OnlineAtc")]
+    partial class OnlineAtc
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -323,8 +326,7 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Comments")
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("CustomAgentModule")
                         .HasMaxLength(20)
@@ -357,10 +359,6 @@ namespace OpenSky.API.Migrations
 
                     b.Property<double>("FuelWeightPerGallon")
                         .HasColumnType("double");
-
-                    b.Property<string>("IcaoTypeDesignator")
-                        .HasMaxLength(4)
-                        .HasColumnType("varchar(4)");
 
                     b.Property<bool>("IncludeInWorldPopulation")
                         .HasColumnType("tinyint(1)");
@@ -666,8 +664,7 @@ namespace OpenSky.API.Migrations
 
                     b.Property<string>("PackageHash")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("longtext");
 
                     b.HasKey("CreationTime");
 
@@ -714,8 +711,7 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("ImportDataSource")
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("ImportStatusJson")
                         .HasColumnType("longtext");
@@ -760,8 +756,7 @@ namespace OpenSky.API.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasMaxLength(250)
-                        .HasColumnType("varchar(250)");
+                        .HasColumnType("longtext");
 
                     b.Property<long>("Expense")
                         .HasColumnType("bigint");
@@ -808,8 +803,7 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("varchar(5)");
 
                     b.Property<string>("AlternateRoute")
-                        .HasMaxLength(2048)
-                        .HasColumnType("varchar(2048)");
+                        .HasColumnType("longtext");
 
                     b.Property<double?>("Altitude")
                         .HasColumnType("double");
@@ -819,8 +813,7 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("varchar(255)");
 
                     b.Property<string>("AtcCallsign")
-                        .HasMaxLength(8)
-                        .HasColumnType("varchar(8)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("AutoSaveLog")
                         .HasColumnType("longtext");
@@ -843,8 +836,7 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("varchar(255)");
 
                     b.Property<string>("DispatcherRemarks")
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("FlightLog")
                         .HasColumnType("longtext");
@@ -925,9 +917,6 @@ namespace OpenSky.API.Migrations
                     b.Property<int>("OnlineNetwork")
                         .HasColumnType("int");
 
-                    b.Property<int>("OnlineNetworkConnectedSeconds")
-                        .HasColumnType("int");
-
                     b.Property<string>("OperatorAirlineID")
                         .HasMaxLength(3)
                         .HasColumnType("varchar(3)");
@@ -1000,8 +989,7 @@ namespace OpenSky.API.Migrations
 
                     b.Property<string>("Ident")
                         .IsRequired()
-                        .HasMaxLength(15)
-                        .HasColumnType("varchar(15)");
+                        .HasColumnType("longtext");
 
                     b.Property<double>("Latitude")
                         .HasColumnType("double");
@@ -1011,8 +999,7 @@ namespace OpenSky.API.Migrations
 
                     b.Property<string>("Type")
                         .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
+                        .HasColumnType("longtext");
 
                     b.HasKey("FlightID", "FixNumber");
 
@@ -1105,12 +1092,10 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("varchar(50)");
 
                     b.Property<string>("TokenGeo")
-                        .HasMaxLength(60)
-                        .HasColumnType("varchar(60)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("TokenIP")
-                        .HasMaxLength(30)
-                        .HasColumnType("varchar(30)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("UserID")
                         .IsRequired()
@@ -1146,8 +1131,7 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("BingMapsKey")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
@@ -1164,12 +1148,10 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("LastLoginGeo")
-                        .HasMaxLength(60)
-                        .HasColumnType("varchar(60)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("LastLoginIP")
-                        .HasMaxLength(30)
-                        .HasColumnType("varchar(30)");
+                        .HasColumnType("longtext");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("tinyint(1)");
@@ -1207,8 +1189,7 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<string>("SimbriefUsername")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("longtext");
 
                     b.Property<bool>("TokenRenewalCountryVerification")
                         .HasColumnType("tinyint(1)");
@@ -1221,8 +1202,7 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("varchar(256)");
 
                     b.Property<string>("VatsimID")
-                        .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
+                        .HasColumnType("longtext");
 
                     b.HasKey("Id");
 
@@ -1375,8 +1355,7 @@ namespace OpenSky.API.Migrations
             modelBuilder.Entity("OpenSky.API.DbModel.Statistic", b =>
                 {
                     b.Property<string>("Key")
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                        .HasColumnType("varchar(255)");
 
                     b.Property<double>("Value")
                         .HasColumnType("double");

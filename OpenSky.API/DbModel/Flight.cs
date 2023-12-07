@@ -202,6 +202,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the alternate route.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [StringLength(2048)]
         public string AlternateRoute { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -236,10 +237,19 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the atc call sign for the flight - important for online flying.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [StringLength(8)]
+        public string AtcCallsign { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the latest auto-save flight log file (base64 encoded).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [JsonIgnore]
+        // ReSharper disable once EntityFramework.ModelValidation.UnlimitedStringLength
         public string AutoSaveLog { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -323,6 +333,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the dispatcher remarks.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [StringLength(200)]
         public string DispatcherRemarks { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -331,6 +342,7 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [JsonIgnore]
+        // ReSharper disable once EntityFramework.ModelValidation.UnlimitedStringLength
         public string FlightLog { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -570,6 +582,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the OFP HTML (most likely from simBrief).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        // ReSharper disable once EntityFramework.ModelValidation.UnlimitedStringLength
         public string OfpHtml { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -578,6 +591,21 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public bool OnGround { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the online network the flight will be operated on, or OFFLINE.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public OnlineNetwork OnlineNetwork { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the seconds the player was connected to the online network for, used to
+        /// calculate 80% online requirement.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public int OnlineNetworkConnectedSeconds { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -608,7 +636,7 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
         /// Gets or sets the identifier of the airline operator of this flight (either this or OperatorID
-        /// must be set.
+        /// must be set).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("OperatorAirline")]
@@ -619,7 +647,7 @@ namespace OpenSky.API.DbModel
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
         /// Gets or sets the identifier of the operator of this flight (either this or OperatorAirlineID
-        /// must be set.
+        /// must be set).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("Operator")]
@@ -706,6 +734,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the route.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        // ReSharper disable once EntityFramework.ModelValidation.UnlimitedStringLength
         public string Route { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
