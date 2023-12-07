@@ -212,6 +212,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the Bing maps API key.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [StringLength(100)]
         public string BingMapsKey { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -274,9 +275,10 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the last login geo location (country).
+        /// Gets or sets the last login geolocation (country).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [StringLength(60)]
         public string LastLoginGeo { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -284,6 +286,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the last login IP.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [StringLength(30)]
         public string LastLoginIP { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -324,6 +327,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the Simbrief username.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [StringLength(100)]
         public string SimbriefUsername { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -350,6 +354,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the Vatsim user ID.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [StringLength(10)]
         public string VatsimID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------

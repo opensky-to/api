@@ -164,6 +164,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the comments (moderation status, retired, needs fixing, etc.).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [StringLength(200)]
         public string Comments { get; set; }
 
         /// -------------------------------------------------------------------------------------------------

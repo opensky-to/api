@@ -53,9 +53,10 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the geo location (country) the token was created from.
+        /// Gets or sets the geolocation (country) the token was created from.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [StringLength(60)]
         public string TokenGeo { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
@@ -63,6 +64,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the IP address the token was created from.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+        [StringLength(30)]
         public string TokenIP { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
