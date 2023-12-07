@@ -11,7 +11,7 @@ using OpenSky.API;
 namespace OpenSky.API.Migrations
 {
     [DbContext(typeof(OpenSkyDbContext))]
-    [Migration("20231207145629_StringLengths")]
+    [Migration("20231207180308_StringLengths")]
     partial class StringLengths
     {
         /// <inheritdoc />
@@ -1149,8 +1149,8 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("BingMapsKey")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
