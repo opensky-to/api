@@ -1550,7 +1550,7 @@ namespace OpenSky.API.Controllers
 
                 if (!string.IsNullOrEmpty(flightPlan.OriginICAO))
                 {
-                    var airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == flightPlan.OriginICAO);
+                    var airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == flightPlan.OriginICAO.ToUpperInvariant());
                     if (airport == null)
                     {
                         return new ApiResponse<string>("Origin airport not found!") { IsError = true };
@@ -1572,7 +1572,7 @@ namespace OpenSky.API.Controllers
 
                 if (!string.IsNullOrEmpty(flightPlan.DestinationICAO))
                 {
-                    var airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == flightPlan.DestinationICAO);
+                    var airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == flightPlan.DestinationICAO.ToUpperInvariant());
                     if (airport == null)
                     {
                         return new ApiResponse<string>("Destination airport not found!") { IsError = true };
@@ -1594,7 +1594,7 @@ namespace OpenSky.API.Controllers
 
                 if (!string.IsNullOrEmpty(flightPlan.AlternateICAO))
                 {
-                    var airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == flightPlan.AlternateICAO);
+                    var airport = await this.db.Airports.SingleOrDefaultAsync(a => a.ICAO == flightPlan.AlternateICAO.ToUpperInvariant());
                     if (airport == null)
                     {
                         return new ApiResponse<string>("Alternate airport not found!") { IsError = true };
@@ -1630,9 +1630,9 @@ namespace OpenSky.API.Controllers
                         ID = flightPlan.ID,
                         FlightNumber = flightPlan.FlightNumber,
                         AircraftRegistry = flightPlan.Aircraft?.Registry,
-                        OriginICAO = flightPlan.OriginICAO,
-                        DestinationICAO = flightPlan.DestinationICAO,
-                        AlternateICAO = flightPlan.AlternateICAO,
+                        OriginICAO = flightPlan.OriginICAO?.ToUpperInvariant(),
+                        DestinationICAO = flightPlan.DestinationICAO?.ToUpperInvariant(),
+                        AlternateICAO = flightPlan.AlternateICAO?.ToUpperInvariant(),
                         FuelGallons = flightPlan.FuelGallons,
                         DispatcherID = user.Id,
                         DispatcherRemarks = flightPlan.DispatcherRemarks,
@@ -1689,9 +1689,9 @@ namespace OpenSky.API.Controllers
 
                     existingFlight.FlightNumber = flightPlan.FlightNumber;
                     existingFlight.AircraftRegistry = flightPlan.Aircraft?.Registry;
-                    existingFlight.OriginICAO = flightPlan.OriginICAO;
-                    existingFlight.DestinationICAO = flightPlan.DestinationICAO;
-                    existingFlight.AlternateICAO = flightPlan.AlternateICAO;
+                    existingFlight.OriginICAO = flightPlan.OriginICAO?.ToUpperInvariant();
+                    existingFlight.DestinationICAO = flightPlan.DestinationICAO?.ToUpperInvariant();
+                    existingFlight.AlternateICAO = flightPlan.AlternateICAO?.ToUpperInvariant();
                     existingFlight.FuelGallons = flightPlan.FuelGallons;
                     existingFlight.DispatcherID = user.Id;
                     existingFlight.DispatcherRemarks = flightPlan.DispatcherRemarks;
