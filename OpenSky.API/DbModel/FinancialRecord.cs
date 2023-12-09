@@ -86,7 +86,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the aircraft registry (optional, if record relates to an aircraft).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        [StringLength(10, MinimumLength = 5)]
+        [StringLength(12, MinimumLength = 6)]
         public string AircraftRegistry { get; set; }
 
         /// -------------------------------------------------------------------------------------------------

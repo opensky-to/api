@@ -224,7 +224,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasIndex("TypeID");
 
-                    b.ToTable("Aircraft");
+                    b.ToTable("Aircraft", (string)null);
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.AircraftMaintenance", b =>
@@ -259,7 +259,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasIndex("PlannedAtAirportICAO");
 
-                    b.ToTable("AircraftMaintenances");
+                    b.ToTable("AircraftMaintenances", (string)null);
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.AircraftManufacturer", b =>
@@ -275,7 +275,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasKey("ID");
 
-                    b.ToTable("AircraftManufacturers");
+                    b.ToTable("AircraftManufacturers", (string)null);
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.AircraftManufacturerDeliveryLocation", b =>
@@ -297,7 +297,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasIndex("AirportICAO");
 
-                    b.ToTable("AircraftManufacturerDeliveryLocations");
+                    b.ToTable("AircraftManufacturerDeliveryLocations", (string)null);
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.AircraftType", b =>
@@ -449,7 +449,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasIndex("UploaderID");
 
-                    b.ToTable("AircraftTypes");
+                    b.ToTable("AircraftTypes", (string)null);
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.Airline", b =>
@@ -483,7 +483,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasKey("ICAO");
 
-                    b.ToTable("Airlines");
+                    b.ToTable("Airlines", (string)null);
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.AirlineShareHolder", b =>
@@ -503,7 +503,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasIndex("UserID");
 
-                    b.ToTable("AirlineShareHolders");
+                    b.ToTable("AirlineShareHolders", (string)null);
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.AirlineUserPermission", b =>
@@ -523,7 +523,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasIndex("UserID");
 
-                    b.ToTable("AirlineUserPermissions");
+                    b.ToTable("AirlineUserPermissions", (string)null);
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.Airport", b =>
@@ -652,7 +652,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasIndex("S2Cell9");
 
-                    b.ToTable("Airports");
+                    b.ToTable("Airports", (string)null);
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.AirportClientPackage", b =>
@@ -671,7 +671,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasKey("CreationTime");
 
-                    b.ToTable("AirportClientPackages");
+                    b.ToTable("AirportClientPackages", (string)null);
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.Approach", b =>
@@ -701,7 +701,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasIndex("AirportICAO");
 
-                    b.ToTable("Approaches");
+                    b.ToTable("Approaches", (string)null);
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.DataImport", b =>
@@ -738,7 +738,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasKey("ID");
 
-                    b.ToTable("DataImports");
+                    b.ToTable("DataImports", (string)null);
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.FinancialRecord", b =>
@@ -787,7 +787,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasIndex("UserID");
 
-                    b.ToTable("FinancialRecords");
+                    b.ToTable("FinancialRecords", (string)null);
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.Flight", b =>
@@ -987,7 +987,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasIndex("OriginICAO");
 
-                    b.ToTable("Flights");
+                    b.ToTable("Flights", (string)null);
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.FlightNavlogFix", b =>
@@ -1016,7 +1016,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasKey("FlightID", "FixNumber");
 
-                    b.ToTable("FlightNavlogFixes");
+                    b.ToTable("FlightNavlogFixes", (string)null);
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.FlightPayload", b =>
@@ -1031,7 +1031,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasIndex("PayloadID");
 
-                    b.ToTable("FlightPayloads");
+                    b.ToTable("FlightPayloads", (string)null);
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.Job", b =>
@@ -1084,7 +1084,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasIndex("OriginICAO");
 
-                    b.ToTable("Jobs");
+                    b.ToTable("Jobs", (string)null);
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.OpenSkyToken", b =>
@@ -1121,7 +1121,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasIndex("UserID");
 
-                    b.ToTable("OpenSkyTokens");
+                    b.ToTable("OpenSkyTokens", (string)null);
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.OpenSkyUser", b =>
@@ -1277,7 +1277,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasIndex("JobID");
 
-                    b.ToTable("Payloads");
+                    b.ToTable("Payloads", (string)null);
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.Runway", b =>
@@ -1316,7 +1316,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasIndex("AirportICAO");
 
-                    b.ToTable("Runways");
+                    b.ToTable("Runways", (string)null);
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.RunwayEnd", b =>
@@ -1369,7 +1369,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasIndex("RunwayID");
 
-                    b.ToTable("RunwayEnds");
+                    b.ToTable("RunwayEnds", (string)null);
                 });
 
             modelBuilder.Entity("OpenSky.API.DbModel.Statistic", b =>
@@ -1383,7 +1383,7 @@ namespace OpenSky.API.Migrations
 
                     b.HasKey("Key");
 
-                    b.ToTable("Statistics");
+                    b.ToTable("Statistics", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

@@ -165,7 +165,7 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [ForeignKey("Aircraft")]
-        [StringLength(10, MinimumLength = 5)]
+        [StringLength(12, MinimumLength = 6)]
         [JsonIgnore]
         public string AircraftRegistry { get; set; }
 
