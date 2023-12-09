@@ -230,8 +230,8 @@ namespace OpenSky.API.Migrations
             modelBuilder.Entity("OpenSky.API.DbModel.AircraftMaintenance", b =>
                 {
                     b.Property<string>("AircraftRegistry")
-                        .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
+                        .HasMaxLength(12)
+                        .HasColumnType("varchar(12)");
 
                     b.Property<int>("RecordNumber")
                         .HasColumnType("int");
@@ -748,8 +748,8 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("char(36)");
 
                     b.Property<string>("AircraftRegistry")
-                        .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
+                        .HasMaxLength(12)
+                        .HasColumnType("varchar(12)");
 
                     b.Property<string>("AirlineID")
                         .HasMaxLength(3)
@@ -797,8 +797,8 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("char(36)");
 
                     b.Property<string>("AircraftRegistry")
-                        .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
+                        .HasMaxLength(12)
+                        .HasColumnType("varchar(12)");
 
                     b.Property<double?>("AirspeedTrue")
                         .HasColumnType("double");
@@ -1245,8 +1245,8 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("char(36)");
 
                     b.Property<string>("AircraftRegistry")
-                        .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
+                        .HasMaxLength(12)
+                        .HasColumnType("varchar(12)");
 
                     b.Property<string>("AirportICAO")
                         .HasMaxLength(5)

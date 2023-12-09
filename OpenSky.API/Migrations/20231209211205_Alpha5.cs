@@ -2,41 +2,18 @@
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 
+#nullable disable
+
 namespace OpenSky.API.Migrations
 {
-    using OpenSky.API.DbModel.Enums;
-
     /// -------------------------------------------------------------------------------------------------
     /// <content>
-    /// Merged migrations from Alpha1 through Alpha4.
+    /// Alpha 1 through 5 combined migrations.
     /// </content>
     /// -------------------------------------------------------------------------------------------------
-    public partial class Alpha4 : Migration
+    public partial class Alpha5 : Migration
     {
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// <para>
-        ///                 Builds the operations that will migrate the database 'up'.
-        ///             </para>
-        /// <para>
-        ///                 That is, builds the operations that will take the database from the state
-        ///                 left in by the previous migration so that it is up-to-date with regard to
-        ///                 this migration.
-        ///             </para>
-        /// <para>
-        ///                 This method must be overridden in each class the inherits from <see cref="T:Microsoft.EntityFrameworkCore.Migrations.Migration" />
-        ///                 .
-        ///             </para>
-        /// </summary>
-        /// <remarks>
-        /// sushi.at, 25/05/2022.
-        /// </remarks>
-        /// <param name="migrationBuilder">
-        /// The <see cref="T:Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder" /> that will
-        /// build the operations.
-        /// </param>
-        /// <seealso cref="Microsoft.EntityFrameworkCore.Migrations.Migration.Up(MigrationBuilder)"/>
-        /// -------------------------------------------------------------------------------------------------
+        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AlterDatabase()
@@ -63,7 +40,7 @@ namespace OpenSky.API.Migrations
                 {
                     ICAO = table.Column<string>(type: "varchar(3)", maxLength: 3, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    AccountBalance = table.Column<long>(type: "bigint", nullable: false, defaultValue: 0L),
+                    AccountBalance = table.Column<long>(type: "bigint", nullable: false),
                     Country = table.Column<int>(type: "int", nullable: false),
                     FounderID = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -86,7 +63,7 @@ namespace OpenSky.API.Migrations
                     CreationTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     Package = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    PackageHash = table.Column<string>(type: "longtext", nullable: false)
+                    PackageHash = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
@@ -103,7 +80,7 @@ namespace OpenSky.API.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Altitude = table.Column<int>(type: "int", nullable: false),
                     AtisFrequency = table.Column<int>(type: "int", nullable: true),
-                    AvGasPrice = table.Column<float>(type: "float", nullable: false, defaultValue: 10f),
+                    AvGasPrice = table.Column<float>(type: "float", nullable: false),
                     City = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     GaRamps = table.Column<int>(type: "int", nullable: false),
@@ -114,29 +91,29 @@ namespace OpenSky.API.Migrations
                     HasJetFuel = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     IsClosed = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     IsMilitary = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    JetFuelPrice = table.Column<float>(type: "float", nullable: false, defaultValue: 5f),
+                    JetFuelPrice = table.Column<float>(type: "float", nullable: false),
                     Latitude = table.Column<double>(type: "double", nullable: false),
                     LongestRunwayLength = table.Column<int>(type: "int", nullable: false),
                     LongestRunwaySurface = table.Column<string>(type: "varchar(7)", maxLength: 7, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Longitude = table.Column<double>(type: "double", nullable: false),
-                    MSFS = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: false),
+                    MSFS = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     Name = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     PreviousSize = table.Column<int>(type: "int", nullable: true),
                     RunwayCount = table.Column<int>(type: "int", nullable: false),
-                    S2Cell3 = table.Column<ulong>(type: "bigint unsigned", nullable: false, defaultValue: 0ul),
-                    S2Cell4 = table.Column<ulong>(type: "bigint unsigned", nullable: false, defaultValue: 0ul),
-                    S2Cell5 = table.Column<ulong>(type: "bigint unsigned", nullable: false, defaultValue: 0ul),
-                    S2Cell6 = table.Column<ulong>(type: "bigint unsigned", nullable: false, defaultValue: 0ul),
-                    S2Cell7 = table.Column<ulong>(type: "bigint unsigned", nullable: false, defaultValue: 0ul),
-                    S2Cell8 = table.Column<ulong>(type: "bigint unsigned", nullable: false, defaultValue: 0ul),
-                    S2Cell9 = table.Column<ulong>(type: "bigint unsigned", nullable: false, defaultValue: 0ul),
+                    S2Cell3 = table.Column<ulong>(type: "bigint unsigned", nullable: false),
+                    S2Cell4 = table.Column<ulong>(type: "bigint unsigned", nullable: false),
+                    S2Cell5 = table.Column<ulong>(type: "bigint unsigned", nullable: false),
+                    S2Cell6 = table.Column<ulong>(type: "bigint unsigned", nullable: false),
+                    S2Cell7 = table.Column<ulong>(type: "bigint unsigned", nullable: false),
+                    S2Cell8 = table.Column<ulong>(type: "bigint unsigned", nullable: false),
+                    S2Cell9 = table.Column<ulong>(type: "bigint unsigned", nullable: false),
                     Size = table.Column<int>(type: "int", nullable: true),
-                    SupportsSuper = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: false),
+                    SupportsSuper = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     TowerFrequency = table.Column<int>(type: "int", nullable: true),
                     UnicomFrequency = table.Column<int>(type: "int", nullable: true),
-                    XP11 = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: false)
+                    XP11 = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -150,7 +127,7 @@ namespace OpenSky.API.Migrations
                 {
                     ID = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
                     Finished = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    ImportDataSource = table.Column<string>(type: "longtext", nullable: true)
+                    ImportDataSource = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     ImportStatusJson = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -190,7 +167,7 @@ namespace OpenSky.API.Migrations
                 name: "Statistics",
                 columns: table => new
                 {
-                    Key = table.Column<string>(type: "varchar(255)", nullable: false)
+                    Key = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Value = table.Column<double>(type: "double", nullable: false)
                 },
@@ -211,19 +188,21 @@ namespace OpenSky.API.Migrations
                     AirlineIncomeShare = table.Column<int>(type: "int", nullable: true),
                     AirlineRank = table.Column<int>(type: "int", nullable: true),
                     AirlineSalary = table.Column<int>(type: "int", nullable: true),
-                    BingMapsKey = table.Column<string>(type: "longtext", nullable: true)
+                    BingMapsKey = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     LastLogin = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    LastLoginGeo = table.Column<string>(type: "longtext", nullable: true)
+                    LastLoginGeo = table.Column<string>(type: "varchar(60)", maxLength: 60, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    LastLoginIP = table.Column<string>(type: "longtext", nullable: true)
+                    LastLoginIP = table.Column<string>(type: "varchar(30)", maxLength: 30, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    PersonalAccountBalance = table.Column<long>(type: "bigint", nullable: false, defaultValue: 0L),
+                    PersonalAccountBalance = table.Column<long>(type: "bigint", nullable: false),
                     ProfileImage = table.Column<byte[]>(type: "longblob", nullable: true),
                     RegisteredOn = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    SimbriefUsername = table.Column<string>(type: "longtext", nullable: true)
+                    SimbriefUsername = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    TokenRenewalCountryVerification = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
+                    TokenRenewalCountryVerification = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    VatsimID = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     UserName = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     NormalizedUserName = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true)
@@ -254,8 +233,7 @@ namespace OpenSky.API.Migrations
                         name: "FK_Users_Airlines_AirlineICAO",
                         column: x => x.AirlineICAO,
                         principalTable: "Airlines",
-                        principalColumn: "ICAO",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "ICAO");
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -350,7 +328,7 @@ namespace OpenSky.API.Migrations
                     AtcType = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Category = table.Column<int>(type: "int", nullable: false),
-                    Comments = table.Column<string>(type: "longtext", nullable: true)
+                    Comments = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     CustomAgentModule = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -363,10 +341,12 @@ namespace OpenSky.API.Migrations
                     EngineType = table.Column<int>(type: "int", nullable: false),
                     FlapsAvailable = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     FuelTotalCapacity = table.Column<double>(type: "double", nullable: false),
-                    FuelWeightPerGallon = table.Column<double>(type: "double", nullable: false, defaultValue: -1),
-                    IncludeInWorldPopulation = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: false),
+                    FuelWeightPerGallon = table.Column<double>(type: "double", nullable: false),
+                    IcaoTypeDesignator = table.Column<string>(type: "varchar(4)", maxLength: 4, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    IncludeInWorldPopulation = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     IsGearRetractable = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    IsHistoric = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: false),
+                    IsHistoric = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     IsVanilla = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     IsVariantOf = table.Column<Guid>(type: "char(36)", nullable: true, collation: "ascii_general_ci"),
                     LastEditedByID = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true)
@@ -374,21 +354,22 @@ namespace OpenSky.API.Migrations
                     ManufacturerID = table.Column<string>(type: "varchar(5)", maxLength: 5, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     MaxGrossWeight = table.Column<double>(type: "double", nullable: false),
-                    MaxPayloadDeltaAllowed = table.Column<int>(type: "int", nullable: false, defaultValue: 5),
+                    MaxPayloadDeltaAllowed = table.Column<int>(type: "int", nullable: false),
                     MaxPrice = table.Column<int>(type: "int", nullable: false),
-                    MinimumRunwayLength = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    MinimumRunwayLength = table.Column<int>(type: "int", nullable: false),
                     MinPrice = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    NeedsCoPilot = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: false),
-                    NeedsFlightEngineer = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: false),
+                    NeedsCoPilot = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    NeedsFlightEngineer = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     NextVersion = table.Column<Guid>(type: "char(36)", nullable: true, collation: "ascii_general_ci"),
-                    OverrideFuelType = table.Column<int>(type: "int", nullable: false, defaultValue: (int)FuelType.NotUsed),
-                    RequiresManualFuelling = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: false),
-                    RequiresManualLoading = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: false),
+                    OverrideFuelType = table.Column<int>(type: "int", nullable: false),
+                    RequiresManualFuelling = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    RequiresManualLoading = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     Simulator = table.Column<int>(type: "int", nullable: false),
                     UploaderID = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
+                    UsesStrobeForBeacon = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     VersionNumber = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -398,26 +379,22 @@ namespace OpenSky.API.Migrations
                         name: "FK_AircraftTypes_AircraftManufacturers_ManufacturerID",
                         column: x => x.ManufacturerID,
                         principalTable: "AircraftManufacturers",
-                        principalColumn: "ID",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "ID");
                     table.ForeignKey(
                         name: "FK_AircraftTypes_AircraftTypes_IsVariantOf",
                         column: x => x.IsVariantOf,
                         principalTable: "AircraftTypes",
-                        principalColumn: "ID",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "ID");
                     table.ForeignKey(
                         name: "FK_AircraftTypes_AircraftTypes_NextVersion",
                         column: x => x.NextVersion,
                         principalTable: "AircraftTypes",
-                        principalColumn: "ID",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "ID");
                     table.ForeignKey(
                         name: "FK_AircraftTypes_Users_LastEditedByID",
                         column: x => x.LastEditedByID,
                         principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_AircraftTypes_Users_UploaderID",
                         column: x => x.UploaderID,
@@ -488,12 +465,12 @@ namespace OpenSky.API.Migrations
                 columns: table => new
                 {
                     ID = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    AircraftRegistry = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: true)
+                    AircraftRegistry = table.Column<string>(type: "varchar(12)", maxLength: 12, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     AirlineID = table.Column<string>(type: "varchar(3)", maxLength: 3, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Category = table.Column<int>(type: "int", nullable: false),
-                    Description = table.Column<string>(type: "longtext", nullable: false)
+                    Description = table.Column<string>(type: "varchar(250)", maxLength: 250, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Expense = table.Column<long>(type: "bigint", nullable: false),
                     Income = table.Column<long>(type: "bigint", nullable: false),
@@ -509,20 +486,17 @@ namespace OpenSky.API.Migrations
                         name: "FK_FinancialRecords_Airlines_AirlineID",
                         column: x => x.AirlineID,
                         principalTable: "Airlines",
-                        principalColumn: "ICAO",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "ICAO");
                     table.ForeignKey(
                         name: "FK_FinancialRecords_FinancialRecords_ParentRecordID",
                         column: x => x.ParentRecordID,
                         principalTable: "FinancialRecords",
-                        principalColumn: "ID",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "ID");
                     table.ForeignKey(
                         name: "FK_FinancialRecords_Users_UserID",
                         column: x => x.UserID,
                         principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "Id");
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -553,26 +527,22 @@ namespace OpenSky.API.Migrations
                         name: "FK_Jobs_Airlines_OperatorAirlineID",
                         column: x => x.OperatorAirlineID,
                         principalTable: "Airlines",
-                        principalColumn: "ICAO",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "ICAO");
                     table.ForeignKey(
                         name: "FK_Jobs_Airports_OriginICAO",
                         column: x => x.OriginICAO,
                         principalTable: "Airports",
-                        principalColumn: "ICAO",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "ICAO");
                     table.ForeignKey(
                         name: "FK_Jobs_Users_AssignedAirlineDispatcherID",
                         column: x => x.AssignedAirlineDispatcherID,
                         principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Jobs_Users_OperatorID",
                         column: x => x.OperatorID,
                         principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "Id");
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -585,9 +555,9 @@ namespace OpenSky.API.Migrations
                     Expiry = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     Name = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    TokenGeo = table.Column<string>(type: "longtext", nullable: true)
+                    TokenGeo = table.Column<string>(type: "varchar(60)", maxLength: 60, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    TokenIP = table.Column<string>(type: "longtext", nullable: true)
+                    TokenIP = table.Column<string>(type: "varchar(30)", maxLength: 30, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     UserID = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4")
@@ -746,14 +716,19 @@ namespace OpenSky.API.Migrations
                 {
                     Registry = table.Column<string>(type: "varchar(12)", maxLength: 12, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
+                    AirframeHours = table.Column<double>(type: "double", nullable: false),
                     AirlineOwnerID = table.Column<string>(type: "varchar(3)", maxLength: 3, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     AirportICAO = table.Column<string>(type: "varchar(5)", maxLength: 5, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    Fuel = table.Column<double>(type: "double", nullable: false, defaultValue: 0),
+                    Engine1Hours = table.Column<double>(type: "double", nullable: false),
+                    Engine2Hours = table.Column<double>(type: "double", nullable: false),
+                    Engine3Hours = table.Column<double>(type: "double", nullable: false),
+                    Engine4Hours = table.Column<double>(type: "double", nullable: false),
+                    Fuel = table.Column<double>(type: "double", nullable: false),
                     FuellingUntil = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    LifeTimeExpense = table.Column<long>(type: "bigint", nullable: false, defaultValue: 0L),
-                    LifeTimeIncome = table.Column<long>(type: "bigint", nullable: false, defaultValue: 0L),
+                    LifeTimeExpense = table.Column<long>(type: "bigint", nullable: false),
+                    LifeTimeIncome = table.Column<long>(type: "bigint", nullable: false),
                     LoadingUntil = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     Name = table.Column<string>(type: "varchar(30)", maxLength: 30, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -777,8 +752,7 @@ namespace OpenSky.API.Migrations
                         name: "FK_Aircraft_Airlines_AirlineOwnerID",
                         column: x => x.AirlineOwnerID,
                         principalTable: "Airlines",
-                        principalColumn: "ICAO",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "ICAO");
                     table.ForeignKey(
                         name: "FK_Aircraft_Airports_AirportICAO",
                         column: x => x.AirportICAO,
@@ -789,8 +763,7 @@ namespace OpenSky.API.Migrations
                         name: "FK_Aircraft_Users_OwnerID",
                         column: x => x.OwnerID,
                         principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "Id");
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -829,19 +802,54 @@ namespace OpenSky.API.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "AircraftMaintenances",
+                columns: table => new
+                {
+                    AircraftRegistry = table.Column<string>(type: "varchar(12)", maxLength: 12, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    RecordNumber = table.Column<int>(type: "int", nullable: false),
+                    PlannedAtAirportICAO = table.Column<string>(type: "varchar(5)", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    PlannedAtICAO = table.Column<string>(type: "varchar(5)", maxLength: 5, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    PlannedFor = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    RequiredManHours = table.Column<int>(type: "int", nullable: false),
+                    Started = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    Technicians = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AircraftMaintenances", x => new { x.AircraftRegistry, x.RecordNumber });
+                    table.ForeignKey(
+                        name: "FK_AircraftMaintenances_Aircraft_AircraftRegistry",
+                        column: x => x.AircraftRegistry,
+                        principalTable: "Aircraft",
+                        principalColumn: "Registry",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_AircraftMaintenances_Airports_PlannedAtAirportICAO",
+                        column: x => x.PlannedAtAirportICAO,
+                        principalTable: "Airports",
+                        principalColumn: "ICAO");
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "Flights",
                 columns: table => new
                 {
                     ID = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    AircraftRegistry = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: true)
+                    AircraftRegistry = table.Column<string>(type: "varchar(12)", maxLength: 12, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     AirspeedTrue = table.Column<double>(type: "double", nullable: true),
                     AlternateICAO = table.Column<string>(type: "varchar(5)", maxLength: 5, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    AlternateRoute = table.Column<string>(type: "longtext", nullable: true)
+                    AlternateRoute = table.Column<string>(type: "varchar(2048)", maxLength: 2048, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Altitude = table.Column<double>(type: "double", nullable: true),
                     AssignedAirlinePilotID = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    AtcCallsign = table.Column<string>(type: "varchar(8)", maxLength: 8, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     AutoSaveLog = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -852,7 +860,7 @@ namespace OpenSky.API.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     DispatcherID = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    DispatcherRemarks = table.Column<string>(type: "longtext", nullable: true)
+                    DispatcherRemarks = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     FlightLog = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -882,6 +890,8 @@ namespace OpenSky.API.Migrations
                     OfpHtml = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     OnGround = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    OnlineNetwork = table.Column<int>(type: "int", nullable: false),
+                    OnlineNetworkConnectedSeconds = table.Column<int>(type: "int", nullable: false),
                     OperatorAirlineID = table.Column<string>(type: "varchar(3)", maxLength: 3, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     OperatorID = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true)
@@ -906,56 +916,47 @@ namespace OpenSky.API.Migrations
                         name: "FK_Flights_Aircraft_AircraftRegistry",
                         column: x => x.AircraftRegistry,
                         principalTable: "Aircraft",
-                        principalColumn: "Registry",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "Registry");
                     table.ForeignKey(
                         name: "FK_Flights_Airlines_OperatorAirlineID",
                         column: x => x.OperatorAirlineID,
                         principalTable: "Airlines",
-                        principalColumn: "ICAO",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "ICAO");
                     table.ForeignKey(
                         name: "FK_Flights_Airports_AlternateICAO",
                         column: x => x.AlternateICAO,
                         principalTable: "Airports",
-                        principalColumn: "ICAO",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "ICAO");
                     table.ForeignKey(
                         name: "FK_Flights_Airports_DestinationICAO",
                         column: x => x.DestinationICAO,
                         principalTable: "Airports",
-                        principalColumn: "ICAO",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "ICAO");
                     table.ForeignKey(
                         name: "FK_Flights_Airports_LandedAtICAO",
                         column: x => x.LandedAtICAO,
                         principalTable: "Airports",
-                        principalColumn: "ICAO",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "ICAO");
                     table.ForeignKey(
                         name: "FK_Flights_Airports_OriginICAO",
                         column: x => x.OriginICAO,
                         principalTable: "Airports",
-                        principalColumn: "ICAO",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "ICAO");
                     table.ForeignKey(
                         name: "FK_Flights_Users_AssignedAirlinePilotID",
                         column: x => x.AssignedAirlinePilotID,
                         principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Flights_Users_DispatcherID",
                         column: x => x.DispatcherID,
                         principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Flights_Users_OperatorID",
                         column: x => x.OperatorID,
                         principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "Id");
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -964,7 +965,7 @@ namespace OpenSky.API.Migrations
                 columns: table => new
                 {
                     ID = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    AircraftRegistry = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: true)
+                    AircraftRegistry = table.Column<string>(type: "varchar(12)", maxLength: 12, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     AirportICAO = table.Column<string>(type: "varchar(5)", maxLength: 5, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -982,20 +983,17 @@ namespace OpenSky.API.Migrations
                         name: "FK_Payloads_Aircraft_AircraftRegistry",
                         column: x => x.AircraftRegistry,
                         principalTable: "Aircraft",
-                        principalColumn: "Registry",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "Registry");
                     table.ForeignKey(
                         name: "FK_Payloads_Airports_AirportICAO",
                         column: x => x.AirportICAO,
                         principalTable: "Airports",
-                        principalColumn: "ICAO",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "ICAO");
                     table.ForeignKey(
                         name: "FK_Payloads_Airports_DestinationICAO",
                         column: x => x.DestinationICAO,
                         principalTable: "Airports",
-                        principalColumn: "ICAO",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "ICAO");
                     table.ForeignKey(
                         name: "FK_Payloads_Jobs_JobID",
                         column: x => x.JobID,
@@ -1011,11 +1009,11 @@ namespace OpenSky.API.Migrations
                 {
                     FixNumber = table.Column<int>(type: "int", nullable: false),
                     FlightID = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    Ident = table.Column<string>(type: "longtext", nullable: false)
+                    Ident = table.Column<string>(type: "varchar(15)", maxLength: 15, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Latitude = table.Column<double>(type: "double", nullable: false),
                     Longitude = table.Column<double>(type: "double", nullable: false),
-                    Type = table.Column<string>(type: "longtext", nullable: false)
+                    Type = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
@@ -1074,6 +1072,11 @@ namespace OpenSky.API.Migrations
                 name: "IX_Aircraft_TypeID",
                 table: "Aircraft",
                 column: "TypeID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AircraftMaintenances_PlannedAtAirportICAO",
+                table: "AircraftMaintenances",
+                column: "PlannedAtAirportICAO");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AircraftManufacturerDeliveryLocations_AircraftTypeID",
@@ -1323,34 +1326,12 @@ namespace OpenSky.API.Migrations
                 unique: true);
         }
 
-        /// -------------------------------------------------------------------------------------------------
-        /// <summary>
-        /// <para>
-        ///                 Builds the operations that will migrate the database 'down'.
-        ///             </para>
-        /// <para>
-        ///                 That is, builds the operations that will take the database from the state
-        ///                 left in by this migration so that it returns to the state that it was in
-        ///                 before this migration was applied.
-        ///             </para>
-        /// <para>
-        ///                 This method must be overridden in each class the inherits from <see cref="T:Microsoft.EntityFrameworkCore.Migrations.Migration" />
-        ///                 if both 'up' and 'down' migrations are to be supported. If it is not
-        ///                 overridden, then calling it will throw and it will not be possible to migrate
-        ///                 in the 'down' direction.
-        ///             </para>
-        /// </summary>
-        /// <remarks>
-        /// sushi.at, 25/05/2022.
-        /// </remarks>
-        /// <param name="migrationBuilder">
-        /// The <see cref="T:Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder" /> that will
-        /// build the operations.
-        /// </param>
-        /// <seealso cref="Microsoft.EntityFrameworkCore.Migrations.Migration.Down(MigrationBuilder)"/>
-        /// -------------------------------------------------------------------------------------------------
+        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "AircraftMaintenances");
+
             migrationBuilder.DropTable(
                 name: "AircraftManufacturerDeliveryLocations");
 
