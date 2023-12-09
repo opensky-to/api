@@ -587,7 +587,7 @@ namespace OpenSky.API.Services
                 var registrationExists = this.db.Aircraft.Any(aircraft => aircraft.Registry == registration);
                 if (!registrationExists)
                 {
-                    // Found a non existing registration
+                    // Found a non-existing registration
                     break;
                 }
 
@@ -878,7 +878,7 @@ namespace OpenSky.API.Services
         {
             return Random.Next(0, 100) switch
             {
-                < 33 => $"N{Random.Next(1, 100000)}", // Generate 1-999999
+                < 33 => $"N{Random.Next(100, 100000)}", // Generate 100-999999
                 < 66 => $"N{Random.Next(1, 10000)}{RandomString(1)}", // Generate 1A-9999Z
                 _ => $"N{Random.Next(1, 1000)}{RandomString(2)}", // Generate 1AA-999ZZ
             };
