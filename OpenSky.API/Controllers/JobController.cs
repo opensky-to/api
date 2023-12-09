@@ -125,6 +125,8 @@ namespace OpenSky.API.Controllers
                 var job = await this.db.Jobs
                                     .Include(job => job.OperatorAirline)
                                     .Include(job => job.Payloads)
+                                    .ThenInclude(payload => payload.FlightPayloads)
+                                    .ThenInclude(flightPayload => flightPayload.Flight)
                                     .SingleOrDefaultAsync(j => j.ID == jobID);
                 if (job == null)
                 {
@@ -189,6 +191,18 @@ namespace OpenSky.API.Controllers
                 if (job.Payloads.Any(p => !string.IsNullOrEmpty(p.AircraftRegistry)))
                 {
                     return new ApiResponse<string>("One or more the job's payloads are currently loaded onto an aircraft, you have to unload them before aborting the job!") { IsError = true };
+                }
+
+                // Are any payloads currently part of an active flight?
+                if (job.Payloads.Any(p => p.FlightPayloads.Any(f => f.Flight.Started.HasValue && !f.Flight.Completed.HasValue)))
+                {
+                    return new ApiResponse<string>("One or more the job's payloads are currently part of an active flight, you have to abort the flight before aborting the job!") { IsError = true };
+                }
+
+                // Remove non-active flight payloads
+                foreach (var jobPayload in job.Payloads)
+                {
+                    this.db.FlightPayloads.RemoveRange(jobPayload.FlightPayloads);
                 }
 
                 // Remove job and it's payloads
