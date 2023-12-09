@@ -11,8 +11,8 @@ using OpenSky.API;
 namespace OpenSky.API.Migrations
 {
     [DbContext(typeof(OpenSkyDbContext))]
-    [Migration("20231207180308_StringLengths")]
-    partial class StringLengths
+    [Migration("20231209211205_Alpha5")]
+    partial class Alpha5
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -233,8 +233,8 @@ namespace OpenSky.API.Migrations
             modelBuilder.Entity("OpenSky.API.DbModel.AircraftMaintenance", b =>
                 {
                     b.Property<string>("AircraftRegistry")
-                        .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
+                        .HasMaxLength(12)
+                        .HasColumnType("varchar(12)");
 
                     b.Property<int>("RecordNumber")
                         .HasColumnType("int");
@@ -751,8 +751,8 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("char(36)");
 
                     b.Property<string>("AircraftRegistry")
-                        .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
+                        .HasMaxLength(12)
+                        .HasColumnType("varchar(12)");
 
                     b.Property<string>("AirlineID")
                         .HasMaxLength(3)
@@ -800,8 +800,8 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("char(36)");
 
                     b.Property<string>("AircraftRegistry")
-                        .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
+                        .HasMaxLength(12)
+                        .HasColumnType("varchar(12)");
 
                     b.Property<double?>("AirspeedTrue")
                         .HasColumnType("double");
@@ -1248,8 +1248,8 @@ namespace OpenSky.API.Migrations
                         .HasColumnType("char(36)");
 
                     b.Property<string>("AircraftRegistry")
-                        .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
+                        .HasMaxLength(12)
+                        .HasColumnType("varchar(12)");
 
                     b.Property<string>("AirportICAO")
                         .HasMaxLength(5)
