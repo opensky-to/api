@@ -9,14 +9,21 @@ namespace OpenSky.API.Workers
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Linq.Dynamic.Core;
     using System.Threading;
     using System.Threading.Tasks;
 
+    using GeoCoordinatePortable;
+
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
 
+    using OpenSky.API.DbModel;
+    using OpenSky.API.DbModel.Enums;
     using OpenSky.API.Model;
+    using OpenSky.S2Geometry.Extensions;
 
     /// -------------------------------------------------------------------------------------------------
     /// <summary>
@@ -31,7 +38,7 @@ namespace OpenSky.API.Workers
     {
         /// -------------------------------------------------------------------------------------------------        
         /// <summary>
-        /// The clean up interval in milliseconds (30 minutes).
+        /// The clean-up interval in milliseconds (30 minutes).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private const int CleanupInterval = 30 * 60 * 1000;
@@ -123,7 +130,7 @@ namespace OpenSky.API.Workers
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
         /// This method is called when the <see cref="T:Microsoft.Extensions.Hosting.IHostedService" />
-        /// starts. The implementation should return a task that represents the lifetime of the long
+        /// starts. The implementation should return a task that represents the lifetime of the long-
         /// running operation(s) being performed.
         /// </summary>
         /// <remarks>
@@ -135,9 +142,9 @@ namespace OpenSky.API.Workers
         /// is called.
         /// </param>
         /// <returns>
-        /// A <see cref="T:System.Threading.Tasks.Task" /> that represents the long running operations.
+        /// A <see cref="T:System.Threading.Tasks.Task" /> that represents the long-running operations.
         /// </returns>
-        /// <seealso cref="M:Microsoft.Extensions.Hosting.BackgroundService.ExecuteAsync(CancellationToken)"/>
+        /// <seealso cref="Microsoft.Extensions.Hosting.BackgroundService.ExecuteAsync(CancellationToken)"/>
         /// -------------------------------------------------------------------------------------------------
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
@@ -151,8 +158,167 @@ namespace OpenSky.API.Workers
                 errorCount += await this.CleanupOpenSkyTokens(db);
                 errorCount += await this.CleanupAirportClientPackages(db);
                 errorCount += await this.CleanupExpiredJobs(db);
+                errorCount += await this.CancelStaleFlights(db);
 
                 await Task.Delay(errorCount == 0 ? CleanupInterval : ErrorInterval, stoppingToken);
+            }
+        }
+
+        private async Task<int> CancelStaleFlights(OpenSkyDbContext db)
+        {
+            try
+            {
+                var started7DaysAgo = DateTime.UtcNow.AddDays(-7);
+                var flights = await db.Flights
+                                      .Where(f => f.Started.HasValue && !f.Paused.HasValue && !f.Completed.HasValue && f.Started.Value < started7DaysAgo)
+                                      .Include(flight => flight.Origin)
+                                      .Include(flight => flight.Aircraft)
+                                      .ThenInclude(aircraft => aircraft.Type)
+                                      .ToListAsync();
+                foreach (var flight in flights)
+                {
+                    // ==============================================================================
+                    // CHANGES TO THIS CODE NEED TO BE MIRRORED IN FlightController.AbortFlight METHOD!!!
+                    // ==============================================================================
+
+                    // Check if/what penalties to apply
+                    if (flight.OnGround)
+                    {
+                        // What's the closest airport to the current location?
+                        if (flight.Latitude.HasValue && flight.Longitude.HasValue)
+                        {
+                            // Check where we are (closest airport)
+                            var closestAirportICAO = await this.GetClosestAirport(db, new GeoCoordinate(flight.Latitude.Value, flight.Longitude.Value), flight.Aircraft.Type.Simulator);
+                            if (string.IsNullOrEmpty(closestAirportICAO))
+                            {
+                                // Landed at no airport, back to origin!
+                                flight.Aircraft.AirportICAO = flight.OriginICAO;
+                                flight.LandedAtICAO = flight.OriginICAO;
+                            }
+                            else
+                            {
+                                flight.Aircraft.AirportICAO = closestAirportICAO;
+                                flight.LandedAtICAO = closestAirportICAO;
+                            }
+
+                            if (flight.TimeWarpTimeSavedSeconds > 0)
+                            {
+                                flight.Aircraft.WarpingUntil = DateTime.UtcNow.AddSeconds(flight.TimeWarpTimeSavedSeconds);
+                            }
+
+                            flight.Started = null;
+                            flight.PayloadLoadingComplete = null;
+                            flight.FuelLoadingComplete = null;
+                            flight.AutoSaveLog = null;
+                            flight.LastAutoSave = null;
+
+                            flight.FlightPhase = FlightPhase.Briefing;
+                            flight.Latitude = null; // We can leave the rest of the properties as this is now invalid for resume
+                            flight.Longitude = null;
+                            flight.LastPositionReport = null;
+                            flight.OnGround = true;
+                            flight.Altitude = null;
+                            flight.GroundSpeed = null;
+                            flight.Heading = null;
+                        }
+                        else
+                        {
+                            // Flight never report a position, so never started moving, easiest abort, no punishment, simply revert back to plan
+                            flight.Started = null;
+                            flight.PayloadLoadingComplete = null;
+                            flight.FuelLoadingComplete = null;
+                            flight.AutoSaveLog = null;
+                            flight.LastAutoSave = null;
+                            flight.LastPositionReport = null;
+                            flight.OnGround = true;
+                            flight.Altitude = null;
+                            flight.GroundSpeed = null;
+                            flight.Heading = null;
+                        }
+                    }
+                    else
+                    {
+                        // Now it should get expensive, return flight, etc.
+                        // todo penalties (money cost, fuel consumption?, reputation impact)
+
+                        var distanceToOrigin = 0d;
+                        if (flight.Latitude.HasValue && flight.Longitude.HasValue)
+                        {
+                            // Convert meters to nautical miles, before dividing by knots
+                            distanceToOrigin = flight.Origin.GeoCoordinate.GetDistanceTo(new GeoCoordinate(flight.Latitude.Value, flight.Longitude.Value)) / 1852d;
+                        }
+
+                        var groundSpeed = flight.Aircraft.Type.EngineType switch
+                        {
+                            EngineType.HeloBellTurbine => 150,
+                            EngineType.Jet => 400,
+                            EngineType.Piston => 100,
+                            EngineType.Turboprop => 250,
+                            EngineType.None => 0,
+                            EngineType.Unsupported => 0,
+                            _ => 0
+                        };
+
+                        // ReSharper disable once PossibleInvalidOperationException
+                        var returnFlightDuration = (distanceToOrigin > 0 && groundSpeed > 0) ? TimeSpan.FromHours(distanceToOrigin / groundSpeed) : DateTime.UtcNow - flight.Started.Value;
+                        flight.Aircraft.WarpingUntil = flight.TimeWarpTimeSavedSeconds > 0 ? DateTime.UtcNow.AddSeconds(flight.TimeWarpTimeSavedSeconds).Add(returnFlightDuration) : DateTime.UtcNow.Add(returnFlightDuration);
+
+                        // Increase airframe and engine hours
+                        // ReSharper disable once PossibleInvalidOperationException
+                        var hours = (DateTime.UtcNow - flight.Started.Value).TotalHours + returnFlightDuration.TotalHours;
+                        flight.Aircraft.AirframeHours += hours;
+                        switch (flight.Aircraft.Type.EngineCount)
+                        {
+                            case 1:
+                                flight.Aircraft.Engine1Hours += hours;
+                                break;
+                            case 2:
+                                flight.Aircraft.Engine1Hours += hours;
+                                flight.Aircraft.Engine2Hours += hours;
+                                break;
+                            case 3:
+                                flight.Aircraft.Engine1Hours += hours;
+                                flight.Aircraft.Engine2Hours += hours;
+                                flight.Aircraft.Engine3Hours += hours;
+                                break;
+                            case 4:
+                                flight.Aircraft.Engine1Hours += hours;
+                                flight.Aircraft.Engine2Hours += hours;
+                                flight.Aircraft.Engine3Hours += hours;
+                                flight.Aircraft.Engine4Hours += hours;
+                                break;
+                        }
+
+                        // Return aircraft back to Origin airport
+                        flight.Started = null;
+                        flight.PayloadLoadingComplete = null;
+                        flight.FuelLoadingComplete = null;
+                        flight.AutoSaveLog = null;
+                        flight.LastAutoSave = null;
+
+                        flight.FlightPhase = FlightPhase.Briefing;
+                        flight.Latitude = null; // We can leave the rest of the properties as this is now invalid for resume
+                        flight.Longitude = null;
+                        flight.LastPositionReport = null;
+                        flight.OnGround = true;
+                        flight.Altitude = null;
+                        flight.GroundSpeed = null;
+                        flight.Heading = null;
+                    }
+                }
+
+                var saveEx = await db.SaveDatabaseChangesAsync(this.logger, "Error cancelling stale flights.");
+                if (saveEx != null)
+                {
+                    throw saveEx;
+                }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Error cancelling stale flights.");
+                return 1;
             }
         }
 
@@ -263,6 +429,70 @@ namespace OpenSky.API.Workers
                 this.logger.LogError(ex, "Error cleaning up OpenSky tokens.");
                 return 1;
             }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Find the closest airport to the specified geo coordinate.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 26/01/2022.
+        /// </remarks>
+        /// <param name="db">
+        /// The database context.
+        /// </param>
+        /// <param name="location">
+        /// The location.
+        /// </param>
+        /// <param name="simulator">
+        /// The simulator.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields the closest airport ICAO code, or NULL if there is no
+        /// airport within 10 nm.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        private async Task<string> GetClosestAirport(OpenSkyDbContext db, GeoCoordinate location, Simulator simulator)
+        {
+            // Check where we are (closest airport)
+            var coverage = location.CircularCoverage(10);
+            var cells = coverage.Cells.Select(c => c.Id).ToList();
+            var airports = await db.Airports.Where($"@0.Contains(S2Cell{coverage.Level})", cells).ToListAsync();
+            if (simulator == Simulator.MSFS)
+            {
+                airports = airports.Where(a => a.MSFS).ToList();
+            }
+
+            if (simulator == Simulator.XPlane11)
+            {
+                airports = airports.Where(a => a.XP11).ToList();
+            }
+
+            if (airports.Count == 0)
+            {
+                // Landed at no airport, back to origin?
+                return null;
+            }
+
+            Airport closest = null;
+            double closestDistance = 9999;
+            foreach (var airport in airports)
+            {
+                var distance = airport.GeoCoordinate.GetDistanceTo(location);
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+                    closest = airport;
+                }
+            }
+
+            if (closest != null)
+            {
+                return closest.ICAO;
+            }
+
+            // Should not happen, take first airport from list I guess?
+            return airports[0].ICAO;
         }
     }
 }

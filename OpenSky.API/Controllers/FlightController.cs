@@ -193,6 +193,10 @@ namespace OpenSky.API.Controllers
                     }
                 }
 
+                // ==============================================================================
+                // CHANGES TO THIS CODE NEED TO BE MIRRORED IN DbCleanupWorker.CancelStaleFlights METHOD!!!
+                // ==============================================================================
+
                 // Check if/what penalties to apply
                 if (flight.OnGround)
                 {
