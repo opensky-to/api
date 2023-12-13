@@ -60,6 +60,7 @@ namespace OpenSky.API.Model.Flight
             }
 
             this.AircraftType = flight.Aircraft.Type.Name;
+            this.Category = flight.Aircraft.Type.Category;
             this.Simulator = flight.Aircraft.Type.Simulator;
             this.AircraftEngineType = flight.Aircraft.Type.EngineType;
             this.OriginICAO = flight.OriginICAO;
@@ -161,6 +162,13 @@ namespace OpenSky.API.Model.Flight
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string AtcCallsign { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the aircraft category.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public AircraftTypeCategory Category { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
