@@ -22,7 +22,7 @@ namespace OpenSky.API.DbModel.Enums
         MSFS = 0,
 
         /// <summary>
-        /// X-Plane 11.
+        /// X-Plane 11+.
         /// </summary>
         XPlane11 = 1
     }

@@ -186,7 +186,7 @@ namespace OpenSky.API.Controllers
 
                 // Set a few defaults that the user should not be able to set differently
                 type.ID = Guid.NewGuid();
-                type.Enabled = userRoles.Contains(UserRoles.Moderator) || userRoles.Contains(UserRoles.Admin);
+                type.Enabled = (userRoles.Contains(UserRoles.Moderator) || userRoles.Contains(UserRoles.Admin)) && type.VersionNumber > 0;
                 type.DetailedChecksDisabled = false;
                 type.UploaderID = user.Id;
                 type.NextVersion = null;
@@ -271,7 +271,7 @@ namespace OpenSky.API.Controllers
                     }
                 }
 
-                return new ApiResponse<Guid>("New aircraft type added successfully but it needs to be reviewed before it will be active in OpenSky.") { Data = type.ID };
+                return new ApiResponse<Guid>("New aircraft type added successfully but it needs to be reviewed by the moderation team before it will be active in OpenSky.") { Data = type.ID };
             }
             catch (Exception ex)
             {
