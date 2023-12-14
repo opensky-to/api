@@ -19,23 +19,13 @@ namespace OpenSky.API.DbModel.Enums
     public enum FlightRule
     {
         /// <summary>
-        /// Instrument
+        /// Instrument flight rules
         /// </summary>
         IFR = 0,
 
         /// <summary>
-        /// Visual
+        /// Visual flight rules
         /// </summary>
-        VFR = 1,
-
-        /// <summary>
-        /// Instrument -> Visual
-        /// </summary>
-        IFRtoVFR = 2,
-
-        /// <summary>
-        /// Visual -> Instrument
-        /// </summary>
-        VFRtoIFR = 3
+        VFR = 1
     }
 }
