@@ -249,6 +249,7 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [JsonIgnore]
+
         // ReSharper disable once EntityFramework.ModelValidation.UnlimitedStringLength
         public string AutoSaveLog { get; set; }
 
@@ -342,6 +343,7 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         [JsonIgnore]
+
         // ReSharper disable once EntityFramework.ModelValidation.UnlimitedStringLength
         public string FlightLog { get; set; }
 
@@ -369,6 +371,13 @@ namespace OpenSky.API.DbModel
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public FlightPhase FlightPhase { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the flight rule the flight is being operated under.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public FlightRule FlightRule { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -582,6 +591,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the OFP HTML (most likely from simBrief).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+
         // ReSharper disable once EntityFramework.ModelValidation.UnlimitedStringLength
         public string OfpHtml { get; set; }
 
@@ -734,6 +744,7 @@ namespace OpenSky.API.DbModel
         /// Gets or sets the route.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
+
         // ReSharper disable once EntityFramework.ModelValidation.UnlimitedStringLength
         public string Route { get; set; }
 

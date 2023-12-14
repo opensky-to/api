@@ -32,7 +32,7 @@ namespace OpenSky.API.DbModel.Enums
         UnTracked = 2,
 
         /// <summary>
-        /// Pre flight phase (Plane spawned in, but engines are off).
+        /// Pre-flight phase (Plane spawned in, but engines are off).
         /// </summary>
         PreFlight = 10,
 
@@ -42,7 +42,7 @@ namespace OpenSky.API.DbModel.Enums
         PushBack = 11,
 
         /// <summary>
-        /// Taxi out phase (Engines on, on the ground at the departure airport, and never airborne).
+        /// Taxi-out phase (Engines on, on the ground at the departure airport, and never airborne).
         /// </summary>
         TaxiOut = 12,
 
@@ -82,17 +82,17 @@ namespace OpenSky.API.DbModel.Enums
         Landing = 19,
 
         /// <summary>
-        /// Go around phase, ascending after landing or approach phase activated.
+        /// Go-around phase, ascending after landing or approach phase activated.
         /// </summary>
         GoAround = 20,
 
         /// <summary>
-        /// Taxi in phase (Moving on the ground after airborne, even if back at origin).
+        /// Taxi-in phase (Moving on the ground after airborne, even if back at origin).
         /// </summary>
         TaxiIn = 21,
 
         /// <summary>
-        /// Post flight (Engines turned off, tracking is about to stop, just saving flight log reporting back).
+        /// Post-flight (Engines turned off, tracking is about to stop, just saving flight log reporting back).
         /// </summary>
         PostFlight = 22,
 

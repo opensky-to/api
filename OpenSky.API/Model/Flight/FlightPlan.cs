@@ -66,6 +66,7 @@ namespace OpenSky.API.Model.Flight
             }
 
             this.ID = flight.ID;
+            this.FlightRule = flight.FlightRule;
             this.FlightNumber = flight.FlightNumber;
             this.Aircraft = flight.Aircraft ?? new Aircraft
             {
@@ -107,6 +108,13 @@ namespace OpenSky.API.Model.Flight
             this.NavlogFixes = flight.NavlogFixes ?? new List<FlightNavlogFix>();
             this.Payloads = flight.FlightPayloads ?? new List<FlightPayload>();
         }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the flight rule.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public FlightRule FlightRule { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>

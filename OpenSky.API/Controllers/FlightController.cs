@@ -1632,6 +1632,7 @@ namespace OpenSky.API.Controllers
                     var newFlight = new Flight
                     {
                         ID = flightPlan.ID,
+                        FlightRule = flightPlan.FlightRule,
                         FlightNumber = flightPlan.FlightNumber,
                         AircraftRegistry = flightPlan.Aircraft?.Registry,
                         OriginICAO = flightPlan.OriginICAO?.ToUpperInvariant(),
@@ -1692,6 +1693,7 @@ namespace OpenSky.API.Controllers
                     }
 
                     existingFlight.FlightNumber = flightPlan.FlightNumber;
+                    existingFlight.FlightRule = flightPlan.FlightRule;
                     existingFlight.AircraftRegistry = flightPlan.Aircraft?.Registry;
                     existingFlight.OriginICAO = flightPlan.OriginICAO?.ToUpperInvariant();
                     existingFlight.DestinationICAO = flightPlan.DestinationICAO?.ToUpperInvariant();
