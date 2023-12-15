@@ -100,6 +100,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// The notifications for the user.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        private ICollection<Notification> notifications;
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Initializes a new instance of the <see cref="OpenSkyUser"/> class.
         /// </summary>
         /// <remarks>
@@ -251,6 +258,19 @@ namespace OpenSky.API.DbModel
         {
             get => this.LazyLoader.Load(this, ref this.flights);
             set => this.flights = value;
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the notifications for the user.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [JsonIgnore]
+        [InverseProperty("Recipient")]
+        public ICollection<Notification> Notifications
+        {
+            get => this.LazyLoader.Load(this, ref this.notifications);
+            set => this.notifications = value;
         }
 
         /// -------------------------------------------------------------------------------------------------
