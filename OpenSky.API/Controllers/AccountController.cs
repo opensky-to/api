@@ -17,6 +17,7 @@ namespace OpenSky.API.Controllers
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Identity;
     using Microsoft.AspNetCore.Mvc;
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
 
     using OpenSky.API.DbModel;
@@ -241,7 +242,7 @@ namespace OpenSky.API.Controllers
             this.logger.LogInformation($"{this.User.Identity?.Name} | GET Account/users");
             try
             {
-                var users = this.db.Users.Select(
+                var users = await this.db.Users.Select(
                     u => new User
                     {
                         ID = Guid.Parse(u.Id),
@@ -254,7 +255,7 @@ namespace OpenSky.API.Controllers
                         LastLoginGeo = u.LastLoginGeo,
                         AccessFailedCount = u.AccessFailedCount,
                         Roles = new List<string>()
-                    }).ToList();
+                    }).ToListAsync();
                 foreach (var user in users)
                 {
                     var userManagerUser = await this.userManager.FindByIdAsync(user.ID.ToString());

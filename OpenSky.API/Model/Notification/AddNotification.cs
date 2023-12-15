@@ -6,7 +6,6 @@
 
 namespace OpenSky.API.Model.Notification
 {
-    using System;
     using System.ComponentModel.DataAnnotations;
 
     using OpenSky.API.DbModel.Enums;
@@ -23,7 +22,7 @@ namespace OpenSky.API.Model.Notification
     {
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Optional: The number of seconds after which to auto-dismiss the notification (or NULL for no
+        /// Optional: Gets or sets the number of seconds after which to auto-dismiss the notification (or NULL for no
         /// timeout)
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
@@ -31,17 +30,17 @@ namespace OpenSky.API.Model.Notification
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Optional: The date/time after which the message gets sent via email if no client picked it up.
+        /// Optional: Gets or sets the number of hours after which the message gets sent via email if no client picked it up.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public DateTime? EmailFallback { get; set; }
+        public int? EmailFallbackHours { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the Date/Time when the notification expires.
+        /// Optional: Gets or sets the expiration in minutes.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        public DateTime? Expires { get; set; }
+        public int? ExpiresInMinutes { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -66,6 +65,13 @@ namespace OpenSky.API.Model.Notification
         /// -------------------------------------------------------------------------------------------------
         [StringLength(256)]
         public string RecipientUserName { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets a value indicating whether to send the notification as "OpenSky System"
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public bool SendAsSystem { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
