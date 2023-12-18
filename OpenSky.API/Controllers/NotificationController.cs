@@ -206,12 +206,148 @@ namespace OpenSky.API.Controllers
                     await this.db.Notifications.AddAsync(newNotification);
                 }
 
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error saving new notifications.");
+                if (saveEx != null)
+                {
+                    throw saveEx;
+                }
+
                 return new ApiResponse<string>($"Notification for {recipients.Count} recipient{(recipients.Count != 1 ? "s" : string.Empty)} added.");
             }
             catch (Exception ex)
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Notification");
                 return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Confirm successful pickup of a notification for the specified target.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 18/12/2023.
+        /// </remarks>
+        /// <param name="notificationID">
+        /// Identifier for the notification.
+        /// </param>
+        /// <param name="target">
+        /// The target of the notification.
+        /// </param>
+        /// <returns>
+        /// An ActionResult&lt;ApiResponse&lt;string&gt;&gt;
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPut(Name = "ConfirmNotificationPickup")]
+        public async Task<ActionResult<ApiResponse<string>>> ConfirmNotificationPickup(Guid notificationID, NotificationTarget target)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | PUT Notification");
+
+                // ReSharper disable once AssignNullToNotNullAttribute
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
+                }
+
+                var notification = await this.db.Notifications.SingleOrDefaultAsync(n => n.ID == notificationID);
+                if (notification == null)
+                {
+                    return new ApiResponse<string> { Message = "Unable to find specified notification!", IsError = true };
+                }
+
+                switch (target)
+                {
+                    case NotificationTarget.Client:
+                        notification.ClientPickup = true;
+                        break;
+                    case NotificationTarget.Agent:
+                        notification.AgentPickup = true;
+                        break;
+                }
+
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error marking notification as picked up.");
+                if (saveEx != null)
+                {
+                    throw saveEx;
+                }
+
+                return new ApiResponse<string>("Success");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Notification");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Get notifications for specified target.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 18/12/2023.
+        /// </remarks>
+        /// <param name="target">
+        /// The target for the notification.
+        /// </param>
+        /// <returns>
+        /// The notifications for this target.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet(Name = "GetNotifications")]
+        public async Task<ActionResult<ApiResponse<List<ClientNotification>>>> GetNotifications(NotificationTarget target)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Notification");
+
+                // ReSharper disable once AssignNullToNotNullAttribute
+                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
+                if (user == null)
+                {
+                    return new ApiResponse<List<ClientNotification>> { Message = "Unable to find user record!", IsError = true, Data = new List<ClientNotification>() };
+                }
+
+                if (target is not (NotificationTarget.Client or NotificationTarget.Agent))
+                {
+                    return new ApiResponse<List<ClientNotification>> { Message = "Can only pick up notifications for client and agent!", IsError = true, Data = new List<ClientNotification>() };
+                }
+
+                var notifications = await this.db.Notifications.Where(
+                                                  n =>
+                                                      n.RecipientID == user.UserName &&
+                                                      (!n.Expires.HasValue || n.Expires.Value > DateTime.UtcNow) &&
+                                                      (n.Target == target || n.Target == NotificationTarget.ClientAndAgent || n.Target == NotificationTarget.All))
+                                              .ToListAsync();
+
+                switch (target)
+                {
+                    case NotificationTarget.Client:
+                        notifications = notifications.Where(n => !n.ClientPickup).ToList();
+                        break;
+                    case NotificationTarget.Agent:
+                        notifications = notifications.Where(n => !n.AgentPickup).ToList();
+                        break;
+                }
+
+                return new ApiResponse<List<ClientNotification>>(
+                    notifications.Select(
+                        n => new ClientNotification
+                        {
+                            ID = n.ID,
+                            Sender = n.Sender,
+                            Message = n.Message,
+                            Style = n.Style,
+                            DisplayTimeout = n.DisplayTimeout
+                        }).ToList());
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Notification");
+                return new ApiResponse<List<ClientNotification>>(ex) { Data = new List<ClientNotification>() };
             }
         }
     }

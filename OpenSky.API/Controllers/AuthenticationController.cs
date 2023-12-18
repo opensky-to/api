@@ -128,7 +128,7 @@ namespace OpenSky.API.Controllers
         /// The Google reCAPTCHAv3 service.
         /// </param>
         /// <param name="geoLocateIPService">
-        /// The geo locate IP service.
+        /// The geo-locate IP service.
         /// </param>
         /// <param name="db">
         /// The OpenSky database.

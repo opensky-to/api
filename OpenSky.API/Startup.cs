@@ -240,7 +240,7 @@ namespace OpenSky.API
             services.AddHttpClient<GoogleRecaptchaV3Service>();
             services.AddSingleton<GoogleRecaptchaV3Service>();
             
-            // Set up geo location service
+            // Set up geo-location service
             services.AddHttpClient<GeoLocateIPService>();
             services.AddSingleton<GeoLocateIPService>();
 
@@ -258,6 +258,7 @@ namespace OpenSky.API
             services.AddHostedService<DataImportWorkerService>();
             services.AddHostedService<DbCleanupWorkerService>();
             services.AddHostedService<AircraftPopulatorWorkerService>();
+            services.AddHostedService<EmailWorkerService>();
 
             // API controllers
             services.AddControllers();

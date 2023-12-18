@@ -65,6 +65,9 @@
     <None Update="Datasets\top50airports.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="EmailTemplates\Notification.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="EmailTemplates\ResetPassword.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

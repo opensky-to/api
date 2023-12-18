@@ -59,7 +59,7 @@ namespace OpenSky.API.Workers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The services.
+        /// The service provider.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         private readonly IServiceProvider services;
@@ -121,10 +121,10 @@ namespace OpenSky.API.Workers
         /// </returns>
         /// <seealso cref="M:Microsoft.Extensions.Hosting.BackgroundService.StopAsync(CancellationToken)"/>
         /// -------------------------------------------------------------------------------------------------
-        public override async Task StopAsync(CancellationToken stoppingToken)
+        public override Task StopAsync(CancellationToken stoppingToken)
         {
             this.logger.LogInformation("DB cleanup background service stopping...");
-            await base.StopAsync(stoppingToken);
+            return base.StopAsync(stoppingToken);
         }
 
         /// -------------------------------------------------------------------------------------------------
