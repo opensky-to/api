@@ -38,10 +38,10 @@ namespace OpenSky.API.Workers
     {
         /// -------------------------------------------------------------------------------------------------        
         /// <summary>
-        /// The clean-up interval in milliseconds (30 minutes).
+        /// The clean-up interval in milliseconds (5 minutes).
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private const int CleanupInterval = 30 * 60 * 1000;
+        private const int CleanupInterval = 5 * 60 * 1000;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -130,7 +130,7 @@ namespace OpenSky.API.Workers
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
         /// This method is called when the <see cref="T:Microsoft.Extensions.Hosting.IHostedService" />
-        /// starts. The implementation should return a task that represents the lifetime of the long-
+        /// starts. The implementation should return a task that represents the lifetime of the long
         /// running operation(s) being performed.
         /// </summary>
         /// <remarks>
@@ -142,7 +142,7 @@ namespace OpenSky.API.Workers
         /// is called.
         /// </param>
         /// <returns>
-        /// A <see cref="T:System.Threading.Tasks.Task" /> that represents the long-running operations.
+        /// A <see cref="T:System.Threading.Tasks.Task" /> that represents the long running operations.
         /// </returns>
         /// <seealso cref="Microsoft.Extensions.Hosting.BackgroundService.ExecuteAsync(CancellationToken)"/>
         /// -------------------------------------------------------------------------------------------------
@@ -159,11 +159,26 @@ namespace OpenSky.API.Workers
                 errorCount += await this.CleanupAirportClientPackages(db);
                 errorCount += await this.CleanupExpiredJobs(db);
                 errorCount += await this.CancelStaleFlights(db);
+                errorCount += await this.CleanupNotifications(db);
 
                 await Task.Delay(errorCount == 0 ? CleanupInterval : ErrorInterval, stoppingToken);
             }
         }
 
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Cancel stale flights.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 19/12/2023.
+        /// </remarks>
+        /// <param name="db">
+        /// The database context.
+        /// </param>
+        /// <returns>
+        /// An int.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
         private async Task<int> CancelStaleFlights(OpenSkyDbContext db)
         {
             try
@@ -357,6 +372,67 @@ namespace OpenSky.API.Workers
             catch (Exception ex)
             {
                 this.logger.LogError(ex, "Error cleaning up airport client packages.");
+                return 1;
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Clean up notifications (in two stages, mark for deletion in 7 days at first, followed by
+        /// actual delete)
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 19/12/2023.
+        /// </remarks>
+        /// <param name="db">
+        /// The database context.
+        /// </param>
+        /// <returns>
+        /// An asynchronous result that yields an int, containing the error count.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        private async Task<int> CleanupNotifications(OpenSkyDbContext db)
+        {
+            try
+            {
+                // 1. Look for notifications that can be marked for future deletion
+                var groupingIDs = await db.Notifications.Where(n => !n.MarkedForDeletion.HasValue).Select(n => n.GroupingID).Distinct().ToListAsync();
+                foreach (var groupingID in groupingIDs)
+                {
+                    // Have all recipients received at least one?
+                    var notificationsToCheck = await db.Notifications.Where(n => n.GroupingID == groupingID).ToListAsync();
+                    var allDelivered = notificationsToCheck.All(n => n.ClientPickup || n.AgentPickup || n.EmailSent);
+                    var allExpired = notificationsToCheck.All(n => n.Expires.HasValue && n.Expires < DateTime.UtcNow);
+
+                    if (allExpired || allDelivered)
+                    {
+                        foreach (var notification in notificationsToCheck)
+                        {
+                            notification.MarkedForDeletion = DateTime.UtcNow.AddDays(7);
+                        }
+                    }
+
+                    var saveExInner = await db.SaveDatabaseChangesAsync(this.logger, "Error marking delivered/expired notifications for future deletion.");
+                    if (saveExInner != null)
+                    {
+                        throw saveExInner;
+                    }
+                }
+
+                // 2. Delete marked for deletion
+                var readyToDelete = await db.Notifications.Where(n => n.MarkedForDeletion.HasValue && n.MarkedForDeletion.Value <= DateTime.UtcNow).ToListAsync();
+                db.Notifications.RemoveRange(readyToDelete);
+                var saveEx = await db.SaveDatabaseChangesAsync(this.logger, "Error deleting notifications marked for deletion.");
+                if (saveEx != null)
+                {
+                    throw saveEx;
+                }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Error cleaning up notifications.");
                 return 1;
             }
         }

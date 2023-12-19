@@ -144,6 +144,11 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string> { Message = "Notification message exceeds 500 characters!", IsError = true };
                 }
 
+                if (addNotification.ExpiresInMinutes.HasValue && addNotification.EmailFallbackHours.HasValue && addNotification.ExpiresInMinutes.Value / 60.0 < addNotification.EmailFallbackHours.Value)
+                {
+                    return new ApiResponse<string> { Message = "Notification email fallback can't be past expiry!", IsError = true };
+                }
+
                 var recipients = new HashSet<string>();
                 if (addNotification.RecipientType == NotificationRecipient.User)
                 {
@@ -241,12 +246,12 @@ namespace OpenSky.API.Controllers
         /// An ActionResult&lt;ApiResponse&lt;string&gt;&gt;
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
-        [HttpPut(Name = "ConfirmNotificationPickup")]
+        [HttpPut("{notificationID:guid}/{target}", Name = "ConfirmNotificationPickup")]
         public async Task<ActionResult<ApiResponse<string>>> ConfirmNotificationPickup(Guid notificationID, NotificationTarget target)
         {
             try
             {
-                this.logger.LogInformation($"{this.User.Identity?.Name} | PUT Notification");
+                this.logger.LogInformation($"{this.User.Identity?.Name} | PUT Notification/{notificationID}/{target}");
 
                 // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
@@ -255,7 +260,7 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
                 }
 
-                var notification = await this.db.Notifications.SingleOrDefaultAsync(n => n.ID == notificationID);
+                var notification = await this.db.Notifications.SingleOrDefaultAsync(n => n.ID == notificationID && n.RecipientID == user.Id);
                 if (notification == null)
                 {
                     return new ApiResponse<string> { Message = "Unable to find specified notification!", IsError = true };
@@ -281,8 +286,154 @@ namespace OpenSky.API.Controllers
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Notification");
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Notification/{notificationID}/{target}");
                 return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Delete specified notification group.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 19/12/2023.
+        /// </remarks>
+        /// <param name="groupingID">
+        /// Identifier for the grouping.
+        /// </param>
+        /// <returns>
+        /// An ActionResult&lt;ApiResponse&lt;string&gt;&gt;
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpDelete("{groupingID:guid}", Name = "DeleteNotification")]
+        [Authorize(Roles = UserRoles.Admin)]
+        public async Task<ActionResult<ApiResponse<string>>> DeleteNotification(Guid groupingID)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | DELETE Notification/{groupingID}");
+
+                var notificationsToDelete = this.db.Notifications.Where(n => n.GroupingID == groupingID);
+                this.db.Notifications.RemoveRange(notificationsToDelete);
+
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error deleting notifications.");
+                if (saveEx != null)
+                {
+                    throw saveEx;
+                }
+
+                return new ApiResponse<string>("Success");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | DELETE Notification/{groupingID}");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Active fallback to email NOW for specified notification.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 19/12/2023.
+        /// </remarks>
+        /// <param name="groupingID">
+        /// Identifier for the grouping.
+        /// </param>
+        /// <returns>
+        /// An ActionResult&lt;ApiResponse&lt;string&gt;&gt;
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpPut("fallbackEmailNow/{groupingID:guid}", Name = "FallbackNotificationToEmailNow")]
+        [Authorize(Roles = UserRoles.Admin)]
+        public async Task<ActionResult<ApiResponse<string>>> FallbackNotificationToEmailNow(Guid groupingID)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | PUT Notification/fallbackEmailNow/{groupingID}");
+
+                var notificationsToFallback = await this.db.Notifications.Where(n => n.GroupingID == groupingID).ToListAsync();
+                foreach (var notification in notificationsToFallback)
+                {
+                    notification.EmailFallback = DateTime.UtcNow;
+                }
+
+                var saveEx = await this.db.SaveDatabaseChangesAsync(this.logger, "Error updating notifications.");
+                if (saveEx != null)
+                {
+                    throw saveEx;
+                }
+
+                return new ApiResponse<string>("Success");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | PUT Notification/fallbackEmailNow/{groupingID}");
+                return new ApiResponse<string>(ex);
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Get all currently active notifications.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 19/12/2023.
+        /// </remarks>
+        /// <returns>
+        /// All notifications.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet("all", Name = "GetAllNotifications")]
+        [Roles(UserRoles.Moderator, UserRoles.Admin)]
+        public async Task<ActionResult<ApiResponse<IEnumerable<GroupedNotification>>>> GetAllNotifications()
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Notification/all");
+
+                var notifications = await this.db.Notifications.Include(notification => notification.Recipient).ToListAsync();
+                var groupingIDs = notifications.Select(n => n.GroupingID).Distinct();
+                var result = new List<GroupedNotification>();
+
+                foreach (var groupingID in groupingIDs)
+                {
+                    var first = notifications.First(n => n.GroupingID == groupingID);
+                    var groupedNotification = new GroupedNotification
+                    {
+                        Recipients = new List<GroupedNotificationRecipient>(),
+                        GroupingID = first.GroupingID,
+                        Sender = first.Sender,
+                        Message = first.Message,
+                        Target = first.Target,
+                        Style = first.Style,
+                        DisplayTimeout = first.DisplayTimeout,
+                        Expires = first.Expires,
+                        EmailFallback = first.EmailFallback,
+                        MarkedForDeletion = first.MarkedForDeletion
+                    };
+
+                    groupedNotification.Recipients.AddRange(
+                        notifications.Where(n => n.GroupingID == groupingID).Select(
+                            n => new GroupedNotificationRecipient
+                            {
+                                ID = n.RecipientID,
+                                Name = n.Recipient.UserName,
+                                ClientPickup = n.ClientPickup,
+                                AgentPickup = n.AgentPickup,
+                                EmailSent = n.EmailSent
+                            }));
+
+                    result.Add(groupedNotification);
+                }
+
+                return new ApiResponse<IEnumerable<GroupedNotification>>(result);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Notification/all");
+                return new ApiResponse<IEnumerable<GroupedNotification>>(ex) { Data = new List<GroupedNotification>() };
             }
         }
 
@@ -301,7 +452,7 @@ namespace OpenSky.API.Controllers
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
         [HttpGet(Name = "GetNotifications")]
-        public async Task<ActionResult<ApiResponse<List<ClientNotification>>>> GetNotifications(NotificationTarget target)
+        public async Task<ActionResult<ApiResponse<IEnumerable<ClientNotification>>>> GetNotifications(NotificationTarget target)
         {
             try
             {
@@ -311,12 +462,12 @@ namespace OpenSky.API.Controllers
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
-                    return new ApiResponse<List<ClientNotification>> { Message = "Unable to find user record!", IsError = true, Data = new List<ClientNotification>() };
+                    return new ApiResponse<IEnumerable<ClientNotification>> { Message = "Unable to find user record!", IsError = true, Data = new List<ClientNotification>() };
                 }
 
                 if (target is not (NotificationTarget.Client or NotificationTarget.Agent))
                 {
-                    return new ApiResponse<List<ClientNotification>> { Message = "Can only pick up notifications for client and agent!", IsError = true, Data = new List<ClientNotification>() };
+                    return new ApiResponse<IEnumerable<ClientNotification>> { Message = "Can only pick up notifications for client and agent!", IsError = true, Data = new List<ClientNotification>() };
                 }
 
                 var notifications = await this.db.Notifications.Where(
@@ -336,7 +487,7 @@ namespace OpenSky.API.Controllers
                         break;
                 }
 
-                return new ApiResponse<List<ClientNotification>>(
+                return new ApiResponse<IEnumerable<ClientNotification>>(
                     notifications.Select(
                         n => new ClientNotification
                         {
@@ -350,7 +501,7 @@ namespace OpenSky.API.Controllers
             catch (Exception ex)
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | POST Notification");
-                return new ApiResponse<List<ClientNotification>>(ex) { Data = new List<ClientNotification>() };
+                return new ApiResponse<IEnumerable<ClientNotification>>(ex) { Data = new List<ClientNotification>() };
             }
         }
     }

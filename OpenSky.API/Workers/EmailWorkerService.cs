@@ -158,14 +158,20 @@ namespace OpenSky.API.Workers
             {
                 var notifications = await db.Notifications.Where(
                                                 n =>
-                                                    !n.EmailSent &&
+                                                    !n.EmailSent && !n.MarkedForDeletion.HasValue &&
                                                     (!n.Expires.HasValue || n.Expires.Value > DateTime.UtcNow) &&
-                                                    (n.Target == NotificationTarget.Email || n.Target == NotificationTarget.All || (n.EmailFallback.HasValue && n.EmailFallback > DateTime.UtcNow)))
+                                                    (n.Target == NotificationTarget.Email || n.Target == NotificationTarget.All || (n.EmailFallback.HasValue && n.EmailFallback <= DateTime.UtcNow)))
                                             .Include(notification => notification.Recipient)
                                             .ToListAsync();
 
                 foreach (var notification in notifications)
                 {
+                    // Make sure we don't send to users that picked up the notification in one of the clients and this is only fallback
+                    if (notification.Target is NotificationTarget.Client or NotificationTarget.Agent or NotificationTarget.ClientAndAgent && (notification.ClientPickup || notification.AgentPickup))
+                    {
+                        continue;
+                    }
+
                     var emailBody = await System.IO.File.ReadAllTextAsync("EmailTemplates/Notification.html");
                     emailBody = emailBody.Replace("{UserName}", notification.Recipient?.UserName);
                     emailBody = emailBody.Replace("{LogoUrl}", configuration["OpenSky:LogoUrl"]);
@@ -195,7 +201,7 @@ namespace OpenSky.API.Workers
                     try
                     {
                         // ReSharper disable AssignNullToNotNullAttribute
-                        sendMail.SendEmail(configuration["Email:FromAddress"], notification.Recipient?.Email, null, null, "OpenSky Notification", emailBody, true, MessagePriority.Normal);
+                        sendMail.SendEmail(configuration["Email:FromName"], configuration["Email:FromAddress"], notification.Recipient?.Email, null, null, "OpenSky Notification", emailBody, true, MessagePriority.Normal);
 
                         // ReSharper restore AssignNullToNotNullAttribute
                         notification.EmailSent = true;

@@ -106,7 +106,10 @@ namespace OpenSky.API.Helpers
         /// <remarks>
         /// sushi.at, 06/05/2021.
         /// </remarks>
-        /// <param name="from">
+        /// <param name="fromName">
+        /// The from name.
+        /// </param>
+        /// <param name="fromAddress">
         /// The from address.
         /// </param>
         /// <param name="recipients">
@@ -135,7 +138,8 @@ namespace OpenSky.API.Helpers
         /// </param>
         /// -------------------------------------------------------------------------------------------------
         public void SendEmail(
-            [NotNull] string from,
+            [NotNull] string fromName,
+            [NotNull] string fromAddress,
             [NotNull] string recipients,
             [CanBeNull] string recipientsCC,
             [CanBeNull] string recipientsBCC,
@@ -146,7 +150,8 @@ namespace OpenSky.API.Helpers
             [CanBeNull] [ItemNotNull] params MimeEntity[] attachments)
         {
             var message = new MimeMessage();
-            message.From.Add(MailboxAddress.Parse(from));
+            message.From.Add(new MailboxAddress(fromName, fromAddress));
+
             foreach (var to in recipients.Split(','))
             {
                 message.To.Add(MailboxAddress.Parse(to));
