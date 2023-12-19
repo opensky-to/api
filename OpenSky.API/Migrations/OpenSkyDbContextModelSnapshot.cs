@@ -1114,6 +1114,9 @@ namespace OpenSky.API.Migrations
                     b.Property<DateTime?>("Expires")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<Guid>("GroupingID")
+                        .HasColumnType("char(36)");
+
                     b.Property<string>("Message")
                         .IsRequired()
                         .HasMaxLength(500)

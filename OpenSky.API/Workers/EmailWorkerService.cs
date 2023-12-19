@@ -10,7 +10,6 @@ namespace OpenSky.API.Workers
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using System.Web;
 
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Configuration;
@@ -168,10 +167,10 @@ namespace OpenSky.API.Workers
                 foreach (var notification in notifications)
                 {
                     var emailBody = await System.IO.File.ReadAllTextAsync("EmailTemplates/Notification.html");
-                    emailBody = emailBody.Replace("{UserName}", notification.RecipientID);
+                    emailBody = emailBody.Replace("{UserName}", notification.Recipient?.UserName);
                     emailBody = emailBody.Replace("{LogoUrl}", configuration["OpenSky:LogoUrl"]);
                     emailBody = emailBody.Replace("{Sender}", notification.Sender);
-                    emailBody = emailBody.Replace("{Message}", HttpUtility.HtmlEncode(notification.Message));
+                    emailBody = emailBody.Replace("{Message}", notification.Message.Replace("\r\n", "<br/>"));
                     var backgroundColor = "#6e6e6e";
                     switch (notification.Style)
                     {

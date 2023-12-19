@@ -22,6 +22,7 @@ namespace OpenSky.API.Migrations
                     EmailFallback = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     EmailSent = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     Expires = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    GroupingID = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
                     Message = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     RecipientID = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true)

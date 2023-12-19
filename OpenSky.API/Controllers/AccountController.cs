@@ -21,9 +21,11 @@ namespace OpenSky.API.Controllers
     using Microsoft.Extensions.Logging;
 
     using OpenSky.API.DbModel;
+    using OpenSky.API.Helpers;
     using OpenSky.API.Model;
     using OpenSky.API.Model.Account;
     using OpenSky.API.Model.Authentication;
+
     using SkiaSharp;
 
     /// -------------------------------------------------------------------------------------------------
@@ -221,6 +223,34 @@ namespace OpenSky.API.Controllers
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Account/profileImage/{userId}");
                 return new ApiResponse<byte[]>(ex) { Data = Array.Empty<byte>() };
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets the username list of all OpenSky users.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 18/12/2023.
+        /// </remarks>
+        /// <returns>
+        /// The usernames.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [Roles(UserRoles.Moderator, UserRoles.Admin)]
+        [HttpGet("usernames", Name = "GetUserNames")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<string>>>> GetUserNames()
+        {
+            this.logger.LogInformation($"{this.User.Identity?.Name} | GET Account/usernames");
+            try
+            {
+                var users = await this.db.Users.Select(u => u.UserName).ToListAsync();
+                return new ApiResponse<IEnumerable<string>>(users);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Account/usernames");
+                return new ApiResponse<IEnumerable<string>>(ex) { Data = new List<string>() };
             }
         }
 

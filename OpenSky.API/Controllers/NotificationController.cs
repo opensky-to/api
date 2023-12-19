@@ -19,6 +19,7 @@ namespace OpenSky.API.Controllers
 
     using OpenSky.API.DbModel;
     using OpenSky.API.DbModel.Enums;
+    using OpenSky.API.Helpers;
     using OpenSky.API.Model;
     using OpenSky.API.Model.Authentication;
     using OpenSky.API.Model.Notification;
@@ -49,7 +50,7 @@ namespace OpenSky.API.Controllers
         /// The logger.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
-        private readonly ILogger<AirportController> logger;
+        private readonly ILogger<NotificationController> logger;
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
@@ -75,7 +76,7 @@ namespace OpenSky.API.Controllers
         /// The user manager.
         /// </param>
         /// -------------------------------------------------------------------------------------------------
-        public NotificationController(ILogger<AirportController> logger, OpenSkyDbContext db, UserManager<OpenSkyUser> userManager)
+        public NotificationController(ILogger<NotificationController> logger, OpenSkyDbContext db, UserManager<OpenSkyUser> userManager)
         {
             this.logger = logger;
             this.db = db;
@@ -97,7 +98,7 @@ namespace OpenSky.API.Controllers
         /// </returns>
         /// -------------------------------------------------------------------------------------------------
         [HttpPost(Name = "AddNotification")]
-        [Authorize(Roles = UserRoles.Moderator)]
+        [Roles(UserRoles.Moderator, UserRoles.Admin)]
         public async Task<ActionResult<ApiResponse<string>>> AddNotification([FromBody] AddNotification addNotification)
         {
             try
@@ -157,7 +158,7 @@ namespace OpenSky.API.Controllers
                         return new ApiResponse<string> { Message = $"Recipient user with name \"{addNotification.RecipientUserName}\" not found!", IsError = true };
                     }
 
-                    recipients.Add(addNotification.RecipientUserName);
+                    recipients.Add(recipientUser.Id);
                 }
 
                 if (addNotification.RecipientType == NotificationRecipient.Mods)
@@ -165,7 +166,7 @@ namespace OpenSky.API.Controllers
                     var mods = await this.userManager.GetUsersInRoleAsync(UserRoles.Moderator);
                     foreach (var mod in mods)
                     {
-                        recipients.Add(mod.UserName);
+                        recipients.Add(mod.Id);
                     }
                 }
 
@@ -174,25 +175,27 @@ namespace OpenSky.API.Controllers
                     var admins = await this.userManager.GetUsersInRoleAsync(UserRoles.Admin);
                     foreach (var admin in admins)
                     {
-                        recipients.Add(admin.UserName);
+                        recipients.Add(admin.Id);
                     }
                 }
 
                 if (addNotification.RecipientType == NotificationRecipient.Everyone)
                 {
-                    var userNames = await this.db.Users.Select(u => u.UserName).ToListAsync();
-                    foreach (var userName in userNames)
+                    var userIDs = await this.db.Users.Select(u => u.Id).ToListAsync();
+                    foreach (var userID in userIDs)
                     {
-                        recipients.Add(userName);
+                        recipients.Add(userID);
                     }
                 }
 
                 // All checks complete, let's create the notification records
+                var groupingID = Guid.NewGuid();
                 foreach (var recipient in recipients)
                 {
                     var newNotification = new Notification
                     {
                         ID = Guid.NewGuid(),
+                        GroupingID = groupingID,
                         RecipientID = recipient,
                         Message = addNotification.Message,
                         Sender = addNotification.SendAsSystem ? "OpenSky System" : user.UserName,
@@ -302,7 +305,7 @@ namespace OpenSky.API.Controllers
         {
             try
             {
-                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Notification");
+                this.logger.LogTrace($"{this.User.Identity?.Name} | GET Notification");
 
                 // ReSharper disable once AssignNullToNotNullAttribute
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
@@ -318,7 +321,7 @@ namespace OpenSky.API.Controllers
 
                 var notifications = await this.db.Notifications.Where(
                                                   n =>
-                                                      n.RecipientID == user.UserName &&
+                                                      n.RecipientID == user.Id &&
                                                       (!n.Expires.HasValue || n.Expires.Value > DateTime.UtcNow) &&
                                                       (n.Target == target || n.Target == NotificationTarget.ClientAndAgent || n.Target == NotificationTarget.All))
                                               .ToListAsync();

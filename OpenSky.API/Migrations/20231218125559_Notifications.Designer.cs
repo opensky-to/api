@@ -11,7 +11,7 @@ using OpenSky.API;
 namespace OpenSky.API.Migrations
 {
     [DbContext(typeof(OpenSkyDbContext))]
-    [Migration("20231218123709_Notifications")]
+    [Migration("20231218125559_Notifications")]
     partial class Notifications
     {
         /// <inheritdoc />
@@ -1116,6 +1116,9 @@ namespace OpenSky.API.Migrations
 
                     b.Property<DateTime?>("Expires")
                         .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("GroupingID")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Message")
                         .IsRequired()
