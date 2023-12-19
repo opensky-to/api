@@ -128,7 +128,7 @@ namespace OpenSky.API.Controllers
         /// The Google reCAPTCHAv3 service.
         /// </param>
         /// <param name="geoLocateIPService">
-        /// The geo locate IP service.
+        /// The geo-locate IP service.
         /// </param>
         /// <param name="db">
         /// The OpenSky database.
@@ -308,7 +308,7 @@ namespace OpenSky.API.Controllers
             emailBody = emailBody.Replace("{DiscordUrl}", this.configuration["OpenSky:DiscordInviteUrl"]);
 
             //// ReSharper disable once AssignNullToNotNullAttribute
-            this.sendMail.SendEmail(this.configuration["Email:FromAddress"], forgotPassword.Email, null, null, "OpenSky Account Password Reset", emailBody, true, MessagePriority.Normal);
+            this.sendMail.SendEmail(this.configuration["Email:FromName"], this.configuration["Email:FromAddress"], forgotPassword.Email, null, null, "OpenSky Account Password Reset", emailBody, true, MessagePriority.Normal);
 
             return new ApiResponse<string>("Please check your inbox for the password reset email we just sent you.");
         }
@@ -844,7 +844,7 @@ namespace OpenSky.API.Controllers
             emailBody = emailBody.Replace("{DiscordUrl}", this.configuration["OpenSky:DiscordInviteUrl"]);
 
             // ReSharper disable once AssignNullToNotNullAttribute
-            this.sendMail.SendEmail(this.configuration["Email:FromAddress"], registerUser.Email, null, null, "OpenSky Account Email Validation", emailBody, true, MessagePriority.Normal);
+            this.sendMail.SendEmail(this.configuration["Email:FromName"], this.configuration["Email:FromAddress"], registerUser.Email, null, null, "OpenSky Account Email Validation", emailBody, true, MessagePriority.Normal);
 
             return new ApiResponse<string>("Your OpenSky user was created successfully, please check your inbox for a validation email we just sent you.");
         }
@@ -906,7 +906,7 @@ namespace OpenSky.API.Controllers
             emailBody = emailBody.Replace("{DiscordUrl}", this.configuration["OpenSky:DiscordInviteUrl"]);
 
             // ReSharper disable once AssignNullToNotNullAttribute
-            this.sendMail.SendEmail(this.configuration["Email:FromAddress"], resendValidationEmail.Email, null, null, "OpenSky Account Email Validation", emailBody, true, MessagePriority.Normal);
+            this.sendMail.SendEmail(this.configuration["Email:FromName"], this.configuration["Email:FromAddress"], resendValidationEmail.Email, null, null, "OpenSky Account Email Validation", emailBody, true, MessagePriority.Normal);
 
             return new ApiResponse<string>("Please check your inbox for the new validation email we just sent you.");
         }

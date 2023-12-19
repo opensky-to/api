@@ -17,12 +17,15 @@ namespace OpenSky.API.Controllers
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Identity;
     using Microsoft.AspNetCore.Mvc;
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
 
     using OpenSky.API.DbModel;
+    using OpenSky.API.Helpers;
     using OpenSky.API.Model;
     using OpenSky.API.Model.Account;
     using OpenSky.API.Model.Authentication;
+
     using SkiaSharp;
 
     /// -------------------------------------------------------------------------------------------------
@@ -225,6 +228,34 @@ namespace OpenSky.API.Controllers
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets the username list of all OpenSky users.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 18/12/2023.
+        /// </remarks>
+        /// <returns>
+        /// The usernames.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [Roles(UserRoles.Moderator, UserRoles.Admin)]
+        [HttpGet("usernames", Name = "GetUserNames")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<string>>>> GetUserNames()
+        {
+            this.logger.LogInformation($"{this.User.Identity?.Name} | GET Account/usernames");
+            try
+            {
+                var users = await this.db.Users.Select(u => u.UserName).ToListAsync();
+                return new ApiResponse<IEnumerable<string>>(users);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Account/usernames");
+                return new ApiResponse<IEnumerable<string>>(ex) { Data = new List<string>() };
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Get the list of all OpenSky users.
         /// </summary>
         /// <remarks>
@@ -241,7 +272,7 @@ namespace OpenSky.API.Controllers
             this.logger.LogInformation($"{this.User.Identity?.Name} | GET Account/users");
             try
             {
-                var users = this.db.Users.Select(
+                var users = await this.db.Users.Select(
                     u => new User
                     {
                         ID = Guid.Parse(u.Id),
@@ -254,7 +285,7 @@ namespace OpenSky.API.Controllers
                         LastLoginGeo = u.LastLoginGeo,
                         AccessFailedCount = u.AccessFailedCount,
                         Roles = new List<string>()
-                    }).ToList();
+                    }).ToListAsync();
                 foreach (var user in users)
                 {
                     var userManagerUser = await this.userManager.FindByIdAsync(user.ID.ToString());

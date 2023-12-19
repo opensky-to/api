@@ -925,7 +925,7 @@ namespace OpenSky.API.Controllers
         {
             try
             {
-                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Flight");
+                this.logger.LogTrace($"{this.User.Identity?.Name} | GET Flight");
                 var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
                 if (user == null)
                 {
@@ -1201,7 +1201,7 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<IEnumerable<WorldMapFlight>>("Unable to find user record!") { IsError = true, Data = new List<WorldMapFlight>() };
                 }
 
-                var flights = await this.db.Flights.Where(f => f.Started.HasValue && !f.Completed.HasValue).ToListAsync();
+                var flights = await this.db.Flights.Where(f => f.Started.HasValue && !f.Completed.HasValue && !f.Paused.HasValue).ToListAsync();
                 return new ApiResponse<IEnumerable<WorldMapFlight>>(flights.Select(f => new WorldMapFlight(f, this.userManager)));
             }
             catch (Exception ex)
