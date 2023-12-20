@@ -685,11 +685,28 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<IEnumerable<Job>>("Unable to find user record!") { IsError = true, Data = new List<Job>() };
                 }
 
-                var jobs = await this.db.Jobs.Where(j => j.OperatorID == user.Id).ToListAsync();
+                var jobs = await this.db.Jobs
+                                     .Where(j => j.OperatorID == user.Id)
+                                     .Include(job => job.Payloads)
+                                     .ThenInclude(payload => payload.Aircraft)
+                                     .ToListAsync();
 
                 if (!string.IsNullOrEmpty(user.AirlineICAO) && AirlineController.UserHasPermission(user, AirlinePermission.Dispatch))
                 {
                     jobs.AddRange(await this.db.Jobs.Where(f => f.OperatorAirlineID == user.AirlineICAO && (f.AssignedAirlineDispatcherID == null || f.AssignedAirlineDispatcherID == user.Id)).ToListAsync());
+                }
+
+                // Populate aircraft positions for payloads
+                foreach (var job in jobs)
+                {
+                    foreach (var payload in job.Payloads)
+                    {
+                        if (!string.IsNullOrEmpty(payload.AircraftRegistry))
+                        {
+                            payload.AircraftLatitude = payload.Aircraft.Latitude;
+                            payload.AircraftLongitude = payload.Aircraft.Longitude;
+                        }
+                    }
                 }
 
                 return new ApiResponse<IEnumerable<Job>>(jobs);
