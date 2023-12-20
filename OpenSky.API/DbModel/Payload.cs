@@ -94,6 +94,22 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets the aircraft latitude (if currently loaded onto an aircraft).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [NotMapped]
+        public double? AircraftLatitude { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the aircraft longitude (if currently loaded onto an aircraft).
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        [NotMapped]
+        public double? AircraftLongitude { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the aircraft registry the payload is currently loaded on, or NULL if stored at an airport.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
