@@ -176,7 +176,6 @@ namespace OpenSky.API.Controllers
 
                 var linkedAccounts = new LinkedAccounts
                 {
-                    BingMapsKey = user.BingMapsKey,
                     SimbriefUsername = user.SimbriefUsername,
                     VatsimID = user.VatsimID
                 };
@@ -428,7 +427,6 @@ namespace OpenSky.API.Controllers
                     return new ApiResponse<string> { Message = "Unable to find user record!", IsError = true };
                 }
 
-                user.BingMapsKey = linkedAccounts.BingMapsKey;
                 user.SimbriefUsername = linkedAccounts.SimbriefUsername;
                 user.VatsimID = linkedAccounts.VatsimID;
 
