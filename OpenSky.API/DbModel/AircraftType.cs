@@ -196,6 +196,13 @@ namespace OpenSky.API.DbModel
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
+        /// Gets or sets a value indicating whether the automatic registry setting in the simulator is disabled.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public bool DisableAutoRegistry { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
         /// Gets or sets the empty weight in pounds.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
