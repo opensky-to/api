@@ -1190,16 +1190,9 @@ namespace OpenSky.API.Controllers
         [HttpGet("worldMap", Name = "GetWorldMapFlights")]
         public async Task<ActionResult<ApiResponse<IEnumerable<WorldMapFlight>>>> GetWorldMapFlights()
         {
-            // todo Decide in the future if certain user roles are required to see all flights and filter the rest to airline/personal flights? Or should the world map always be busy?
-
             try
             {
-                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Flight/worldMap");
-                var user = await this.userManager.FindByNameAsync(this.User.Identity?.Name);
-                if (user == null)
-                {
-                    return new ApiResponse<IEnumerable<WorldMapFlight>>("Unable to find user record!") { IsError = true, Data = new List<WorldMapFlight>() };
-                }
+                this.logger.LogTrace($"{this.User.Identity?.Name} | GET Flight/worldMap");
 
                 var flights = await this.db.Flights.Where(f => f.Started.HasValue && !f.Completed.HasValue && !f.Paused.HasValue).ToListAsync();
                 return new ApiResponse<IEnumerable<WorldMapFlight>>(flights.Select(f => new WorldMapFlight(f, this.userManager)));
@@ -1208,6 +1201,37 @@ namespace OpenSky.API.Controllers
             {
                 this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Flight/worldMap");
                 return new ApiResponse<IEnumerable<WorldMapFlight>>(ex) { Data = new List<WorldMapFlight>() };
+            }
+        }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Get the flight trail for the specified flight on the world map.
+        /// </summary>
+        /// <remarks>
+        /// sushi.at, 23/12/2023.
+        /// </remarks>
+        /// <param name="flightID">
+        /// Identifier for the flight.
+        /// </param>
+        /// <returns>
+        /// The world map flight trail.
+        /// </returns>
+        /// -------------------------------------------------------------------------------------------------
+        [HttpGet("worldMap/trail/{flightID:guid}", Name = "GetWorldMapFlightTrail")]
+        public async Task<ActionResult<ApiResponse<WorldMapFlightTrail>>> GetWorldMapFlightTrail(Guid flightID)
+        {
+            try
+            {
+                this.logger.LogInformation($"{this.User.Identity?.Name} | GET Flight/worldMap/trail/{flightID}");
+
+                var flight = await this.db.Flights.SingleOrDefaultAsync(f => f.ID == flightID && f.Started.HasValue && !f.Completed.HasValue && !f.Paused.HasValue);
+                return new ApiResponse<WorldMapFlightTrail>(new WorldMapFlightTrail(flight, this.logger));
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"{this.User.Identity?.Name} | GET Flight/worldMap/trail/{flightID}");
+                return new ApiResponse<WorldMapFlightTrail>(ex);
             }
         }
 

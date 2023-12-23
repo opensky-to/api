@@ -6,6 +6,8 @@
 
 namespace OpenSky.API.Model.Flight
 {
+    using System;
+
     using Microsoft.AspNetCore.Identity;
 
     using OpenSky.API.DbModel;
@@ -37,6 +39,7 @@ namespace OpenSky.API.Model.Flight
         /// -------------------------------------------------------------------------------------------------
         public WorldMapFlight(Flight flight, UserManager<OpenSkyUser> userManager)
         {
+            this.ID = flight.ID;
             this.FullFlightNumber = flight.FullFlightNumber;
             this.AircraftRegistry = flight.AircraftRegistry;
             if (!string.IsNullOrEmpty(flight.Aircraft.Name))
@@ -102,7 +105,7 @@ namespace OpenSky.API.Model.Flight
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Gets or sets the Destination for the.
+        /// Gets or sets the destination.
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public string Destination { get; set; }
@@ -134,6 +137,13 @@ namespace OpenSky.API.Model.Flight
         /// </summary>
         /// -------------------------------------------------------------------------------------------------
         public double Heading { get; set; }
+
+        /// -------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Gets or sets the identifier of the flight.
+        /// </summary>
+        /// -------------------------------------------------------------------------------------------------
+        public Guid ID { get; set; }
 
         /// -------------------------------------------------------------------------------------------------
         /// <summary>
