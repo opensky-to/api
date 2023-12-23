@@ -47,6 +47,29 @@ namespace OpenSky.API.Model.Flight
         {
             try
             {
+                if (!string.IsNullOrEmpty(flight.AutoSaveLog))
+                {
+                    var sourceStream = new MemoryStream(Convert.FromBase64String(flight.AutoSaveLog));
+                    var xmlStream = new MemoryStream();
+                    using (var gzip = new GZipStream(sourceStream, CompressionMode.Decompress))
+                    {
+                        gzip.CopyTo(xmlStream);
+                    }
+
+                    xmlStream.Seek(0, SeekOrigin.Begin);
+                    var xmlText = Encoding.UTF8.GetString(xmlStream.ToArray());
+
+                    var flightLogXml = new FlightLogXML.FlightLog();
+                    flightLogXml.RestoreFlightLog(XElement.Parse(xmlText));
+
+                    this.PositionReports = flightLogXml.PositionReports.Select(pr => new WorldMapFlightPositionReport
+                    {
+                        Latitude = pr.Latitude,
+                        Longitude = pr.Longitude,
+                        Altitude = pr.Altitude
+                    }).ToList();
+                }
+
                 if (!string.IsNullOrEmpty(flight.FlightLog))
                 {
                     var sourceStream = new MemoryStream(Convert.FromBase64String(flight.FlightLog));
